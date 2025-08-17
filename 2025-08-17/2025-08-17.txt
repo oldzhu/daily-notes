@@ -1,0 +1,15 @@
+two things thought today
+
+1. how to use the latest LLVM toolchain built by buildroot such as clang to build .net runtime
+2. how to fix the compilation erros which seems caused by could not find headers
+
+action:
+
+-cmakeargs "-DCMAKE_CXX_COMPILER=$hostlldbpath/llvm/buildroot-build/bin/clang++" \
+-cmakeargs "-DCMAKE_C_COMPILER=$hostlldbpath/llvm/buildroot-build/bin/clang"
+
+issue 1:
+
+  /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/libs/System.Net.Security.Native/pal_gssapi.c:247:11: error: implicit conversion when initializing 'char *' with an expression of type 'void *' is not permitted in C++ [-Werror,-Wimplicit-void-ptr-cast]
+    247 |     char* ptrSlash = memchr(inputName, '/', inputNameLen);
+        |           ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

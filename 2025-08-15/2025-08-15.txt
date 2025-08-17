@@ -1,0 +1,127 @@
+issue 1
+
+wsl: A localhost proxy configuration was detected but not mirrored into WSL. WSL in NAT mode does not support localhost proxies.
+
+troubleshooting:
+
+action: 
+.wslconfig
+[wsl2]
+networkingMode=mirrored
+
+resatarted wsl
+
+result:
+
+Error response from daemon: failed to resolve reference "mcr.microsoft.com/vscode/devcontainers/dotnet:0-6.0": failed to do request: Head "https://mcr.microsoft.com/v2/vscode/devcontainers/dotnet/manifests/0-6.0": proxyconnect tcp: dial tcp 127.0.0.1:10808: connect: connection refused
+
+issue 2
+
+  cd /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release/x64/pal/src && /usr/bin/clang++-12 -DCORECLR -DCROSS_COMPILE -DDISABLE_CONTRACTS -DHOST_64BIT -DHOST_AMD64 -DHOST_UNIX -DLP64COMPATIBLE -DNDEBUG -DPIC -DTARGET_64BIT -DTARGET_ARM64 -DTARGET_LINUX -DTARGET_UNIX -DURTBLDENV_FRIENDLY=Retail -DXSTATE_SUPPORTED -D_FILE_OFFSET_BITS=64 -D_TIME_BITS=64 -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/../inc/rt -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release/x64/pal/src -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/../inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/include -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/include/tdep -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/external/libunwind/include -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/external/libunwind/include/tdep -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/include -O3 -DNDEBUG -std=gnu++11 -fPIC -O3 -Wall -Wno-null-conversion -glldb -fno-omit-frame-pointer -fwrapv -fstack-protector-strong -Werror -Wno-unused-variable -Wno-unused-value -Wno-unused-function -Wno-tautological-compare -Wno-unknown-pragmas -Wimplicit-fallthrough -Wvla -Wno-invalid-offsetof -Wno-unused-but-set-variable -ffp-contract=off -fno-rtti -Wno-unknown-warning-option -ferror-limit=4096 -Wno-unused-private-field -Wno-constant-logical-operand -Wno-pragma-pack -Wno-incompatible-ms-struct -Wno-reserved-identifier -Wno-unsafe-buffer-usage -Wno-single-bit-bitfield-constant-conversion -Wno-cast-function-type-strict -Wno-switch-default -Wno-nontrivial-memaccess -fsigned-char -fvisibility=hidden -ffunction-sections -fexceptions -MD -MT pal/src/CMakeFiles/coreclrpal_objects.dir/com/guid.cpp.o -MF CMakeFiles/coreclrpal_objects.dir/com/guid.cpp.o.d -o CMakeFiles/coreclrpal_objects.dir/com/guid.cpp.o -c /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/com/guid.cpp
+  
+  In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/com/guid.cpp:6:
+  In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/../inc/rt/guiddef.h:12:
+  In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/../inc/rt/palrt.h:121:
+  In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/inc/pal.h:44:
+  In file included from /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/include/c++/15.1.0/math.h:36:
+  In file included from /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/include/c++/15.1.0/cmath:55:
+  In file included from /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/math.h:40:
+  /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/bits/math-vector.h:160:25: error: '__neon_vector_type__' attribute is not supported on targets missing 'neon' or 'mve'; specify an appropriate -march= or -mcpu=
+  typedef __attribute__ ((__neon_vector_type__ (4))) float __f32x4_t;
+                          ^
+  /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/bits/math-vector.h:161:25: error: '__neon_vector_type__' attribute is not supported on targets missing 'neon' or 'mve'; specify an appropriate -march= or -mcpu=
+  typedef __attribute__ ((__neon_vector_type__ (2))) double __f64x2_t;
+
+troubleshooting:
+it is impacted by the below environment setting in build_dotnetruntime.sh
+
+export CPLUS_INCLUDE_PATH="$2/$TOOLCHAIN/include/c++/$cplusplusver:$2/$TOOLCHAIN/include/c++/$cplusplusver/$TOOLCHAIN:$2/$TOOLCHAIN/sysroot/usr/include"
+export C_INCLUDE_PATH="$2/$TOOLCHAIN/sysroot/usr/include"
+
+the problem is 
+if comment the lines then it will give the error when building the runtime for the target linux-arm64
+if keep the lines then it will give the error when building the runtime components for the host arch such as linux-x64 or win-x64
+
+for target arch
+...
+  Executing "/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/build-runtime.sh" -cmakeargs " --debug-trycompile -DCMAKE_VERBOSE_MAKEFILE=ON" -arm64 -release -cross -os linux -pgodatapath "/home/oldzhu/.nuget/packages/optimization.linux-arm64.pgo.coreclr/1.0.0-prerelease.25363.1" -targetrid linux-arm64 -cmakeargs "-DCLR_DOTNET_RID=linux-arm64" -cmakeargs "-DCLR_DOTNET_HOST_PATH=/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/.dotnet/dotnet" -cmakeargs "-DCDAC_BUILD_TOOL_BINARY_PATH=/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/bin/coreclr/linux.arm64.Release/cdac-build-tool/cdac-build-tool.dll"
+  Commencing CoreCLR Repo build
+  __TargetRid: linux-arm64
+  Setting up directories for build
+  Checking prerequisites...
+  Commencing build of "install" target in "CoreCLR component" for linux.arm64.Release in /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release
+  Invoking "/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/eng/native/gen-buildsys.sh" "/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr" "/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release" arm64 linux clang Release ""  -DCLR_CMAKE_PGO_INSTRUMENT=0 -DCLR_CMAKE_OPTDATA_PATH=/home/oldzhu/.nuget/packages/optimization.linux-arm64.pgo.coreclr/1.0.0-prerelease.25363.1 -DCLR_CMAKE_PGO_OPTIMIZE=1 -DCLI_CMAKE_FALLBACK_OS="linux" -DFEATURE_DISTRO_AGNOSTIC_SSL=1 -DCDAC_BUILD_TOOL_BINARY_PATH=/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/bin/coreclr/linux.arm64.Release/cdac-build-tool/cdac-build-tool.dll -DCLR_DOTNET_HOST_PATH=/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/.dotnet/dotnet -DCLR_DOTNET_RID=linux-arm64  --debug-trycompile -DCMAKE_VERBOSE_MAKEFILE=ON
+...
+
+for host arch
+...
+  Executing "/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/build-runtime.sh" -cmakeargs "--debug-trycompile -DCMAKE_VERBOSE_MAKEFILE=ON -DCLR_CROSS_COMPONENTS_BUILD=1" -arm64 -release -os linux -hostarch x64 -hostos linux -targetrid linux-arm64 -cmakeargs "-DCLR_DOTNET_RID=linux-arm64" -subdir x64 -cmakeargs "-DCLR_DOTNET_HOST_PATH=/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/.dotnet/dotnet" -component alljits
+  Commencing CoreCLR Repo build
+  __TargetRid: linux-arm64
+  Setting up directories for build
+  Checking prerequisites...
+  Commencing build of "  alljits " target in "CoreCLR component" for linux.arm64.Release in /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release/x64
+  Invoking "/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/eng/native/gen-buildsys.sh" "/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr" "/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release/x64" x64 linux clang Release ""  -DCLR_CMAKE_TARGET_ARCH=arm64 -DCLR_CMAKE_PGO_INSTRUMENT=0 -DCLR_CMAKE_OPTDATA_PATH= -DCLR_CMAKE_PGO_OPTIMIZE=0 -DCLI_CMAKE_FALLBACK_OS="linux" -DFEATURE_DISTRO_AGNOSTIC_SSL=1 -DCLR_DOTNET_HOST_PATH=/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/.dotnet/dotnet -DCLR_DOTNET_RID=linux-arm64 --debug-trycompile -DCMAKE_VERBOSE_MAKEFILE=ON -DCLR_CROSS_COMPONENTS_BUILD=1
+...
+
+Modify src/coreclr/build-runtime.sh to set CPLUS_INCLUDE_PATH and C_INCLUDE_PATH only when build for target arch?
+May better direction is to move to let buildroot to deploy the c++/c header into th sysroot.. 
+
+cp -r /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/include/c++/15.1.0/ /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/local/include
+ cp -r /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/include/c++/15.1.0/aarch64-buildroot-linux-gnu/ /home/oldzhu/buildroot/ou
+tput/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/aarch64-buildroot-linux-gnu
+cp -r /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/include/c++/15.1.0/aarch64-buildroot-linux-gnu/ /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/include
+
+issue 3
+
+cd /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/external/libunwind && /usr/bin/clang-12 --target=aarch64-buildroot-linux-gnu --gcc-toolchain=/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr --sysroot=/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot -DDISABLE_CONTRACTS -DHAVE_CONFIG_H=1 -DHAVE_DL_ITERATE_PHDR=1 -DHAVE___THREAD=0 -DHOST_64BIT -DHOST_ARM64 -DHOST_UNIX -DNDEBUG -DPACKAGE_BUGREPORT=\"\" -DPACKAGE_STRING=\"\" -DTARGET_64BIT -DTARGET_ARM64 -DTARGET_LINUX -DTARGET_UNIX -DURTBLDENV_FRIENDLY=Retail -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -D_TIME_BITS=64 -Dasm=__asm__ -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/external/libunwind -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind_extras -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/../inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/include -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/include/tdep -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/external/libunwind/include -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/external/libunwind/include/tdep -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/src -O3 -DNDEBUG -std=gnu11 -fPIC -O3 -Wall -Wno-null-conversion -glldb -fno-omit-frame-pointer -fwrapv -fstack-protector-strong -Werror -Wno-unused-variable -Wno-unused-value -Wno-unused-function -Wno-tautological-compare -Wno-unknown-pragmas -Wimplicit-fallthrough -Wno-unused-but-set-variable -ffp-contract=off -Wno-unknown-warning-option -ferror-limit=4096 -Wno-unused-private-field -Wno-constant-logical-operand -Wno-pragma-pack -Wno-incompatible-ms-struct -Wno-reserved-identifier -Wno-unsafe-buffer-usage -Wno-single-bit-bitfield-constant-conversion -Wno-cast-function-type-strict -Wno-switch-default -fsigned-char -fvisibility=hidden -ffunction-sections -fexceptions -Wno-format -Wno-format-security -Wno-implicit-fallthrough -Wno-header-guard -Wno-absolute-value -Wno-incompatible-pointer-types -MD -MT /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/external/libunwind/CMakeFiles/libunwind.dir/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/src/aarch64/is_fpreg.c.o -MF CMakeFiles/libunwind.dir/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/src/aarch64/is_fpreg.c.o.d -o CMakeFiles/libunwind.dir/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/src/aarch64/is_fpreg.c.o -c /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/src/aarch64/is_fpreg.c
+
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/src/aarch64/is_fpreg.c:26:
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/include/libunwind_i.h:425:
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/external/libunwind/include/tdep/libunwind_i.h:7:
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/include/tdep-aarch64/libunwind_i.h:316:8: error: unknown type name 'atomic_bool'
+extern atomic_bool tdep_init_done;
+       ^
+1 error generated.
+
+issue 4
+
+cd /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/external/libunwind && /usr/bin/clang-12 --target=aarch64-buildroot-linux-gnu --gcc-toolchain=/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr --sysroot=/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot -DDISABLE_CONTRACTS -DHAVE_CONFIG_H=1 -DHAVE_DL_ITERATE_PHDR=1 -DHAVE___THREAD=0 -DHOST_64BIT -DHOST_ARM64 -DHOST_UNIX -DNDEBUG -DPACKAGE_BUGREPORT=\"\" -DPACKAGE_STRING=\"\" -DTARGET_64BIT -DTARGET_ARM64 -DTARGET_LINUX -DTARGET_UNIX -DURTBLDENV_FRIENDLY=Retail -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -D_TIME_BITS=64 -Dasm=__asm__ -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/external/libunwind -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind_extras -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/../inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/include -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/include/tdep -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/external/libunwind/include -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/external/libunwind/include/tdep -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/src -O3 -DNDEBUG -std=gnu11 -fPIC -O3 -Wall -Wno-null-conversion -glldb -fno-omit-frame-pointer -fwrapv -fstack-protector-strong -Werror -Wno-unused-variable -Wno-unused-value -Wno-unused-function -Wno-tautological-compare -Wno-unknown-pragmas -Wimplicit-fallthrough -Wno-unused-but-set-variable -ffp-contract=off -Wno-unknown-warning-option -ferror-limit=4096 -Wno-unused-private-field -Wno-constant-logical-operand -Wno-pragma-pack -Wno-incompatible-ms-struct -Wno-reserved-identifier -Wno-unsafe-buffer-usage -Wno-single-bit-bitfield-constant-conversion -Wno-cast-function-type-strict -Wno-switch-default -fsigned-char -fvisibility=hidden -ffunction-sections -fexceptions -Wno-format -Wno-format-security -Wno-implicit-fallthrough -Wno-header-guard -Wno-absolute-value -Wno-incompatible-pointer-types -MD -MT /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/external/libunwind/CMakeFiles/libunwind.dir/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/src/mi/mempool.c.o -MF CMakeFiles/libunwind.dir/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/src/mi/mempool.c.o.d -o CMakeFiles/libunwind.dir/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/src/mi/mempool.c.o -c /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/src/mi/mempool.c
+
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/include/libunwind_i.h:425:
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/external/libunwind/include/tdep/libunwind_i.h:7:
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/include/tdep-aarch64/libunwind_i.h:316:8: error: unknown type name 'atomic_bool'
+extern atomic_bool tdep_init_done;
+       ^
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/src/mi/mempool.c:57:9: error: implicit declaration of function 'atomic_fetch_add' is invalid in C99 [-Werror,-Wimplicit-function-declaration]
+  pos = atomic_fetch_add (&sos_memory_freepos, size);
+        ^
+2 errors generated.
+
+troubleshooting:
+
+oldzhu@oldzhu-box-999:~/buildroot$ /usr/bin/clang-12 --target=aarch64-buildroot-linux-gnu --gcc-toolchain=/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr --sysroot=/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot -v -E -x c /dev/null
+Ubuntu clang version 12.0.1-19ubuntu3
+Target: aarch64-buildroot-linux-gnu
+Thread model: posix
+InstalledDir: /usr/bin
+ (in-process)
+ "/usr/lib/llvm-12/bin/clang" -cc1 -triple aarch64-buildroot-linux-gnu -E -disable-free -disable-llvm-verifier -discard-value-names -main-file-name null -mrelocation-model static -mframe-pointer=non-leaf -fmath-errno -fno-rounding-math -mconstructor-aliases -munwind-tables -target-cpu generic -target-feature +neon -target-abi aapcs -fallow-half-arguments-and-returns -fno-split-dwarf-inlining -debugger-tuning=gdb -v -resource-dir /usr/lib/llvm-12/lib/clang/12.0.1 -isysroot /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot -internal-isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/local/include -internal-isystem /usr/lib/llvm-12/lib/clang/12.0.1/include -internal-externc-isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/include -internal-externc-isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include -fdebug-compilation-dir /home/oldzhu/buildroot -ferror-limit 19 -fno-signed-char -fgnuc-version=4.2.1 -fcolor-diagnostics -faddrsig -o - -x c /dev/null
+clang -cc1 version 12.0.1 based upon LLVM 12.0.1 default target x86_64-pc-linux-gnu
+#include "..." search starts here:
+#include <...> search starts here:
+ /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/local/include
+ /usr/lib/llvm-12/lib/clang/12.0.1/include
+ /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/include
+ /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include
+End of search list.
+# 1 "/dev/null"
+# 1 "<built-in>" 1
+# 1 "<built-in>" 3
+# 361 "<built-in>" 3
+# 1 "<command line>" 1
+# 1 "<built-in>" 2
+# 1 "/dev/null" 2
+
+action:
+need to review https://github.com/dotnet/runtime/blob/c2069dffd63c84b1a10495423e741b31468133ae/eng/common/cross/build-rootfs.sh and compare the difference with buildroot
