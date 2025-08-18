@@ -13,3 +13,18 @@ issue 1:
   /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/libs/System.Net.Security.Native/pal_gssapi.c:247:11: error: implicit conversion when initializing 'char *' with an expression of type 'void *' is not permitted in C++ [-Werror,-Wimplicit-void-ptr-cast]
     247 |     char* ptrSlash = memchr(inputName, '/', inputNameLen);
         |           ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+action:
+
+export EXTRA_CFLAGS="-Wno-jump-misses-init -Wno-implicit-void-ptr-cast -Wno-implicit-int-enum-cast"
+export EXTRA_CXXFLAGS="-Wno-jump-misses-init -Wno-implicit-void-ptr-cast -Wno-implicit-int-enum-cast"
+
+issue 2:
+
+  In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/src/os-linux.c:33:
+  In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/include/libunwind_i.h:425:
+  In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/src/mi/init.c:In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/external/libunwind/include/tdep/libunwind_i.h:7:
+  /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/include/tdep-aarch64/libunwind_i.h:31626:8: error: :
+  In file included from unknown type name 'atomic_bool'
+
+action:

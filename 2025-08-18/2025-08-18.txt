@@ -1,0 +1,7 @@
+forked and cloned 4 new repos
+
+https://github.com/go-delve/delve -  go debugging
+https://github.com/rr-debugger/rr - linux record and replay
+https://github.com/apoorvnandan/tensor.h - tiny tensor library in c
+https://github.com/adam-maj/tiny-gpu - tiny gpu in Verilog
+
