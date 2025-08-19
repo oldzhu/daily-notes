@@ -1,0 +1,92 @@
+oldzhu@oldzhu-box-999:~/daily-notes$ /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/bin/clang++ --target=aarch64-buildroot-linux-gnu --gcc-toolchain=/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr --sysroot=/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot -isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/local/include -isystem /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include -isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/include -isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include -v -H -c ~/code/atomic_test/atomic_test.c
+clang version 22.0.0git
+Target: aarch64-buildroot-linux-gnu
+Thread model: posix
+InstalledDir: /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/bin
+clang++: warning: treating 'c' input as 'c++' when in C++ mode, this behavior is deprecated [-Wdeprecated]
+ (in-process)
+ "/home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/bin/clang-22" -cc1 -triple aarch64-buildroot-linux-gnu -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name atomic_test.c -mrelocation-model pic -pic-level 2 -pic-is-pie -mframe-pointer=non-leaf -fmath-errno -ffp-contract=on -fno-rounding-math -mconstructor-aliases -funwind-tables=2 -enable-tlsdesc -target-cpu generic -target-feature +v8a -target-feature +fp-armv8 -target-feature +neon -target-abi aapcs -debugger-tuning=gdb -fdebug-compilation-dir=/home/oldzhu/daily-notes -v -H -sys-header-deps -fcoverage-compilation-dir=/home/oldzhu/daily-notes -resource-dir /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22 -isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/local/include -isystem /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include -isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/include -isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include -isysroot /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot -internal-isystem /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include -internal-isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/local/include -internal-externc-isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/include -internal-externc-isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include -fdeprecated-macro -ferror-limit 19 -fmessage-length=179 -fno-signed-char -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -fcxx-exceptions -fexceptions -fcolor-diagnostics -target-feature -fmv -faddrsig -D__GCC_HAVE_DWARF2_CFI_ASM=1 -o atomic_test.o -x c++ /home/oldzhu/code/atomic_test/atomic_test.c
+clang -cc1 version 22.0.0git based upon LLVM 22.0.0git default target x86_64-buildroot-linux-gnu
+ignoring duplicate directory "/home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include"
+ignoring duplicate directory "/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/local/include"
+ignoring duplicate directory "/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/include"
+ignoring duplicate directory "/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include"
+#include "..." search starts here:
+#include <...> search starts here:
+ /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/local/include
+ /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include
+ /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/include
+ /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include
+End of search list.
+. /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/local/include/stdatomic.h
+.. /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/local/include/bits/version.h
+... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/include/bits/c++config.h
+.... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/include/bits/os_defines.h
+..... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/features.h
+...... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/features-time64.h
+....... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/bits/wordsize.h
+....... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/bits/timesize.h
+...... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/stdc-predef.h
+...... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/sys/cdefs.h
+....... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/bits/wordsize.h
+....... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/bits/long-double.h
+...... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/gnu/stubs.h
+....... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/bits/wordsize.h
+....... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/gnu/stubs-lp64.h
+.... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/include/bits/cpu_defines.h
+.... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/local/include/pstl/pstl_config.h
+.. /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/stdatomic.h
+... /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/stddef.h
+.... /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/__stddef_header_macro.h
+.... /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/__stddef_ptrdiff_t.h
+.... /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/__stddef_size_t.h
+.... /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/__stddef_wchar_t.h
+.... /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/__stddef_null.h
+.... /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/__stddef_nullptr_t.h
+.... /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/__stddef_max_align_t.h
+.... /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/__stddef_offsetof.h
+... /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/stdint.h
+.... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/stdint.h
+..... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/bits/libc-header-start.h
+..... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/bits/types.h
+...... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/bits/wordsize.h
+...... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/bits/timesize.h
+...... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/bits/typesizes.h
+...... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/bits/time64.h
+..... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/bits/wchar.h
+..... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/bits/wordsize.h
+..... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/bits/stdint-intn.h
+..... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/bits/stdint-uintn.h
+..... /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/bits/stdint-least.h
+
+oldzhu@oldzhu-box-999:~/daily-notes$ /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/bin/clang --target=aarch64-buildroot-linux-gnu --gcc-toolchain=/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr --sysroot=/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot -D__STDC_HOSTED__=0 -v
+-H -c ~/code/atomic_test/atomic_test.c
+clang version 22.0.0git
+Target: aarch64-buildroot-linux-gnu
+Thread model: posix
+InstalledDir: /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/bin
+ (in-process)
+ "/home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/bin/clang-22" -cc1 -triple aarch64-buildroot-linux-gnu -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name atomic_test.c -mrelocation-model pic -pic-level 2 -pic-is-pie -mframe-pointer=non-leaf -fmath-errno -ffp-contract=on -fno-rounding-math -mconstructor-aliases -funwind-tables=2 -enable-tlsdesc -target-cpu generic -target-feature +v8a -target-feature +fp-armv8 -target-feature +neon -target-abi aapcs -debugger-tuning=gdb -fdebug-compilation-dir=/home/oldzhu/daily-notes -v -H -sys-header-deps -fcoverage-compilation-dir=/home/oldzhu/daily-notes -resource-dir /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22 -D __STDC_HOSTED__=0 -isysroot /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot -internal-isystem /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include -internal-isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/local/include -internal-externc-isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/include -internal-externc-isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include -ferror-limit 19 -fmessage-length=179 -fno-signed-char -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -fcolor-diagnostics -target-feature -fmv -faddrsig -D__GCC_HAVE_DWARF2_CFI_ASM=1 -o atomic_test.o -x c /home/oldzhu/code/atomic_test/atomic_test.c
+clang -cc1 version 22.0.0git based upon LLVM 22.0.0git default target x86_64-buildroot-linux-gnu
+#include "..." search starts here:
+#include <...> search starts here:
+ /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include
+ /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/local/include
+ /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/include
+ /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include
+End of search list.
+In file included from <built-in>:423:
+<command line>:1:9: warning: redefining builtin macro [-Wbuiltin-macro-redefined]
+    1 | #define __STDC_HOSTED__ 0
+      |         ^
+. /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/stdatomic.h
+.. /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/stddef.h
+... /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/__stddef_header_macro.h
+... /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/__stddef_ptrdiff_t.h
+... /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/__stddef_size_t.h
+... /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/__stddef_wchar_t.h
+... /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/__stddef_null.h
+... /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/__stddef_max_align_t.h
+... /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/__stddef_offsetof.h
+.. /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/stdint.h
+1 warning generated.

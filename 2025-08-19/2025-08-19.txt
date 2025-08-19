@@ -1,0 +1,125 @@
+🔍 ​​Critical Issues in Preprocessed Output​​
+1.
+​​Conflicting stdatomic.hInclusions​​:
+
+•
+​​Clang's Built-in Header​​ (Correct for C):
+
+#include "/home/oldzhu/.../llvm/buildroot-build/lib/clang/22/include/stdatomic.h"
+
+This defines atomic_boolcorrectly for C: typedef _Atomic(_Bool) atomic_bool;.
+
+•
+​​Sysroot's C++-Oriented Header​​ (Problematic):
+
+#include "/home/oldzhu/.../sysroot/usr/local/include/stdatomic.h"
+
+This header depends on C++ headers (<atomic>, bits/c++config.h), making it ​​invalid for C compilation​​ .
+
+2.
+​​Include Order Mismatch​​:
+
+The sysroot path (usr/local/include/) appears ​​earlier​​ in the include search path than Clang's built-in path (lib/clang/22/include/), causing the compiler to prioritize the broken C++ header over Clang's C-compatible one .
+
+3.
+​​C++ Contamination in C Code​​:
+
+The sysroot's stdatomic.h(line 8666) explicitly includes C++-only headers:
+
+#include <bits/c++config.h>  // C++-specific macros
+#include <bits/version.h>     // Requires C++ namespace resolution
+These headers contain #pragmadirectives and macros incompatible with C, breaking the atomic_booldefinition in a C context
+
+action:
+
+oldzhu@oldzhu-box-999:~/daily-notes$ rm -rf /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/local
+oldzhu@oldzhu-box-999:~/daily-notes$ rm -rf /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/include
+
+to test
+
+issue 1:
+
+  [ 89%] Built target clrjit_universal_arm64_arm64
+  In file included from <built-in>:1:
+  In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release/debug/di/CMakeFiles/cordbdi.dir/cmake_pch.hxx:5:
+  In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/debug/di/stdafx.h:32:
+  /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/debug/di/rspriv.h:6380:36: error: in-class initializer for static data member is not a constant expression
+   6380 |     static const CorDebugUserState kInvalidUserState = CorDebugUserState(-1);
+        |                                    ^                   ~~~~~~~~~~~~~~~~~~~~~
+
+oldzhu@oldzhu-box-999:~/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release/debug/di$ cd /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release/debug/di && /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/bin/clang++ --target=aarch64-buildroot-linux-gnu --gcc-toolchain=/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr --sysroot=/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot -DCOMPILER_SUPPORTS_W_RESERVED_IDENTIFIER -DDBI_COMPILE -DDEBUGGING_SUPPORTED -DDISABLE_CONTRACTS -DFEATURE_BASICFREEZE -DFEATURE_CODE_VERSIONING -DFEATURE_COLLECTIBLE_TYPES -DFEATURE_COMWRAPPERS -DFEATURE_CORECLR -DFEATURE_CORECLR_FLUSH_INSTRUCTION_CACHE_TO_PROTECT_STUB_READS -DFEATURE_DBGIPC_TRANSPORT_DI -DFEATURE_DBGIPC_TRANSPORT_VM -DFEATURE_DEFAULT_INTERFACES -DFEATURE_EH_FUNCLETS -DFEATURE_EMULATE_SINGLESTEP -DFEATURE_EVENTSOURCE_XPLAT -DFEATURE_EVENT_TRACE -DFEATURE_HIJACK -DFEATURE_INSTANTIATINGSTUB_AS_IL -DFEATURE_JIT -DFEATURE_MANUALLY_MANAGED_CARD_BUNDLES -DFEATURE_METADATA_CUSTOM_DATA_SOURCE -DFEATURE_METADATA_DEBUGGEE_DATA_SOURCE -DFEATURE_METADATA_LOAD_TRUSTED_IMAGES -DFEATURE_METADATA_UPDATER -DFEATURE_MULTICOREJIT -DFEATURE_NO_HOST -DFEATURE_PAL_ANSI -DFEATURE_PERFMAP -DFEATURE_PERFTRACING -DFEATURE_PGO -DFEATURE_PORTABLE_SHUFFLE_THUNKS -DFEATURE_PROFAPI_ATTACH_DETACH -DFEATURE_READYTORUN -DFEATURE_REJIT -DFEATURE_REMAP_FUNCTION -DFEATURE_REMOTE_PROC_MEM -DFEATURE_STANDALONE_GC -DFEATURE_SVR_GC -DFEATURE_SYMDIFF -DFEATURE_TIERED_COMPILATION -DFEATURE_USE_ASM_GC_WRITE_BARRIERS -DFEATURE_USE_SOFTWARE_WRITE_WATCH_FOR_GC_HEAP -DFEATURE_VIRTUAL_STUB_DISPATCH -DHOST_64BIT -DHOST_ARM64 -DHOST_UNIX -DNDEBUG -DPROFILING_SUPPORTED -DTARGET_64BIT -DTARGET_ARM64 -DTARGET_LINUX -DTARGET_UNIX -DUNICODE -DURTBLDENV_FRIENDLY=Retail -D_FILE_OFFSET_BITS=64 -D_SECURE_SCL=0 -D_TIME_BITS=64 -D_UNICODE -I/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/include/c++/15.1.0/aarch64-buildroot-linux-gnu -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/prebuilt/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/inc/rt -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/safecrt -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/debug/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/debug/inc/arm64 -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/debug/inc/dump -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/md/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/classlibnative/bcltype -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/classlibnative/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/hosts/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/minipal -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/nativeresources -Wno-jump-misses-init -Wno-implicit-void-ptr-cast -Wno-implicit-int-enum-cast -O3 -DNDEBUG -std=gnu++11 -fPIC -O3 -Wall -Wno-null-conversion -glldb -fno-omit-frame-pointer -fwrapv -fstack-protector-strong -Werror -Wno-unused-variable -Wno-unused-value -Wno-unused-function -Wno-tautological-compare -Wno-unknown-pragmas -Wimplicit-fallthrough -Wvla -Wno-invalid-offsetof -Wno-unused-but-set-variable -ffp-contract=off -fno-rtti -Wno-unknown-warning-option -ferror-limit=4096 -Wno-unused-private-field -Wno-constant-logical-operand -Wno-pragma-pack -Wno-incompatible-ms-struct -Wno-reserved-identifier -Wno-unsafe-buffer-usage -Wno-single-bit-bitfield-constant-conversion -Wno-cast-function-type-strict -Wno-switch-default -Wno-nontrivial-memaccess -fsigned-char -fvisibility=hidden -ffunction-sections -Wno-null-arithmetic -Wno-sync-alignment -Winvalid-pch -fpch-instantiate-templates -Xclang -emit-pch -Xclang -include -Xclang /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release/debug/di/CMakeFiles/cordbdi.dir/cmake_pch.hxx -x c++-header -MD -MT debug/di/CMakeFiles/cordbdi.dir/cmake_pch.hxx.pch -MF CMakeFiles/cordbdi.dir/cmake_pch.hxx.pch.d -o CMakeFiles/cordbdi.dir/cmake_pch.hxx.pch -c /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release/debug/di/CMakeFiles/cordbdi.dir/cmake_pch.hxx.cxx
+In file included from <built-in>:1:
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release/debug/di/CMakeFiles/cordbdi.dir/cmake_pch.hxx:5:
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/debug/di/stdafx.h:32:
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/debug/di/rspriv.h:6380:36: error: in-class initializer for static data member is
+      not a constant expression
+ 6380 |     static const CorDebugUserState kInvalidUserState = CorDebugUserState(-1);
+      |                                    ^                   ~~~~~~~~~~~~~~~~~~~~~
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/debug/di/rspriv.h:6380:56: note: integer value -1 is outside the valid range of
+      values [0, 511] for the enumeration type 'CorDebugUserState'
+ 6380 |     static const CorDebugUserState kInvalidUserState = CorDebugUserState(-1);
+      |                                                        ^
+1 error generated.
+
+troubleshooting:
+
+oldzhu@oldzhu-box-999:~/daily-notes/2025-08-19/enum_test$ clang++-12 --target=aarch64-buildroot-linux-gnu --gcc-toolchain=/home/oldzhu/buildroot/output/host/aarch64-buildroot-linu
+x-gnu/sysroot/usr --sysroot=/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot -std=gnu++11 -v -H -c enum_test.cpp
+Ubuntu clang version 12.0.1-19ubuntu3
+Target: aarch64-buildroot-linux-gnu
+Thread model: posix
+InstalledDir: /usr/bin
+ (in-process)
+ "/usr/lib/llvm-12/bin/clang" -cc1 -triple aarch64-buildroot-linux-gnu -emit-obj -mrelax-all --mrelax-relocations -disable-free -disable-llvm-verifier -discard-value-names -main-file-name enum_test.cpp -mrelocation-model static -mframe-pointer=non-leaf -fmath-errno -fno-rounding-math -mconstructor-aliases -munwind-tables -target-cpu generic -target-feature +neon -target-abi aapcs -fallow-half-arguments-and-returns -fno-split-dwarf-inlining -debugger-tuning=gdb -v -H -sys-header-deps -resource-dir /usr/lib/llvm-12/lib/clang/12.0.1 -isysroot /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot -internal-isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/local/include -internal-isystem /usr/lib/llvm-12/lib/clang/12.0.1/include -internal-externc-isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/include -internal-externc-isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include -std=gnu++11 -fdeprecated-macro -fdebug-compilation-dir /home/oldzhu/daily-notes/2025-08-19/enum_test -ferror-limit 19 -fno-signed-char -fgnuc-version=4.2.1 -fcxx-exceptions -fexceptions -fcolor-diagnostics -faddrsig -o enum_test.o -x c++ enum_test.cpp
+clang -cc1 version 12.0.1 based upon LLVM 12.0.1 default target x86_64-pc-linux-gnu
+ignoring nonexistent directory "/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/include"
+#include "..." search starts here:
+#include <...> search starts here:
+ /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/local/include
+ /usr/lib/llvm-12/lib/clang/12.0.1/include
+ /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include
+End of search list.
+oldzhu@oldzhu-box-999:~/daily-notes/2025-08-19/enum_test$ /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/bin/clang++ --target=aarch64-buildroot-linux-gnu --gcc-toolchain=/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr --sysroot=/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot -v -H -c enum_test.cpp
+clang version 22.0.0git
+Target: aarch64-buildroot-linux-gnu
+Thread model: posix
+InstalledDir: /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/bin
+ (in-process)
+ "/home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/bin/clang-22" -cc1 -triple aarch64-buildroot-linux-gnu -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name enum_test.cpp -mrelocation-model pic -pic-level 2 -pic-is-pie -mframe-pointer=non-leaf -fmath-errno -ffp-contract=on -fno-rounding-math -mconstructor-aliases -funwind-tables=2 -enable-tlsdesc -target-cpu generic -target-feature +v8a -target-feature +fp-armv8 -target-feature +neon -target-abi aapcs -debugger-tuning=gdb -fdebug-compilation-dir=/home/oldzhu/daily-notes/2025-08-19/enum_test -v -H -sys-header-deps -fcoverage-compilation-dir=/home/oldzhu/daily-notes/2025-08-19/enum_test -resource-dir /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22 -isysroot /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot -internal-isystem /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include -internal-isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/local/include -internal-externc-isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/include -internal-externc-isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include -fdeprecated-macro -ferror-limit 19 -fmessage-length=179 -fno-signed-char -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -fcxx-exceptions -fexceptions -fcolor-diagnostics -target-feature -fmv -faddrsig -D__GCC_HAVE_DWARF2_CFI_ASM=1 -o enum_test.o -x c++ enum_test.cpp
+clang -cc1 version 22.0.0git based upon LLVM 22.0.0git default target x86_64-buildroot-linux-gnu
+ignoring nonexistent directory "/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/include"
+#include "..." search starts here:
+#include <...> search starts here:
+ /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include
+ /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/local/include
+ /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include
+End of search list.
+enum_test.cpp:17:32: error: in-class initializer for static data member is not a constant expression
+   17 | static const CorDebugUserState kInvalidUserState = CorDebugUserState(-1);
+      |                                ^                   ~~~~~~~~~~~~~~~~~~~~~
+enum_test.cpp:17:52: note: integer value -1 is outside the valid range of values [0, 511] for the enumeration type 'CorDebugUserState'
+   17 | static const CorDebugUserState kInvalidUserState = CorDebugUserState(-1);
+      |                                                    ^
+1 error generated.
+oldzhu@oldzhu-box-999:~/daily-notes/2025-08-19/enum_test$ clang++-12 --target=aarch64-buildroot-linux-gnu --gcc-toolchain=/home/oldzhu/buildroot/output/host/aarch64-buildroot-linu
+x-gnu/sysroot/usr --sysroot=/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot -v -H -c enum_test.cpp
+Ubuntu clang version 12.0.1-19ubuntu3
+Target: aarch64-buildroot-linux-gnu
+Thread model: posix
+InstalledDir: /usr/bin
+ (in-process)
+ "/usr/lib/llvm-12/bin/clang" -cc1 -triple aarch64-buildroot-linux-gnu -emit-obj -mrelax-all --mrelax-relocations -disable-free -disable-llvm-verifier -discard-value-names -main-file-name enum_test.cpp -mrelocation-model static -mframe-pointer=non-leaf -fmath-errno -fno-rounding-math -mconstructor-aliases -munwind-tables -target-cpu generic -target-feature +neon -target-abi aapcs -fallow-half-arguments-and-returns -fno-split-dwarf-inlining -debugger-tuning=gdb -v -H -sys-header-deps -resource-dir /usr/lib/llvm-12/lib/clang/12.0.1 -isysroot /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot -internal-isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/local/include -internal-isystem /usr/lib/llvm-12/lib/clang/12.0.1/include -internal-externc-isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/include -internal-externc-isystem /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include -fdeprecated-macro -fdebug-compilation-dir /home/oldzhu/daily-notes/2025-08-19/enum_test -ferror-limit 19 -fno-signed-char -fgnuc-version=4.2.1 -fcxx-exceptions -fexceptions -fcolor-diagnostics -faddrsig -o enum_test.o -x c++ enum_test.cpp
+clang -cc1 version 12.0.1 based upon LLVM 12.0.1 default target x86_64-pc-linux-gnu
+ignoring nonexistent directory "/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/include"
+#include "..." search starts here:
+#include <...> search starts here:
+ /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/local/include
+ /usr/lib/llvm-12/lib/clang/12.0.1/include
+ /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include
+End of search list.
+
+The same testing code, clang++-12 wont give the error but clang22 will report the error 
+seems like I need to modify the code as the below to fix the clang22 compilation error.
+   6380     static const CorDebugUserState kInvalidUserState = CorDebugUserState(-1);
+to
+   6380     static const CorDebugUserState kInvalidUserState = CorDebugUserState(1);
