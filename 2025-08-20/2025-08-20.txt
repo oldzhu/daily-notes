@@ -1,0 +1,105 @@
+issue 1:
+
+cd /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release/x64/pal/src && /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/bin/clang++ -DCOMPILER_SUPPORTS_W_RESERVED_IDENTIFIER -DCORECLR -DCROSS_COMPILE -DDISABLE_CONTRACTS -DHOST_64BIT -DHOST_AMD64 -DHOST_UNIX -DLP64COMPATIBLE -DNDEBUG -DPIC -DTARGET_64BIT -DTARGET_ARM64 -DTARGET_LINUX -DTARGET_UNIX -DURTBLDENV_FRIENDLY=Retail -DXSTATE_SUPPORTED -D_FILE_OFFSET_BITS=64 -D_TIME_BITS=64 -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/../inc/rt -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release/x64/pal/src -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/../inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/include -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/include/tdep -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/external/libunwind/include -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/external/libunwind/include/tdep -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/include -Wno-jump-misses-init -Wno-implicit-void-ptr-cast -Wno-implicit-int-enum-cast -O3 -DNDEBUG -std=gnu++11 -fPIC -O3 -Wall -Wno-null-conversion -glldb -fno-omit-frame-pointer -fwrapv -fstack-protector-strong -Werror -Wno-unused-variable -Wno-unused-value -Wno-unused-function -Wno-tautological-compare -Wno-unknown-pragmas -Wimplicit-fallthrough -Wvla -Wno-invalid-offsetof -Wno-unused-but-set-variable -ffp-contract=off -fno-rtti -Wno-unknown-warning-option -ferror-limit=4096 -Wno-unused-private-field -Wno-constant-logical-operand -Wno-pragma-pack -Wno-incompatible-ms-struct -Wno-reserved-identifier -Wno-unsafe-buffer-usage -Wno-single-bit-bitfield-constant-conversion -Wno-cast-function-type-strict -Wno-switch-default -Wno-nontrivial-memaccess -fsigned-char -fvisibility=hidden -ffunction-sections -fexceptions -MD -MT pal/src/CMakeFiles/coreclrpal_objects.dir/com/guid.cpp.o -MF CMakeFiles/coreclrpal_objects.dir/com/guid.cpp.o.d -o CMakeFiles/coreclrpal_objects.dir/com/guid.cpp.o -c /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/com/guid.cpp
+
+  In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/com/guid.cpp:6:
+  In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/../inc/rt/guiddef.h:12:
+  In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/../inc/rt/palrt.h:121:
+  In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/inc/pal.h:44:
+  In file included from /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/include/c++/15.1.0/math.h:36:
+  In file included from /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/include/c++/15.1.0/cmath:55:
+  In file included from /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/math.h:40:
+  /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/bits/math-vector.h:166:9: error: unknown type name '__SVFloat32_t'
+    166 | typedef __SVFloat32_t __sv_f32_t;
+        |         ^
+  /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/bits/math-vector.h:167:9: error: unknown type name '__SVFloat64_t'
+    167 | typedef __SVFloat64_t __sv_f64_t;
+        |         ^
+  /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/bits/math-vector.h:168:9: error: unknown type name '__SVBool_t'
+    168 | typedef __SVBool_t __sv_bool_t;
+        |         ^
+
+action:
+
+add the below lines into build_runtime.sh 
+
+# ============== New environment variable check logic ==============
+if [[ "$__CMakeArgs" != *"-DCLR_CROSS_COMPONENTS_BUILD=1"* ]]; then
+    if [ -n "${MY_CPLUS_INCLUDE_PATH}" ]; then
+        export CPLUS_INCLUDE_PATH="${MY_CPLUS_INCLUDE_PATH}"
+        echo "Set CPLUS_INCLUDE_PATH to ${MY_CPLUS_INCLUDE_PATH}"
+    else
+        echo "MY_CPLUS_INCLUDE_PATH environment variable not found"
+    fi
+fi
+# ================================================================
+
+issue 2:
+
+oldzhu@oldzhu-box-999:~/buildroot$ cd /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release/x64/pal/src && /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/bin/clang++ -DCOMPILER_SUPPORTS_W_RESERVED_IDENTIFIER -DCORECLR -DCROSS_COMPILE -DDISABLE_CONTRACTS -DHOST_64BIT -DHOST_AMD64 -DHOST_UNIX -DLP64COMPATIBLE -DNDEBUG -DPIC -DTARGET_64BIT -DTARGET_ARM64 -DTARGET_LINUX -DTARGET_UNIX -DURTBLDENV_FRIENDLY=Retail -DXSTATE_SUPPORTED -D_FILE_OFFSET_BITS=64 -D_TIME_BITS=64 -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release/x64/pal/src -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/../inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/include -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/include/tdep -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/external/libunwind/include -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/external/libunwind/include/tdep -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/include -Wno-jump-misses-init -Wno-implicit-void-ptr-cast -Wno-implicit-int-enum-cast -O3 -DNDEBUG -std=gnu++11 -fPIC -O3 -Wall -Wno-null-conversion -glldb -fno-omit-frame-pointer -fwrapv -fstack-protector-strong -Werror -Wno-unused-variable -Wno-unused-value -Wno-unused-function -Wno-tautological-compare -Wno-unknown-pragmas -Wimplicit-fallthrough -Wvla -Wno-invalid-offsetof -Wno-unused-but-set-variable -ffp-contract=off -fno-rtti -Wno-unknown-warning-option -ferror-limit=4096 -Wno-unused-private-field -Wno-constant-logical-operand -Wno-pragma-pack -Wno-incompatible-ms-struct -Wno-reserved-identifier -Wno-unsafe-buffer-usage -Wno-single-bit-bitfield-constant-conversion -Wno-cast-function-type-strict -Wno-switch-default -Wno-nontrivial-memaccess -fsigned-char -fvisibility=hidden -ffunction-sections -fexceptions -MD -MT pal/src/CMakeFiles/coreclrpal_objects.dir/debug/debug.cpp.o -MF CMakeFiles/coreclrpal_objects.dir/debug/debug.cpp.o.d -o CMakeFiles/coreclrpal_objects.dir/debug/debug.cpp.o -c /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/debug/debug.cpp
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/debug/debug.cpp:32:
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/include/pal/context.h:52:23: error: target of using declaration conflicts
+      with declaration already in scope
+   52 | using asm_sigcontext::_fpx_sw_bytes;
+      |                       ^
+/usr/include/x86_64-linux-gnu/asm/sigcontext.h:40:8: note: target of using declaration
+   40 | struct _fpx_sw_bytes {
+      |        ^
+/usr/include/x86_64-linux-gnu/bits/sigcontext.h:31:8: note: conflicting declaration
+   31 | struct _fpx_sw_bytes
+      |        ^
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/debug/debug.cpp:32:
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/include/pal/context.h:53:23: error: target of using declaration conflicts
+      with declaration already in scope
+   53 | using asm_sigcontext::_xstate;
+      |                       ^
+/usr/include/x86_64-linux-gnu/asm/sigcontext.h:192:8: note: target of using declaration
+  192 | struct _xstate {
+      |        ^
+/usr/include/x86_64-linux-gnu/bits/sigcontext.h:189:8: note: conflicting declaration
+  189 | struct _xstate
+      |        ^
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/debug/debug.cpp:32:
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/include/pal/context.h:561:13: error: no member named 'xfeatures' in
+      '_fpx_sw_bytes'
+  561 |     return (FPREG_FpxSwBytes_xfeatures(uc) & XFEATURE_MASK_YMM) == XFEATURE_MASK_YMM;
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/include/pal/context.h:489:62: note: expanded from macro
+      'FPREG_FpxSwBytes_xfeatures'
+  489 | #define FPREG_FpxSwBytes_xfeatures(uc) FPREG_FpxSwBytes(uc)->xfeatures
+      |                                        ~~~~~~~~~~~~~~~~~~~~  ^
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/include/pal/context.h:619:10: error: no member named 'xfeatures' in
+      '_fpx_sw_bytes'
+  619 |     if ((FPREG_FpxSwBytes_xfeatures(uc) & XFEATURE_MASK_AVX512) != XFEATURE_MASK_AVX512)
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/include/pal/context.h:489:62: note: expanded from macro
+      'FPREG_FpxSwBytes_xfeatures'
+  489 | #define FPREG_FpxSwBytes_xfeatures(uc) FPREG_FpxSwBytes(uc)->xfeatures
+      |                                        ~~~~~~~~~~~~~~~~~~~~  ^
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/include/pal/context.h:653:10: error: no member named 'xfeatures' in
+      '_fpx_sw_bytes'
+  653 |     if ((FPREG_FpxSwBytes_xfeatures(uc) & XFEATURE_MASK_APX) != XFEATURE_MASK_APX)
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/include/pal/context.h:489:62: note: expanded from macro
+      'FPREG_FpxSwBytes_xfeatures'
+  489 | #define FPREG_FpxSwBytes_xfeatures(uc) FPREG_FpxSwBytes(uc)->xfeatures
+      |                                        ~~~~~~~~~~~~~~~~~~~~  ^
+5 errors generated.
+
+action:
+
+Modofiy pal/context.h to ensure using the defintion in asm/signalcontext.h
+
+issue 3:
+
+clang : error : linker command failed with exit code 1 (use -v to see invocation) [/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/tools/aot/ILCompiler/ILCompiler_publish.csproj]
+/home/oldzhu/.nuget/packages/microsoft.dotnet.ilcompiler/10.0.0-preview.7.25372.107/build/Microsoft.NETCore.Native.targets(401,5): error MSB3073: The command ""/usr/bin/clang-12" "/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/ILCompiler_publish/linux.arm64.Release/native/ilc.o" -o "/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/bin/ILCompiler_publish/arm64/Release/native/ilc" -Wl,--version-script="/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/ILCompiler_publish/linux.arm64.Release/native/ilc.exports" -Wl,--export-dynamic -gz=zlib -fuse-ld=bfd /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0-preview.7.25372.107/runtimes/linux-arm64/native/libSystem.Native.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0-preview.7.25372.107/runtimes/linux-arm64/native/libSystem.IO.Compression.Native.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0-preview.7.25372.107/runtimes/linux-arm64/native/libSystem.Net.Security.Native.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0-preview.7.25372.107/runtimes/linux-arm64/native/libSystem.Security.Cryptography.Native.OpenSsl.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0-preview.7.25372.107/runtimes/linux-arm64/native/libbootstrapper.o /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0-preview.7.25372.107/runtimes/linux-arm64/native/libRuntime.ServerGC.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0-preview.7.25372.107/runtimes/linux-arm64/native/libeventpipe-enabled.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0-preview.7.25372.107/runtimes/linux-arm64/native/libstandalonegc-disabled.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0-preview.7.25372.107/runtimes/linux-arm64/native/libaotminipal.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0-preview.7.25372.107/runtimes/linux-arm64/native/libstdc++compat.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0-preview.7.25372.107/runtimes/linux-arm64/native/libz.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0-preview.7.25372.107/runtimes/linux-arm64/native/libbrotlienc.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0-preview.7.25372.107/runtimes/linux-arm64/native/libbrotlidec.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0-preview.7.25372.107/runtimes/linux-arm64/native/libbrotlicommon.a --sysroot="/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot" --target=aarch64-linux-gnu -g -Wl,--build-id=sha1 -Wl,--as-needed -pthread -ldl -lrt -lm -pie -Wl,-pie -Wl,-z,relro -Wl,-z,now -Wl,--eh-frame-hdr -Wl,--discard-all -Wl,--gc-sections" exited with code 1. [/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/tools/aot/ILCompiler/ILCompiler_publish.csproj]
+
+troubleshooting:
+
+  ILCompiler_publish -> /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/bin/ILCompiler_publish/arm64/Release/ilc.dll
+  /usr/bin/ld.bfd: unrecognised emulation mode: aarch64linux
+  Supported emulations: elf_x86_64 elf32_x86_64 elf_i386 elf_iamcu elf_l1om elf_k1om i386pep i386pe
+clang : error : linker command failed with exit code 1 (use -v to see invocation) [/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/tools/aot/ILCompiler/ILCompiler_publish.csproj]
+
+so the problem is why it is using local /usr/bin/ld.bfd, why it is not using the llvm built locally?

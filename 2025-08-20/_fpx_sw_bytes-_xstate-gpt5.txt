@@ -1,0 +1,176 @@
+oldzhu@oldzhu-box-999:~/buildroot$ cd /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release/x64/pal/src && /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/bin/clang++ -DCOMPILER_SUPPORTS_W_RESERVED_IDENTIFIER -DCORECLR -DCROSS_COMPILE -DDISABLE_CONTRACTS -DHOST_64BIT -DHOST_AMD64 -DHOST_UNIX -DLP64COMPATIBLE -DNDEBUG -DPIC -DTARGET_64BIT -DTARGET_ARM64 -DTARGET_LINUX -DTARGET_UNIX -DURTBLDENV_FRIENDLY=Retail -DXSTATE_SUPPORTED -D_FILE_OFFSET_BITS=64 -D_TIME_BITS=64 -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release/x64/pal/src -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/../inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/include -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/include/tdep -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/external/libunwind/include -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/external/libunwind/include/tdep -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/include -Wno-jump-misses-init -Wno-implicit-void-ptr-cast -Wno-implicit-int-enum-cast -O3 -DNDEBUG -std=gnu++11 -fPIC -O3 -Wall -Wno-null-conversion -glldb -fno-omit-frame-pointer -fwrapv -fstack-protector-strong -Werror -Wno-unused-variable -Wno-unused-value -Wno-unused-function -Wno-tautological-compare -Wno-unknown-pragmas -Wimplicit-fallthrough -Wvla -Wno-invalid-offsetof -Wno-unused-but-set-variable -ffp-contract=off -fno-rtti -Wno-unknown-warning-option -ferror-limit=4096 -Wno-unused-private-field -Wno-constant-logical-operand -Wno-pragma-pack -Wno-incompatible-ms-struct -Wno-reserved-identifier -Wno-unsafe-buffer-usage -Wno-single-bit-bitfield-constant-conversion -Wno-cast-function-type-strict -Wno-switch-default -Wno-nontrivial-memaccess -fsigned-char -fvisibility=hidden -ffunction-sections -fexceptions -MD -MT pal/src/CMakeFiles/coreclrpal_objects.dir/debug/debug.cpp.o -MF CMakeFiles/coreclrpal_objects.dir/debug/debug.cpp.o.d -o CMakeFiles/coreclrpal_objects.dir/debug/debug.cpp.o -c /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/debug/debug.cpp
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/debug/debug.cpp:32:
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/include/pal/context.h:52:23: error: target of using declaration conflicts
+      with declaration already in scope
+   52 | using asm_sigcontext::_fpx_sw_bytes;
+      |                       ^
+/usr/include/x86_64-linux-gnu/asm/sigcontext.h:40:8: note: target of using declaration
+   40 | struct _fpx_sw_bytes {
+      |        ^
+/usr/include/x86_64-linux-gnu/bits/sigcontext.h:31:8: note: conflicting declaration
+   31 | struct _fpx_sw_bytes
+      |        ^
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/debug/debug.cpp:32:
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/include/pal/context.h:53:23: error: target of using declaration conflicts
+      with declaration already in scope
+   53 | using asm_sigcontext::_xstate;
+      |                       ^
+/usr/include/x86_64-linux-gnu/asm/sigcontext.h:192:8: note: target of using declaration
+  192 | struct _xstate {
+      |        ^
+/usr/include/x86_64-linux-gnu/bits/sigcontext.h:189:8: note: conflicting declaration
+  189 | struct _xstate
+      |        ^
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/debug/debug.cpp:32:
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/include/pal/context.h:561:13: error: no member named 'xfeatures' in
+      '_fpx_sw_bytes'
+  561 |     return (FPREG_FpxSwBytes_xfeatures(uc) & XFEATURE_MASK_YMM) == XFEATURE_MASK_YMM;
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/include/pal/context.h:489:62: note: expanded from macro
+      'FPREG_FpxSwBytes_xfeatures'
+  489 | #define FPREG_FpxSwBytes_xfeatures(uc) FPREG_FpxSwBytes(uc)->xfeatures
+      |                                        ~~~~~~~~~~~~~~~~~~~~  ^
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/include/pal/context.h:619:10: error: no member named 'xfeatures' in
+      '_fpx_sw_bytes'
+  619 |     if ((FPREG_FpxSwBytes_xfeatures(uc) & XFEATURE_MASK_AVX512) != XFEATURE_MASK_AVX512)
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/include/pal/context.h:489:62: note: expanded from macro
+      'FPREG_FpxSwBytes_xfeatures'
+  489 | #define FPREG_FpxSwBytes_xfeatures(uc) FPREG_FpxSwBytes(uc)->xfeatures
+      |                                        ~~~~~~~~~~~~~~~~~~~~  ^
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/include/pal/context.h:653:10: error: no member named 'xfeatures' in
+      '_fpx_sw_bytes'
+  653 |     if ((FPREG_FpxSwBytes_xfeatures(uc) & XFEATURE_MASK_APX) != XFEATURE_MASK_APX)
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/include/pal/context.h:489:62: note: expanded from macro
+      'FPREG_FpxSwBytes_xfeatures'
+  489 | #define FPREG_FpxSwBytes_xfeatures(uc) FPREG_FpxSwBytes(uc)->xfeatures
+      |                                        ~~~~~~~~~~~~~~~~~~~~  ^
+5 errors generated.
+ChatGPT said:
+Thought for 1m 35s
+
+You’ve hit a header clash on x86_64 between glibc’s <bits/sigcontext.h> and the kernel’s <asm/sigcontext.h>, which pal/context.h pulls in via a namespace trick. On newer glibc, both headers expose _fpx_sw_bytes / _xstate in the global namespace, so the using asm_sigcontext::... lines in pal/context.h re-declare names that already exist → the “target of using declaration conflicts” errors. Then you also get “no member named ‘xfeatures’ in _fpx_sw_bytes” because glibc’s struct uses the field name xstate_bv (kernel’s UAPI uses xfeatures). This exact conflict (mixing <signal.h>/<bits/sigcontext.h> with <asm/sigcontext.h>) is a known glibc gotcha. 
+Sourceware
+ There’s prior art from .NET/CoreCLR and musl threads around these types and the xfeatures/xstate_bv naming mismatch. 
+marc.info
+openwall.com
+
+Quick local fix (minimal patch)
+
+Patch your build’s src/coreclr/pal/src/include/pal/context.h so it (a) doesn’t re-export the kernel types when glibc already defined them, and (b) maps the field name correctly on glibc.
+
+Apply something like this (line numbers are approximate):
+
+diff --git a/src/coreclr/pal/src/include/pal/context.h b/src/coreclr/pal/src/include/pal/context.h
+--- a/src/coreclr/pal/src/include/pal/context.h
++++ b/src/coreclr/pal/src/include/pal/context.h
+@@ -45,12 +45,18 @@
+ namespace asm_sigcontext
+ {
+ #include <asm/sigcontext.h>
+ }
+-using asm_sigcontext::_fpx_sw_bytes;
+-using asm_sigcontext::_xstate;
++// On glibc systems, <signal.h>/<bits/sigcontext.h> already declare these
++// in the global namespace, so re-exporting them causes conflicts.
++#if !defined(__GLIBC__)
++using asm_sigcontext::_fpx_sw_bytes;
++using asm_sigcontext::_xstate;
++#endif
+ using asm_sigcontext::_fpstate;
+
+@@ -486,7 +492,13 @@
+-#define FPREG_FpxSwBytes_xfeatures(uc) FPREG_FpxSwBytes(uc)->xfeatures
++// glibc names this field xstate_bv; kernel UAPI uses xfeatures.
++#if defined(__GLIBC__)
++#define FPREG_FpxSwBytes_xfeatures(uc) FPREG_FpxSwBytes(uc)->xstate_bv
++#else
++#define FPREG_FpxSwBytes_xfeatures(uc) FPREG_FpxSwBytes(uc)->xfeatures
++#endif
+
+
+Then rebuild.
+
+Why this works
+
+It avoids importing _fpx_sw_bytes / _xstate from the kernel header into the global namespace when glibc has already declared them there, removing the “using declaration conflicts” errors. 
+Sourceware
+
+It normalizes the xfeatures vs xstate_bv field name difference that CoreCLR probes for to check AVX/AVX-512/APX features. (Old kernel UAPI headers call it xstate_bv; newer call it xfeatures.) 
+marc.info
+
+If you prefer not to patch
+
+Try a newer dotnet/runtime: This issue has been churned through a few times as libc/UAPI headers evolved; newer commits may already have the guard. If your Buildroot recipe pins an older snapshot, consider bumping it and rebuilding CoreCLR.
+
+Or keep your current snapshot and add a small downstream patch (above) in your Buildroot package; it’s self-contained to PAL and harmless on non-glibc libcs.
+
+If anything still blows up after the patch, paste the next error block and I’ll help iterate.
+
+I am very sure in pal/context.h, what it is really want to use  is the definition in asm/signalcontext.h, any solution to let it only use the definition it wants to avoid the conflicts with signal.h then bits/signalcontext.h?
+ChatGPT said:
+Thought for 21s
+
+Yep — you can force PAL to only use the kernel UAPI types from <asm/sigcontext.h> and completely sidestep the glibc copies by not re-exporting them into the global namespace and by referring to them with a namespace-qualified alias everywhere inside context.h.
+
+Concretely: keep the header-in-a-namespace trick, but delete the using lines that leak _fpx_sw_bytes / _xstate into the global namespace. Then make the PAL macros/casts refer to the namespaced versions only. That way, even if <signal.h> pulls in <bits/sigcontext.h>, the global _fpx_sw_bytes won’t collide with the kernel one you actually want.
+
+Here’s a minimal patch you can drop into your tree:
+
+diff --git a/src/coreclr/pal/src/include/pal/context.h b/src/coreclr/pal/src/include/pal/context.h
+--- a/src/coreclr/pal/src/include/pal/context.h
++++ b/src/coreclr/pal/src/include/pal/context.h
+@@ -39,17 +39,25 @@
+ // Pull Linux UAPI sigcontext into its own namespace, so we can refer to those
+ // types unambiguously even if glibc also defines homonymous structs.
+ namespace asm_sigcontext
+ {
+ #include <asm/sigcontext.h>
+ }
+-// These two 'using' declarations leak the kernel types into the global
+-// namespace, which conflicts with glibc's <bits/sigcontext.h>. Avoid that.
+-using asm_sigcontext::_fpx_sw_bytes;
+-using asm_sigcontext::_xstate;
+ using asm_sigcontext::_fpstate;
+ 
++// PAL-internal aliases for the UAPI types.  Keep them namespaced so we never
++// collide with glibc's global structs of the same names.
++namespace pal_uapi {
++    using fpx_sw_bytes = asm_sigcontext::_fpx_sw_bytes;
++    using xstate       = asm_sigcontext::_xstate;
++}
++
+@@ -468,15 +476,18 @@
+ // Helpers to get to the "software bytes" area inside the FPU save area.
+-#define FPREG_FpxSwBytes(uc) \
+-    reinterpret_cast<_fpx_sw_bytes*>(&(FPREG_FpState(uc)->sw_reserved))
++#define FPREG_FpxSwBytes(uc) \
++    reinterpret_cast<pal_uapi::fpx_sw_bytes*>(&(FPREG_FpState(uc)->sw_reserved))
+ 
+ // On kernels that support XSAVE, this has the feature bitmask for the saved state
+-#define FPREG_FpxSwBytes_xfeatures(uc) FPREG_FpxSwBytes(uc)->xfeatures
++#define FPREG_FpxSwBytes_xfeatures(uc) (FPREG_FpxSwBytes(uc)->xfeatures)
+ 
+ // If you need to refer to the extended state structure, use the UAPI one explicitly.
+-#define PAL_UAPI_XSTATE pal_uapi::xstate
++#define PAL_UAPI_XSTATE pal_uapi::xstate
+
+
+Why this works
+
+We never introduce _fpx_sw_bytes or _xstate into the global namespace, so glibc’s global copies (from <signal.h> → <bits/sigcontext.h>) can coexist without any “target of using declaration conflicts” errors.
+
+All casts/macros now point at pal_uapi::fpx_sw_bytes (a.k.a. the kernel UAPI definition), so the field layout and names (e.g., xfeatures) stay exactly what the PAL code expects — no xstate_bv mismatch.
+
+A couple of tips to keep things tidy
+
+Keep all references to these structs inside context.h going through the macros/aliases above. If you have other spots that directly mention _fpx_sw_bytes or _xstate, qualify them as pal_uapi::… (or include context.h and use the macros).
+
+You don’t need to (and shouldn’t) try to block <signal.h> from being included elsewhere; lots of PAL code wants ucontext_t, mcontext_t, etc. The namespacing keeps you safe regardless of include order.
+
+If you prefer zero macro churn
+
+Instead of the pal_uapi aliases, you could fully qualify everywhere (asm_sigcontext::_fpx_sw_bytes), but the aliases make the file shorter and clearer.
+
+Drop this in, rebuild, and you should get past both the “using declaration conflicts” and the “no member named ‘xfeatures’” errors while ensuring you’re always using the kernel <asm/sigcontext.h> definitions you intended.
