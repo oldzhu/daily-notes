@@ -1,0 +1,61 @@
+issue 1:
+
+  ILCompiler_publish -> /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/bin/ILCompiler_publish/arm64/Release/ilc.dll
+  /usr/bin/ld.bfd: unrecognised emulation mode: aarch64linux
+  Supported emulations: elf_x86_64 elf32_x86_64 elf_i386 elf_iamcu elf_l1om elf_k1om i386pep i386pe
+clang : error : linker command failed with exit code 1 (use -v to see invocation) [/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/tools/aot/ILCompiler/ILCompiler_publish.csproj]
+
+action:
+
+enable LLVM_ENABLE_LLD=ON
+
+issue 2:
+
+-- Performing Test CXX_SUPPORTS_CUSTOM_LINKER - Failed
+CMake Error at cmake/modules/HandleLLVMOptions.cmake:422 (message):
+  Host compiler does not support '-fuse-ld=lld'.  Please make sure that 'lld'
+  is installed and that your host compiler can compile a simple program when
+  given the option '-fuse-ld=lld'.
+Call Stack (most recent call first):
+  CMakeLists.txt:1093 (include)
+
+
+-- Configuring incomplete, errors occurred!
+
+action:
+
+HOST_LLDB_CONF_OPTS += \
+        -DLLVM_BUILD_EXAMPLES=OFF \
+        -DLLVM_BUILD_DOCS=OFF \
+        -DLLVM_BUILD_TESTS=OFF \
+        -DLLVM_ENABLE_DOXYGEN=OFF \
+        -DLLVM_ENABLE_OCAMLDOC=OFF \
+        -DLLVM_ENABLE_SPHINX=OFF \
+        -DLLVM_INCLUDE_EXAMPLES=OFF \
+        -DLLVM_INCLUDE_DOCS=OFF \
+        -DLLVM_INCLUDE_GO_TESTS=OFF \
+        -DLLVM_INCLUDE_TESTS=OFF \
+        -DCMAKE_C_COMPILER=/usr/bin/clang-12 \
+        -DCMAKE_CXX_COMPILER=/usr/bin/clang++-12
+sudo apt install lld
+
+issue 3:
+
+  cd /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/linux-arm64.Release/hostmisc && /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/bin/clang++ --target=aarch64-buildroot-linux-gnu --gcc-toolchain=/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr --sysroot=/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot -DCOMPILER_SUPPORTS_W_RESERVED_IDENTIFIER -DDISABLE_CONTRACTS -DFALLBACK_OS_IS_SAME_AS_TARGET_OS -DHOST_64BIT -DHOST_ARM64 -DHOST_UNIX -DNDEBUG -DTARGET_64BIT -DTARGET_ARM64 -DTARGET_LINUX -DTARGET_UNIX -DURTBLDENV_FRIENDLY=Retail -D_FILE_OFFSET_BITS=64 -D_TIME_BITS=64 -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/linux-arm64.Release/hostmisc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/corehost/hostmisc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/linux-arm64.Release -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/corehost -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/external -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native -Wno-jump-misses-init -Wno-implicit-void-ptr-cast -Wno-implicit-int-enum-cast -O3 -DNDEBUG -std=gnu++11 -fPIC -O3 -Wall -Wno-null-conversion -glldb -fno-omit-frame-pointer -fwrapv -fstack-protector-strong -Werror -Wno-unused-variable -Wno-unused-value -Wno-unused-function -Wno-tautological-compare -Wno-unknown-pragmas -Wimplicit-fallthrough -Wvla -Wno-invalid-offsetof -Wno-unused-but-set-variable -ffp-contract=off -fno-rtti -Wno-unknown-warning-option -ferror-limit=4096 -Wno-unused-private-field -Wno-constant-logical-operand -Wno-pragma-pack -Wno-incompatible-ms-struct -Wno-reserved-identifier -Wno-unsafe-buffer-usage -Wno-single-bit-bitfield-constant-conversion -Wno-cast-function-type-strict -Wno-switch-default -Wno-nontrivial-memaccess -fsigned-char -fvisibility=hidden -ffunction-sections -MD -MT hostmisc/CMakeFiles/hostmisc.dir/__/fxr/fx_ver.cpp.o -MF CMakeFiles/hostmisc.dir/__/fxr/fx_ver.cpp.o.d -o CMakeFiles/hostmisc.dir/__/fxr/fx_ver.cpp.o -c /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/corehost/fxr/fx_ver.cpp
+  In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/native/corehost/fxr/fx_ver.cpp:4:
+  /home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot/usr/local/include/cassert:45:10: fatal error: 'bits/c++config.h' file not found
+     45 | #include <bits/c++config.h>
+        |          ^~~~~~~~~~~~~~~~~~
+
+action:
+
+src/native/corehost/build.sh
+
+# ============== New environment variable check logic ==============
+if [[ "$__CMakeArgs" != *"-DCLR_CROSS_COMPONENTS_BUILD=1"* ]]; then
+    if [ -n "${MY_CPLUS_INCLUDE_PATH}" ]; then
+        export CPLUS_INCLUDE_PATH="${MY_CPLUS_INCLUDE_PATH}"
+        echo "Set CPLUS_INCLUDE_PATH to ${MY_CPLUS_INCLUDE_PATH}"
+    else
+        echo "MY_CPLUS_INCLUDE_PATH environment variable not found"
+    fi                                                                                                                  fi                                                                                                                      # ================================================================ 
