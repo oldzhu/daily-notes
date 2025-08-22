@@ -1,0 +1,44 @@
+issue 1:
+
+cp: cannot stat '/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/Microsoft.NETCore.App.Runtime/Release/net*/linux-*/R2R/System.Collections.Immutable.dll': No such file or directory
+cp: cannot stat '/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/Microsoft.NETCore.App.Runtime/Release/net*/linux-*/R2R/System.Reflection.Metadata.dll': No such file or directory
+make: *** [package/pkg-generic.mk:364: /home/oldzhu/buildroot/output/build/diagnostics-origin_main/.stamp_target_install
+
+thoughts:
+
+https://github.com/dotnet/runtime/blob/main/docs/workflow/building/libraries/cross-building.md
+
+Build artifacts can be found in artifacts/bin/native/net10.0-<TargetOS>-<BuildArch>-<BuildType>/
+
+Build artifacts can be found in artifacts/bin/microsoft.netcore.app.runtime.<TargetOS>-<BuildArch>/<BuildType>/runtimes/<TargetOS>-<BuildArch>/lib/net10.0/.
+
+how about Microsoft.Diagnostics.NETCore.Client?
+
+and do we still need Microsoft.Diagnostics.Runtime.Utilities?
+harded coded netcoreapp3_1_path and net6_0_path are also not good. 
+
+```
+# Paths for netcoreapp3.1 and net6.0
+netcoreapp3_1_path="Release/netcoreapp3.1"
+net6_0_path="Release/net6.0"
+
+# Copy *.dll files from Microsoft.Diagnostics.Runtime and Microsoft.Diagnostics.Runtime.Utilities
+copy_files "$clrmdpath/artifacts/bin/Microsoft.Diagnostics.Runtime/$netcoreapp3_1_path" "$7/root/.dotnet/sos" "*.dll"
+copy_files "$clrmdpath/artifacts/bin/Microsoft.Diagnostics.Runtime.Utilities/$netcoreapp3_1_path" "$7/root/.dotnet/sos" "*.dll"
+
+# Copy specific dll files from SymClient
+copy_files "$symstorepath/artifacts/bin/SymClient/$netcoreapp3_1_path" "$7/root/.dotnet/sos" "Microsoft.FileFormats.*"
+copy_files "$symstorepath/artifacts/bin/SymClient/$netcoreapp3_1_path" "$7/root/.dotnet/sos" "Microsoft.SymbolStore.*"
+
+# Repeat the process for net6.0 if netcoreapp3.1 directories don't exist
+copy_files "$clrmdpath/artifacts/bin/Microsoft.Diagnostics.Runtime/$net6_0_path" "$7/root/.dotnet/sos" "*.dll"
+copy_files "$clrmdpath/artifacts/bin/Microsoft.Diagnostics.Runtime.Utilities/$net6_0_path" "$7/root/.dotnet/sos" "*.dll"
+copy_files "$symstorepath/artifacts/bin/SymClient/$net6_0_path" "$7/root/.dotnet/sos" "Microsoft.FileFormats.*"
+copy_files "$symstorepath/artifacts/bin/SymClient/$net6_0_path" "$7/root/.dotnet/sos" "Microsoft.SymbolStore.*"
+```
+how do we use the runtime built in dotnethello?
+
+https://github.com/dotnet/runtime/blob/main/docs/workflow/testing/using-dev-shipping-packages.md
+
+https://github.com/dotnet/runtime/blob/main/docs/workflow/testing/using-your-build-with-installed-sdk.md
+
