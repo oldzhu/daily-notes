@@ -1,0 +1,21 @@
+actions:
+1. modify package/dotnetcore/diagnostics/build_diag.sh to using clang++ and clang built locally.
+2. modify package/dotnetcore/diagnostics/install_diag.sh which copy_dynamic_files can detect release/debug and netX.X 
+folder name and copy the following files from the detect folder dynamically
+Microsoft.Diagnostics.Runtime - built in clrmd
+Microsoft.FileFormats.*  - built in symstore
+Microsoft.SymbolStore.*  - built in symstore
+modify to use the similar logic above to copy the System.Collections.Immutable and System.Reflection.Metadata DLLS 
+which are built in runtime package
+3.modify package/dotnetcore/dotnetruntime/build_dotnetruntime.sh to use MY_CPLUS_INCLUDE_PATH,EXTRA_CXXFLAGS and EXTRA_CFLAGS 
+environment to make the latest runtime code can be built using clang/clang++ and c/c++ headers which are also built locally.  
+4. modify package/dotnethello/config_dotnethello.sh as the below
+create a link to runtime package .dotnet folder and use the existing dotnet tool installed by runtime package.
+using dotnet tool to dynamically construct the major_version, target_framework and feedurl then using them in nuget.config 
+and dotnethello.csproj
+5. modify package/dotnethello/install_dotnethello.sh to comment the copy of libhostfxr.so.dbg,libhostpolicy.so.dbg as they 
+already in nativesympath folder which were already copied
+6. modify package/lldb/lldb.mk as 
+enable DLLVM_ENABLE_LLD=ON for host-lldb but seems no impact
+specify local clang-12 and clang++-12 to build host-lldb - seems not good as it is hard coded may restore later.
+change to copy libLLVM.so* directly to target
