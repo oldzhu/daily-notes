@@ -1,0 +1,39 @@
+
+thoughts:
+
+add self-contained when build/publish dotnethello
+//home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0
+
+for all dll under dotnethello published folder, copy corresponding pdb from the above folder in install.sh 
+that part are related with managed debugging and could done later
+
+issue 1:
+
+(lldb) clrstack
+Unhandled exception. System.IO.FileNotFoundException: Could not load file or assembly 'Microsoft.SymbolStore, Version=1.0.12.42201, Culture=neutral, PublicKeyToken=31bf3856ad364e35'. The system cannot find the file specified.
+
+File name: 'Microsoft.SymbolStore, Version=1.0.12.42201, Culture=neutral, PublicKeyToken=31bf3856ad364e35'
+   at SOS.Extensions.HostServices..ctor(String extensionPath, IntPtr extensionsLibrary) in /home/oldzhu/buildroot/output/build/diagnostics-origin_main/src/SOS/SOS.Extensions/HostServices.cs:line 128
+   at SOS.Extensions.HostServices.Initialize(String extensionPath) in /home/oldzhu/buildroot/output/build/diagnostics-origin_main/src/SOS/SOS.Extensions/HostServices.cs:line 124
+LLDB diagnostics will be written to /tmp/diagnostics-6d2834
+Please include the directory content when filing a bug report
+Aborted
+
+troubleshooting:
+
+Microsoft.FileFormats and Microsoft.SymbolStore seems already moved from symstore repo to diagnostics repo
+no need to copy them any more
+
+issue 2:
+
+(gdb)  source /workspaces/diagnostics/src/SOS/gdbpython/sos.py
+Error loading or initializing libsos.so: incompatible types, CFunctionType instance instead of IUnknownVtbl instance
+
+issue 3:
+
+(lldb) clrstack
+Failed to load data access module, 0x80004002
+Can not load or initialize libmscordaccore.so. The target runtime may not be initialized.
+
+For more information see https://go.microsoft.com/fwlink/?linkid=2135652
+ClrStack  failed
