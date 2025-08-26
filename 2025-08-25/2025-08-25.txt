@@ -1,0 +1,27 @@
+issue 1:
+
+[ 2263.454914] iwlwifi: No config found for PCI dev 0085/c220, rev=0xb0, rfid=0xd55555d5
+
+Troubleshooting:
+
+https://bbs.archlinux.org/viewtopic.php?id=307644&p=3
+
+https://bugzilla.kernel.org/show_bug.cgi?id=220477
+
+issue 2:
+
+(lldb) clrstack
+Failed to load data access module, 0x80004002
+Can not load or initialize libmscordaccore.so. The target runtime may not be initialized.
+
+troubleshooting:
+
+(lldb) image lookup -n GetClrDataProcess
+1 match found in /root/.dotnet/sos/libsos.so:
+        Address: libsos.so[0x0000000000083b30] (libsos.so.PT_LOAD[1]..text + 272032)
+        Summary: libsos.so`Runtime::GetClrDataProcess(IRuntime::ClrDataProcessFlags, IXCLRDataProcess**) at runtimeimpl.cpp:425
+(lldb) br set -n GetClrDataProcess
+Breakpoint 1: where = libsos.so`Runtime::GetClrDataProcess(IRuntime::ClrDataProcessFlags, IXCLRDataProcess**) + 28 at runtimeimpl.cpp:426:9, address = 0x0000ffff74223b4c
+(lldb)            
+
+

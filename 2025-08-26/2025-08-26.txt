@@ -1,0 +1,87 @@
+issue :
+[ 2263.454914] iwlwifi: No config found for PCI dev 0085/c220, rev=0xb0, rfid=0xd55555d5
+
+wifi not working after arch linux patch 6.16.3 in my old laptop 
+
+troubeshooting:
+
+https://bugzilla.kernel.org/show_bug.cgi?id=220477
+
+https://bbs.archlinux.org/viewtopic.php?id=307644&p=3
+
+action:
+
+Tested to temp fix the issue
+
+# Create build directory
+mkdir -p ~/iwlwifi-patch && cd ~/iwlwifi-patch
+
+# Install ONLY essential dependencies (if not already installed)
+sudo pacman -S --needed base-devel linux-headers git zstd
+
+# Clone the kernel package
+git clone https://gitlab.archlinux.org/archlinux/packaging/packages/linux.git
+Or 
+pkgctl repo clone linux
+
+makepkg -o
+cd linux/src/linux-6.16.3
+
+[oldzhu@oldzhux1carbon linux-6.16.3]$ diff -u ~/temp-drv-extract/linux-6.16.3/drivers/net/wireless/intel/iwlwifi/pcie/drv.c drivers/net/wireless/intel/iwlwifi/pcie/drv.c
+--- /home/oldzhu/temp-drv-extract/linux-6.16.3/drivers/net/wireless/intel/iwlwifi/pcie/drv.c    2025-08-23 22:49:42.000000000 +0800
++++ drivers/net/wireless/intel/iwlwifi/pcie/drv.c     2025-08-26 14:00:49.469587609 +0800
+@@ -666,7 +666,7 @@
+      IWL_DEV_INFO(iwl6005_n_cfg, iwl6005_2agn_name,
+                 DEVICE(0x0085), SUBDEV_MASKED(0x8, 0xF)),
+      IWL_DEV_INFO(iwl6005_non_n_cfg, iwl6005_2abg_name,
+-                DEVICE(0x0085), SUBDEV_MASKED(0x6, 0xF)),
++                DEVICE(0x0085), SUBDEV_MASKED(0xC220, 0xFFFF)),
+ 
+      IWL_DEV_INFO(iwl6005_n_cfg, iwl6005_2agn_sff_name,
+                 DEVICE(0x0082), SUBDEV_MASKED(0xC000, 0xF000)),
+
+make modules_prepare
+make M=drivers/net/wireless/intel/iwlwifi
+
+# Backup original module
+KV=$(uname -r)
+sudo cp /usr/lib/modules/$KV/kernel/drivers/net/wireless/intel/iwlwifi/iwlwifi.ko.zst \
+        /usr/lib/modules/$KV/kernel/drivers/net/wireless/intel/iwlwifi/iwlwifi.ko.zst.original
+
+# Install patched module
+sudo zstd -f drivers/net/wireless/intel/iwlwifi/iwlwifi.ko \
+          -o /usr/lib/modules/$KV/kernel/drivers/net/wireless/intel/iwlwifi/iwlwifi.ko.zst
+
+# Update module dependencies
+sudo depmod -a
+
+sudo modprobe -r iwlwifi 
+sudo modprobe iwlwifi
+
+sudo dmesg|grep iwlwifi
+...
+[    4.958005] iwlwifi 0000:03:00.0: Detected crf-id 0xa5a5a5a1, cnv-id 0xa5a5a5a1 wfpm id 0xa5a5a5a1
+[    4.958071] iwlwifi 0000:03:00.0: PCI dev 0085/c220, rev=0xb0, rfid=0xd55555d5
+[    4.958076] iwlwifi 0000:03:00.0: Detected Intel(R) Centrino(R) Advanced-N 6205 ABG
+[    4.964857] iwlwifi 0000:03:00.0: loaded firmware version 18.168.6.1 6000g2a-6.ucode op_mode iwldvm
+[    5.169804] iwlwifi 0000:03:00.0: CONFIG_IWLWIFI_DEBUG enabled
+[    5.169810] iwlwifi 0000:03:00.0: CONFIG_IWLWIFI_DEBUGFS enabled
+[    5.169813] iwlwifi 0000:03:00.0: CONFIG_IWLWIFI_DEVICE_TRACING enabled
+[    5.169815] iwlwifi 0000:03:00.0: Detected Intel(R) Centrino(R) Advanced-N 6205 ABG, REV=0xB0
+[    5.214417] iwlwifi 0000:03:00.0: Invalid 11n configuration
+...
+
+sudo modprobe -r iwlmvm
+sudo modprobe -r iwldvm
+sudo modprobe -r iwlwifi
+sudo modprobe iwlwifi 11n_disable=1
+sudo dmesg |grep iwlwifi
+...
+[  614.954419] iwlwifi 0000:03:00.0: Detected Intel(R) Centrino(R) Advanced-N 6205 ABG, REV=0xB0
+[  614.999957] iwlwifi 0000:03:00.0 wlp3s0: renamed from wlan0
+[  615.025383] iwlwifi 0000:03:00.0: Radio type=0x1-0x2-0x0
+[  615.316558] iwlwifi 0000:03:00.0: Radio type=0x1-0x2-0x0
+[  615.450085] iwlwifi 0000:03:00.0: Radio type=0x1-0x2-0x0
+...
+
+Lacking 11n seems wireless only have 54M link speed
