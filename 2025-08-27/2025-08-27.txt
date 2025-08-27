@@ -135,3 +135,36 @@ In GDB:
 python exec(open('/workspaces/diagnostics/src/SOS/gdbpython/sos.py').read(), globals())
 dumpobj 0x123456
 Once we see which IHostServices methods are invoked before the crash, we’ll fill them out just enough to keep SOS progressing.
+
+issue n:
+
+sos failed to load DAC
+
+troubleshooting:
+
+customized the trace in GetDacHandle.
+
+ Information: 0 : [INIT] SOS DAC tracing initialized. Log file: /tmp/sos_dac_loa
+d.txt
+    ThreadId=1
+    DateTime=2025-08-27T14:18:21.0034189Z
+ Information: 0 : [START] Attempting to get DAC handle (useCDac=False)
+    ThreadId=1
+    DateTime=2025-08-27T14:18:21.0370634Z
+ Information: 0 : [FOUND] DAC file path: /root/dotnethello/libmscordaccore.so, v
+erifySignature=False
+    ThreadId=1
+    DateTime=2025-08-27T14:18:21.0581217Z
+ Information: 0 : [LOAD] Attempting to load DAC library: /root/dotnethello/libms
+cordaccore.so
+    ThreadId=1
+    DateTime=2025-08-27T14:18:21.0585616Z
+ Error: 0 : [LOAD] LoadLibrary(/root/dotnethello/libmscordaccore.so) FAILED: Dll
+NotFoundException - Dll was not found.
+    ThreadId=1
+    DateTime=2025-08-27T14:18:21.1070297Z
+ Information: 0 : [LOCK] DAC file lock released
+    ThreadId=1
+    DateTime=2025-08-27T14:18:21.1074709Z
+ Information: 0 : HostServices.DestroyTarget #0
+
