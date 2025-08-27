@@ -1,0 +1,137 @@
+issue 1:
+
+Error loading or initializing libsos.so: incompatible types, CFunctionType instance instead of IUnknownVtbl instance
+
+troubleshooting:
+
+(gdb) source /workspaces/diagnostics/src/SOS/gdbpython/sos.py
+before CDLL
+before set GdbServices
+before set _imemory_vtbl
+Error loading or initializing libsos.so: incompatible types, CFunctionType instance instead of IUnknownVtbl instance
+
+action:
+
+fixed by the below code change
+
+        # Create the vtable for the base IUnknown interface first.
+        iunknown_vtbl = IUnknownVtbl(
+            QI_FUNC_TYPE(self.query_interface),
+            ADDREF_FUNC_TYPE(self.add_ref),
+            RELEASE_FUNC_TYPE(self.release)
+        )
+
+        # Now, create the derived vtables, passing the base vtable instance
+        # as the first argument.
+        self._imemory_vtbl = IMemoryServiceVtbl(
+            iunknown_vtbl,
+            READ_VIRTUAL_FUNC_TYPE(self.read_virtual)
+        )
+issue 2:
+
+(gdb) source /workspaces/diagnostics/src/SOS/gdbpython/sos.py
+before CDLL
+before set GdbServices
+before set init_func
+Error loading or initializing libsos.so: /workspaces/diagnostics/artifacts/bin/linux.x64.Debug/libsos.so: undefined symbol: InitializeForDebuggerServices
+
+action:
+switched to gpt-5 preview agent and it is good, just feel slow and think too hglong time
+
+issue of dbgpython/sos.py:
+
+(gdb) source /workspaces/diagnostics/src/SOS/gdbpython/sos.py 
+before CDLL
+before set GdbServices
+before set init_func
+after set <_FuncPtr object at 0x792b846f9400>
+QueryInterface called for IID E0CD8534-A88B-40D7-91BA-1B4C925761E9
+QI -> IHost
+SOS GDB Python extension loaded and initialized successfully.
+(gdb) dumpobj
+QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+Aborted (core dumped)
+
+thoughts:
+suspect it is caused by just stubs no real implementation for ILLDBServices2
+
+
+gpt5-preview reply:
+
+I’ll add lightweight gdb.write traces at the start of each stub so we can see exactly which methods SOS calls before the crash, then verify the file compiles.
+
+Checklist:
+
+Add a _trace helper to centralize gdb.write logging. Done.
+Insert traces at the beginning of every stub in:
+IDebuggerServices.get_memory_service. Done.
+IMemoryService.read_virtual. Done.
+IHost: GetHostType, GetService, GetCurrentTarget. Done.
+ILLDBServices2: all methods. Done.
+ILLDBServices: all methods. Done.
+Compile-check. Done.
+Actions taken:
+
+Inserted a _trace method in GdbServices and added self._trace("call into ...") at the beginning of each stub implementation across ILLDBServices, ILLDBServices2, IHost, IDebuggerServices, and IMemoryService.
+Fixed indentation issues in several methods where the trace lines weren’t indented as part of the method body.
+Verified with a compile check: PASS.
+What’s next:
+
+In GDB, source sos.py again and run your scenario. The console will now show lines like:
+“call into get_memory_service”
+“call into lldb_get_coreclr_directory”
+“call into lldb_read_virtual”
+Share the last few trace lines before the abort; I’ll implement the next needed methods or adjust the entrypoint argument if required.
+Optional try-it commands:
+
+To re-source and test in your GDB session:
+python exec(open('/workspaces/diagnostics/src/SOS/gdbpython/sos.py').read(), globals())
+dumpobj <address>
+Completion summary:
+
+Added comprehensive trace logging across all service stubs.
+Fixed indentation errors and validated with a Python compile check (PASS).
+Ready to capture the call path leading to the crash so we can implement missing pieces quickly.
+
+(gdb) dumpobj 0x123456
+QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+call into host_get_service
+Aborted (core dumped)
+
+(gdb) dumpobj
+QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+call into host_get_service
+call into host_get_service for IID 27B2CB8D-BDEE-4CBD-B6EF-75880D76D46F
+Aborted (core dumped)
+
+Thanks for the trace. SOS is asking IHost for IID 27B2CB8D-BDEE-4CBD-B6EF-75880D76D46F, which is IHostServices; returning E_NOINTERFACE likely caused the abort. I added an IHostServices stub and wired it up.
+
+Checklist:
+
+Add IHostServices IID and ctypes signatures. Done.
+Implement IHostServices vtable and struct. Done.
+Create an instance in init. Done.
+Return IHostServices from host_get_service when requested. Done.
+Add tracing for all IHostServices methods. Done.
+Fix indentation issues and compile-check. Done (COMPILE_OK).
+What changed in sos.py:
+
+New IID_IHostServices and IHostServices vtable/struct with methods:
+GetHost, RegisterDebuggerServices, CreateTarget, UpdateTarget, FlushTarget, DestroyTarget, DispatchCommand, Uninitialize
+host_get_service now recognizes IID_IHostServices and returns our stub, plus logs the requested GUID.
+Traces added for each IHostServices method so we can see calls like:
+call into hostservices_register_debugger_services
+call into hostservices_create_target
+call into hostservices_dispatch_command cmd=... args=...
+Next step:
+
+Re-source sos.py in your GDB session and retry dumpobj. You should now see the host_get_service GUID trace followed by IHostServices method traces. If it still aborts, paste the last few trace lines; I’ll implement the next needed behavior (e.g., minimal DispatchCommand behavior or UpdateTarget flows).
+Optional run hints:
+
+In GDB:
+python exec(open('/workspaces/diagnostics/src/SOS/gdbpython/sos.py').read(), globals())
+dumpobj 0x123456
+Once we see which IHostServices methods are invoked before the crash, we’ll fill them out just enough to keep SOS progressing.
