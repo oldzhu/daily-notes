@@ -1,0 +1,50 @@
+issue 1:
+
+ Error: 0 : [LOAD] LoadLibrary(/root/dotnethello/libmscordaccore.so) FAILED: Dll
+NotFoundException - /root/dotnethello/libmscordaccore.so: undefined symbol: _Uaa
+rch64_get_reg
+
+troubleshooting:
+AI says _Uaarch64_get_reg is in dependency so libunwind.
+
+oldzhu@oldzhu-box-999:~/buildroot$ output/build/host-lldb-origin_main/llvm/buildroot-build/bin/llvm-nm -D output/target/usr/lib/libunwind.so  |grep _Uaarch64
+0000000000003710 T _Uaarch64_flush_cache
+0000000000004420 T _Uaarch64_get_accessors
+0000000000002e00 T _Uaarch64_get_elf_image
+0000000000003630 T _Uaarch64_get_exe_image_path
+0000000000003bc0 T _Uaarch64_is_fpreg
+0000000000003bd0 T _Uaarch64_regname
+0000000000003b00 T _Uaarch64_strerror
+oldzhu@oldzhu-box-999:~/buildroot$ output/build/host-lldb-origin_main/llvm/buildroot-build/bin/llvm-nm -D output/target/usr/lib/libunwind.so  |grep _Uaarch64_get_reg
+
+seems there is no _Uaarch64_get_reg in the new libunwinds.so.8 built locally
+
+00000000000046d0 T _ULaarch64_get_reg
+0000000000005590 T _ULaarch64_get_save_loc
+but there is _ULaarch64_get_reg
+
+also noted https://github.com/libunwind/libunwind/blob/5f46ba494c367968cb79ef5a53810c6108d86d9c/src/mi/Lget_reg.c
+
+#define UNW_LOCAL_ONLY
+#include <libunwind.h>
+#if defined(UNW_LOCAL_ONLY) && !defined(UNW_REMOTE_ONLY)
+#include "Gget_reg.c"
+#endif
+
+seems like should be related with the below
+
+https://github.com/libunwind/libunwind/blob/5f46ba494c367968cb79ef5a53810c6108d86d9c/include/libunwind-common.h.in#L54
+
+#ifdef UNW_LOCAL_ONLY
+# define UNW_PREFIX	UNW_PASTE(UNW_PASTE(_UL,UNW_TARGET),_)
+#else /* !UNW_LOCAL_ONLY */
+# define UNW_PREFIX	UNW_PASTE(UNW_PASTE(_U,UNW_TARGET),_)
+#endif /* !UNW_LOCAL_ONLY */
+
+could be related with this
+
+also checked the local nm -D /usr/lib/x86_64-linux-gnu/libunwind.so.8|grep x86_64 and found it is the same only contains
+UL version of _get_reg...
+
+could it still be caused by why libmscordaccore.so try to find U version of _get_reg. Let me do more comparation.
+
