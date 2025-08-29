@@ -1,0 +1,21 @@
+You're hitting a design guardrail in SOS. Once you pass a non‑null IHost to SOSInitializeByHost, SOS treats that as “the” host and never falls back to its internal Host/Target.
+
+Why this blocks your stubbed host:
+
+SOSInitializeByHost stores your IHost in SOSExtensions (see symbols.cpp → SOSExtensions::Initialize).
+Later, Extensions::GetTarget calls GetHost()->GetCurrentTarget. If your IHost returns null/E_NOTIMPL, there’s no fallback; GetRuntime fails early, and SOS never reaches your ILLDBServices module queries.
+The internal Host::GetInstance/Target::GetInstance path is only used when m_pHost is null (sosextensions.cpp GetHost). Passing any non‑null host disables that path entirely.
+How LLDB “passes a host without implementing ITarget”:
+
+The LLDB plugin first initializes managed hosting (InitializeHosting). That hosting calls back InitializeHostServices and gives SOS a fully functional IHost/IHostServices (from SOS.Hosting), which maintains a real ITarget via Create/Update/FlushTarget. The plugin itself doesn’t implement ITarget; it just supplies DebuggerServices and wires Flush/Update.
+So LLDB’s “nonnull host” is not a stub—it’s a real host that returns a working ITarget.
+Your options:
+
+Keep passing NULL for IHost (what we switched to). SOS will use its internal C++ Host/Target and your ILLDBServices/IDebuggerServices for the debugger bridge. This is the simplest and works for the POC.
+Or replicate the LLDB flow: implement the hosting handshake so SOS.Hosting provides the IHost/IHostServices, and make UpdateTarget/FlushTarget work. That means:
+Start hosting (InitializeHosting) in the debugger process.
+Implement the InitializeHostServices callback to receive IHostServices, then RegisterDebuggerServices, UpdateTarget(processId), etc.
+Ensure GetCurrentTarget on that host returns a valid target. This avoids implementing ITarget yourself but is significantly heavier than the POC.
+There isn’t a supported way to pass a non‑null “dummy” IHost and still force SOS to use its internal Target; the codepath short‑circuits once a host is set.
+Given the POC goal, passing NULL IHost is the intended route. If you want parity with the LLDB plugin later, we can wire up the hosting callback path next.
+

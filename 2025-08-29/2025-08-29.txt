@@ -1,0 +1,54 @@
+issue 1:
+[    5.169815] iwlwifi 0000:03:00.0: Detected Intel(R) Centrino(R) Advanced-N 6205 ABG, REV=0xB0
+[    5.214417] iwlwifi 0000:03:00.0: Invalid 11n configuration
+
+actions:
+
+https://git.kernel.org/pub/scm/linux/kernel/git/wireless/wireless.git/plain/drivers/net/wireless/intel/iwlwifi/pcie/drv.c?id=2c72c8d356db40178be558bbbd43a1d0b5bd0c27
+
+        IWL_DEV_INFO(iwl6005_n_cfg, iwl6005_2agn_sff_name,
+                    DEVICE(0x0085), SUBDEV_MASKED(0xC000, 0xF000)),
+
+How SUBDEV_MASKED Works
+
+The macro expands to:
+
+.subdevice = (v) + _CHECK_MASK(m),
+.subdevice_m_l = _LOWEST_BIT(m),
+.subdevice_m_h = _HIGHEST_BIT(m)
+
+First, let's calculate the components:
+m = 0xF000 (binary: 1111000000000000)
+_LOWEST_BIT(0xF000) = __builtin_ffs(0xF000) - 1 = 13 - 1 = 12
+_BIT_ABOVE_MASK(0xF000) = 0xF000 + (1 << 12) = 0xF000 + 0x1000 = 0x10000
+_HIGHEST_BIT(0xF000) = __builtin_ffs(0x10000) - 2 = 17 - 2 = 15
+_IS_CONTIG(0xF000) = 1 (since 0xF000 is a contiguous bitmask)
+_CHECK_MASK(0xF000) = BUILD_BUG_ON_ZERO(0) = 0
+Therefore, SUBDEV_MASKED(0xC000, 0xF000) expands to:
+
+.subdevice = 0xC000 + 0,
+.subdevice_m_l = 12,
+.subdevice_m_h = 15
+
+So dev_info->subdevice will be exactly 0xC000.
+How the Matching Works
+Let's see how this affects device matching:
+
+subdevice_mask = GENMASK(dev_info->subdevice_m_h, dev_info->subdevice_m_l);
+// For our example: GENMASK(15, 12) = 0xF000
+
+if (dev_info->subdevice != (u16)IWL_CFG_ANY &&
+dev_info->subdevice != (subsystem_device & subdevice_mask))
+continue;
+
+This means the device will match if:
+0xC000 == (subsystem_device & 0xF000)
+
+Examples:
+If subsystem_device = 0xC220:
+0xC220 & 0xF000 = 0xC000 → MATCHES (0xC000 == 0xC000)
+If subsystem_device = 0xD220:
+0xD220 & 0xF000 = 0xD000 → NO MATCH (0xC000 != 0xD000)
+If subsystem_device = 0xC555:
+0xC555 & 0xF000 = 0xC000 → MATCHES (0xC000 == 0xC000)
+
