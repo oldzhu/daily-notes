@@ -1,0 +1,132 @@
+(gdb) dumpobj
+dispatching SOS command with ILLDBServices client
+QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+call into lldb_get_processor_type
+call into lldb_get_module_by_module_name name='libcoreclr.so' startIndex=0
+_scan_coreclr found path=/workspaces/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.106/libcoreclr.so base=0x7ffff7200000
+  -> index=0 base=0x7ffff7200000
+call into lldb2_get_module_info index=0
+_scan_coreclr found path=/workspaces/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.106/libcoreclr.so base=0x7ffff7200000
+  -> base=0x7ffff7200000 size=0x6cc000
+call into lldb_get_module_names index=0 base=0
+_scan_coreclr found path=/workspaces/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.106/libcoreclr.so base=0x7ffff7200000
+
+Thread 1 "gdb" received signal SIGSEGV, Segmentation fault.
+0x0000009300000109 in ?? ()
+(gdb) bt
+#0  0x0000009300000109 in ?? ()
+#1  0x00007fffb6c9174d in Runtime::GetDacFilePath (this=0x55555682e710) at /workspaces/diagnostics/src/SOS/Strike/platform/runtimeimpl.cpp:278
+#2  0x00007fffb6c91e6a in Runtime::GetClrDataProcess (this=0x55555682e710, flags=IRuntime::None, ppClrDataProcess=0x7fffb6ed2350 <g_clrData>) at /workspaces/diagnostics/src/SOS/Strike/platform/runtimeimpl.cpp:430
+#3  0x00007fffb6c86727 in LoadClrDebugDll () at /workspaces/diagnostics/src/SOS/Strike/util.cpp:4098
+#4  0x00007fffb6c3be3b in DumpObj (client=0x7fffd87a4410, args=0x7ffff3d7d980 "") at /workspaces/diagnostics/src/SOS/Strike/strike.cpp:2094
+#5  0x00007ffff413ed1d in ?? () from /usr/lib/x86_64-linux-gnu/libffi.so.7
+#6  0x00007ffff413e289 in ?? () from /usr/lib/x86_64-linux-gnu/libffi.so.7
+#7  0x00007fffd8462360 in ?? () from /usr/lib/python3.9/lib-dynload/_ctypes.cpython-39-x86_64-linux-gnu.so
+#8  0x00007fffd8461e05 in ?? () from /usr/lib/python3.9/lib-dynload/_ctypes.cpython-39-x86_64-linux-gnu.so
+#9  0x00007ffff7a1bb00 in _PyObject_MakeTpCall () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#10 0x00007ffff79cbf08 in _PyEval_EvalFrameDefault () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#11 0x00007ffff79c4033 in ?? () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#12 0x00007ffff7a1d7d4 in ?? () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#13 0x00007ffff7a1d9bb in PyObject_CallMethodObjArgs () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#14 0x0000555555867b40 in ?? ()
+#15 0x00005555556b776c in ?? ()
+#16 0x000055555592fa54 in ?? ()
+#17 0x000055555576684d in ?? ()
+#18 0x0000555555766ba0 in ?? ()
+#19 0x00005555557670f4 in ?? ()
+#20 0x00007ffff7fa30ae in rl_callback_read_char () from /lib/x86_64-linux-gnu/libreadline.so.8
+#21 0x0000555555765e7e in ?? ()
+#22 0x0000555555766fd1 in ?? ()
+#23 0x0000555555765c2c in ?? ()
+#24 0x0000555555a859d6 in ?? ()
+#25 0x0000555555a85c8d in ?? ()
+#26 0x0000555555807895 in ?? ()
+#27 0x000055555580b585 in ?? ()
+#28 0x000055555562590c in ?? ()
+#29 0x00007ffff6fd8d7a in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+#30 0x000055555562af4a in ?? ()
+(gdb) f 1
+#1  0x00007fffb6c9174d in Runtime::GetDacFilePath (this=0x55555682e710) at /workspaces/diagnostics/src/SOS/Strike/platform/runtimeimpl.cpp:278
+278             HRESULT hr = debuggerServices->GetDacSignatureVerificationSettings(&dacSignatureVerificationEnabled);
+(gdb) p *this
+$1 = {<IRuntime> = {<IUnknown> = {_vptr$IUnknown = 0x7fffb6d64c10 <vtable for Runtime+16>}, <No data fields>}, m_ref = 1, m_target = 0x5555568fc060, m_configuration = IRuntime::UnixCore, m_index = 0, m_address = 140737339457536, m_size = 7127040, m_name = 0x555556265670 "/workspaces/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.106/libcoreclr.so", m_runtimeInfo = 0x0, m_runtimeDirectory = 0x0, m_dacFilePath = 0x0, m_dbiFilePath = 0x0, m_clrDataProcess = 0x0, m_pCorDebugProcess = 0x0}
+
+Here’s why I added IDebuggerServices back, and why it’s needed now:
+
+What SOS expects: We call SOSInitializeByHost(NULL, debuggerServices). SOS keeps that debuggerServices pointer and later calls into it. It’s not the LLDB plugin; it’s SOS using the “debugger services” abstraction you provided.
+
+Evidence from your crash: The native stack shows Runtime::GetDacFilePath calling debuggerServices->GetDacSignatureVerificationSettings. That proves SOS invoked IDebuggerServices after it found libcoreclr via ILLDBServices. With our minimal/incorrect vtable (or wrong IID), that call jumped to the wrong function pointer and segfaulted.
+
+Why a full vtable: COM-style vtables must match the header exactly. Even if we only “use” one method, the order and count must be correct so the method index lands on the right function pointer. So I reintroduced the IDebuggerServices vtable per debuggerservices.h, wired stubs for all methods, and implemented GetDacSignatureVerificationSettings to return FALSE.
+
+What didn’t change: ILLDBServices/ILLDBServices2 remain the primary path for module discovery. We hardened GetModuleNames (void* buffers + safe NUL) to stop that earlier crash.
+
+If you’d rather not keep IDebuggerServices, the only alternative is to pass a null debuggerServices to SOSInitializeByHost. Based on the code path you hit, SOS will still try to call it later and crash or fail. So the safest minimal fix is: keep the ABI-accurate IDebuggerServices vtable with stubs, especially GetDacSignatureVerificationSettings.
+(gdb) source /workspaces/diagnostics/src/SOS/gdbpython/sos.py 
+SOS GDB Python extension loaded and initialized successfully.
+(gdb) dumpobj 0x00007fbf668130d8
+Name:        System.InvalidOperationException
+MethodTable: 00007fff795396d0
+Canonical MethodTable: 00007fff795396d0
+Tracked Type: false
+Size:        120(0x78) bytes
+File:        /workspaces/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.106/System.Private.CoreLib.dll
+Fields:
+              MT    Field   Offset                 Type VT     Attr            Value Name
+00007fff796cadd8  400020c        8 ...ection.MethodBase  0 instance 0000000000000000 _exceptionMethod
+00007fff7929c6a0  400020d       10        System.String  0 instance 00007ffff43ad780 _message
+00007fff792a7b08  400020e       18 ...tions.IDictionary  0 instance 0000000000000000 _data
+00007fff7929e9e0  400020f       20     System.Exception  0 instance 0000000000000000 _innerException
+00007fff7929c6a0  4000210       28        System.String  0 instance 0000000000000000 _helpURL
+00007fff782447b0  4000211       30        System.Object  0 instance 00007fbf66813198 _stackTrace
+00007fff7953b840  4000212       38        System.Byte[]  0 instance 0000000000000000 _watsonBuckets
+00007fff7929c6a0  4000213       40        System.String  0 instance 0000000000000000 _stackTraceString
+00007fff7929c6a0  4000214       48        System.String  0 instance 0000000000000000 _remoteStackTraceString
+00007fff7929c6a0  4000215       50        System.String  0 instance 0000000000000000 _source
+00007fff79297818  4000216       58       System.UIntPtr  1 instance 0000000000000000 _ipForWatsonBuckets
+00007fff79295780  4000217       60        System.IntPtr  1 instance 0000000000000000 _xptrs
+00007fff792475b0  4000218       68         System.Int32  1 instance       -532462766 _xcode
+00007fff792475b0  4000219       6c         System.Int32  1 instance      -2146233079 _HResult
+
+I’ll tighten up the GDB Python plugin after the refactor and prep it for a quick smoke test in GDB.
+
+Actions taken
+Cleaned up sos.py to be a thin loader:
+Removed stray, duplicated ABI/stub code accidentally left after refactor.
+Imports now come from abi.py, services.py, and tracing.py.
+Keeps SOSInitializeByHost(NULL, IDebuggerServices) with the correct signature.
+Centralized SOS DLL path via SOS_LIB_PATH.
+Improved symbol resolution for SOS commands (manual map + TitleCase fallback).
+Registered commands:
+dumpobj registered (validated previously).
+Added symbol mappings for clrstack and dso so they can resolve in libsos when we wire up more services. Note: they’re also registered now. They may fail until thread/context methods are implemented.
+Trace control:
+sostrace command registered from tracing.py; tracing off by default.
+Files changed
+sos.py — removed leftover ABI/stub code; thin loader; better symbol mapping; registered additional commands.
+No changes to abi.py, services.py, tracing.py (they remain as in the refactor).
+Quick smoke test
+In GDB, source sos.py.
+Attach to a live .NET process and wait until libcoreclr.so is loaded.
+Run dumpobj <address> where <address> is a valid managed object address.
+Optional: sostrace on to see SOS/service calls; sostrace off to be quiet.
+Note: clrstack and dso may not work yet because thread and context APIs are still stubbed. We’ll wire those next if you want them functional.
+
+Quality gates
+Syntax/typecheck: PASS for sos.py, abi.py, services.py, tracing.py.
+Build/tests: N/A for GDB Python; no build needed here.
+Requirements coverage
+Use SOS internal target by passing NULL host: Done (in sos.py).
+Fix runtime module discovery: Done (maps scanning in services.py).
+GetModuleNames crash fixed with void* buffers and null-termination: Done.
+Restore full, ABI-correct IDebuggerServices and DAC sig verification off: Done.
+Prevent spurious cancel by returning S_FALSE from GetInterrupt: Done.
+Trace toggle with env var and gdb command: Done.
+Refactor into modules and keep sos.py thin: Done.
+Validate dumpobj works: Previously validated; re-smoke-test recommended post-refactor.
+Next steps
+Implement thread/context support to enable clrstack and strengthen dso:
+IDebuggerServices: GetNumberThreads, GetThreadIdsByIndex.
+ILLDBServices: GetContextStackTrace, VirtualUnwind, GetThreadContextBySystemId.
+If you’d prefer to hide clrstack/dso until that’s ready, say the word and I’ll remove or gate their registration.

@@ -1,0 +1,91 @@
+NotFoundException - /root/dotnethello/libmscordaccore.so: undefined symbol: _Uaa
+rch64_get_reg
+
+oldzhu@oldzhu-box-999:~/buildroot$ output/build/host-lldb-origin_main/llvm/buildroot-build/bin/llvm-readelf -s output/target/root/dotnethello/libmscordaccore.so.dbg | grep _Uaarch64
+output/build/host-lldb-origin_main/llvm/buildroot-build/bin/llvm-readelf: warning: 'output/target/root/dotnethello/libmscordaccore.so.dbg': no valid dynamic table was found
+ 12108: 000000000019f144   132 FUNC    LOCAL  DEFAULT    12 _Uaarch64_flush_cache
+ 13348: 000000000019ccd0    28 FUNC    LOCAL  DEFAULT    12 _Uaarch64_get_exe_image_path
+ 13950: 00000000001963bc    60 FUNC    LOCAL  DEFAULT    12 _Uaarch64_dwarf_init
+ 14035: 000000000019d0e8    52 FUNC    LOCAL  DEFAULT    12 _Uaarch64_get_accessors_int
+ 14781: 000000000019f1c8    16 FUNC    LOCAL  DEFAULT    12 _Uaarch64_is_fpreg
+ 15691: 000000000019c3f0  2272 FUNC    LOCAL  DEFAULT    12 _Uaarch64_get_elf_image
+ 17069: 000000000019d0e8    52 FUNC    LOCAL  DEFAULT    12 _Uaarch64_get_accessors
+ 18689: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT   UND _Uaarch64_get_reg
+ 18704: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT   UND _Uaarch64_create_addr_space
+ 18779: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT   UND _Uaarch64_step
+ 18797: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT   UND _Uaarch64_destroy_addr_space
+ 18815: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT   UND _Uaarch64_init_remote
+ 18917: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT   UND _Uaarch64_get_proc_info_in_range
+
+oldzhu@oldzhu-box-999:~/buildroot$ output/build/host-lldb-origin_main/llvm/buildroot-build/bin/llvm-objdump -R output/ta
+rget/root/dotnethello/libmscordaccore.so | grep _Uaarch64
+000000000023ee90 R_AARCH64_JUMP_SLOT      _Uaarch64_get_reg
+000000000023eec8 R_AARCH64_JUMP_SLOT      _Uaarch64_create_addr_space
+000000000023f048 R_AARCH64_JUMP_SLOT      _Uaarch64_step
+000000000023f0a8 R_AARCH64_JUMP_SLOT      _Uaarch64_destroy_addr_space
+000000000023f118 R_AARCH64_JUMP_SLOT      _Uaarch64_init_remote
+000000000023f2f0 R_AARCH64_JUMP_SLOT      _Uaarch64_get_proc_info_in_range
+
+oldzhu@oldzhu-box-999:~/buildroot$ output/build/host-lldb-origin_main/llvm/buildroot-build/bin/llvm-addr2line -e output/target/root/dotnethello/libmscordaccore.so 023ee90
+??:0
+
+
+oldzhu@oldzhu-box-999:~/buildroot$ output/build/host-lldb-origin_main/llvm/buildroot-build/bin/llvm-objdump -d output/target/root/dotnethello/libmscordaccore.so | grep -A 10 "_Uaarch64_get_reg@plt"
+0000000000027e00 <_Uaarch64_get_reg@plt>:
+   27e00: f00010b0      adrp    x16, 0x23e000
+   27e04: f9474a11      ldr     x17, [x16, #0xe90]
+   27e08: 913a4210      add     x16, x16, #0xe90
+   27e0c: d61f0220      br      x17
+
+0000000000027e10 <memcpy@plt>:
+   27e10: f00010b0      adrp    x16, 0x23e000
+   27e14: f9474e11      ldr     x17, [x16, #0xe98]
+   27e18: 913a6210      add     x16, x16, #0xe98
+   27e1c: d61f0220      br      x17
+--
+  19f754: 97fa21ab      bl      0x27e00 <_Uaarch64_get_reg@plt>
+  19f758: 9100a3e0      add     x0, sp, #0x28
+  19f75c: 910402a2      add     x2, x21, #0x100
+  19f760: 528003e1      mov     w1, #0x1f               // =31
+  19f764: 97fa21a7      bl      0x27e00 <_Uaarch64_get_reg@plt>
+...
+
+oldzhu@oldzhu-box-999:~/buildroot$ output/build/host-lldb-origin_main/llvm/buildroot-build/bin/llvm-addr2line -e output/target/root/dotnethello/libmscordaccore.so 19f754
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/exception/remote-unwind.cpp:1823
+
+
+oldzhu@oldzhu-box-999:~/buildroot$ output/build/host-lldb-origin_main/llvm/buildroot-build/bin/llvm-objdump -d output/target/root/dotnethello/libmscordaccore.so | grep -B 10 "23ee90"
+
+oldzhu@oldzhu-box-999:~/buildroot$ output/build/host-lldb-origin_main/llvm/buildroot-build/bin/llvm-objdump -d output/target/root/dotnethello/libmscordaccore.so | grep -B 5 -A 5 "_Uaarch64_get_reg"
+   27df0: f00010b0      adrp    x16, 0x23e000
+   27df4: f9474611      ldr     x17, [x16, #0xe88]
+   27df8: 913a2210      add     x16, x16, #0xe88
+   27dfc: d61f0220      br      x17
+
+0000000000027e00 <_Uaarch64_get_reg@plt>:
+   27e00: f00010b0      adrp    x16, 0x23e000
+   27e04: f9474a11      ldr     x17, [x16, #0xe90]
+   27e08: 913a4210      add     x16, x16, #0xe90
+   27e0c: d61f0220      br      x17
+
+--
+  19f740: 97fa228c      bl      0x28170 <_Uaarch64_step@plt>
+  19f744: 37f80780      tbnz    w0, #0x1f, 0x19f834 <PAL_UnregisterModule+0x2798c>
+  19f748: 9100a3e0      add     x0, sp, #0x28
+  19f74c: 910422a2      add     x2, x21, #0x108
+  19f750: 528003c1      mov     w1, #0x1e               // =30
+  19f754: 97fa21ab      bl      0x27e00 <_Uaarch64_get_reg@plt>
+  19f758: 9100a3e0      add     x0, sp, #0x28
+  19f75c: 910402a2      add     x2, x21, #0x100
+  19f760: 528003e1      mov     w1, #0x1f               // =31
+  19f764: 97fa21a7      bl      0x27e00 <_Uaarch64_get_reg@plt>
+  19f768: 9100a3e0      add     x0, sp, #0x28
+...
+
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/exception/remote-unwind.cpp
+   1822 #elif defined(TARGET_ARM64)
+   1823     unw_get_reg(cursor, UNW_REG_IP, (unw_word_t *) &winContext->Pc);
+   1824     unw_get_reg(cursor, UNW_REG_SP, (unw_word_t *) &winContext->Sp);
+   1825     unw_get_reg(cursor, UNW_AARCH64_X19, (unw_word_t *) &winContext->X19);
+   1826     unw_get_reg(cursor, UNW_AARCH64_X20, (unw_word_t *) &winContext->X20);
+...

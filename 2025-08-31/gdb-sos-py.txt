@@ -1,0 +1,42 @@
+issue：
+Error: Command 'dso' not found in libsos.so (tried symbols: DumpStackObjects, Dso, dso).
+
+Got it—let’s unblock why dso fails and what to do next.
+
+Checklist
+
+Explain why dso isn’t found on Linux
+Provide concrete ways to enable it
+Implement a small UX improvement in our plugin to clarify this case
+Suggest next step for clrstack
+What’s wrong
+
+On Linux, dso (DumpStackObjects) is a managed-only SOS command. It isn’t exported as a native symbol in libsos.so (see sos_unixexports.src). Our GDB Python dispatcher resolves native exports only, so symbol lookup fails.
+How to fix
+
+Option A (recommended): Use managed hosting like the LLDB plugin.
+You need IHostServices from SOS.Extensions (managed) and invoke DispatchCommand. That requires initializing hosting (InitializeHosting) so SOS can call back into the managed HostServices implementation.
+Practically, this is done by the lldb plugin (it calls InitializeHosting and then DispatchCommand). In GDB Python, you’d need a tiny native bridge or to expose InitializeHosting from libsos and a route to set the host runtime (sethostruntime) before DispatchCommand.
+Option B (larger change): Make our Python host “real” by wiring IHostServices.DispatchCommand to managed SOS.Extensions.
+Load .NET (libcoreclr), call HostServices.Initialize("<path to SOS native>") to get a managed IHostServices, and forward DispatchCommand to it. Then pass our IHost to SOSInitializeByHost so managed-only commands use our DispatchCommand. This is non-trivial in pure Python/ctypes.
+Short-term: Use lldb’s sos plugin or dotnet-dump for managed-only commands (dso, dumpheap, gcroot, etc.) and keep using our GDB plugin for native-exported commands (dumpobj, clrstack once we complete context/unwind).
+Change made
+
+I added a targeted message in the GDB dispatcher for managed-only commands on Linux to explain the situation and options, instead of a confusing “symbol not found” error. File updated: sos.py
+Next steps
+
+If you want dso in this plugin: decide whether to add a tiny native shim to invoke InitializeHosting and expose a callable entry for our Python to trigger; I can scaffold that C/C++ shim and a minimal build target.
+Meanwhile, I can focus on clrstack by implementing:
+IDebuggerServices.GetThreadContextBySystemId (AMD64) by reading GDB registers into a DT_CONTEXT buffer
+IDebuggerServices.VirtualUnwind (minimal support) to let SOS stackwalk progress
+Quality gates
+
+Build/Lint: Python edit only; syntax OK.
+Runtime: New message path hit only for managed-only commands on Linux.
+Requirements coverage
+
+Explain error and fix: Done
+Provide actionable options: Done
+Improve UX for dso: Done
+Plan for clrstack: Proposed
+If you want me to proceed with the native shim to enable managed hosting from GDB, say the word and I’ll add it with a minimal CMake target and wire-up from sos.py.
