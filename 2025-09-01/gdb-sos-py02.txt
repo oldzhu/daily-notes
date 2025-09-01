@@ -1,0 +1,27 @@
+Nice. Taking the win and lining up crisp next steps you can pick from when you’re ready:
+
+IMemoryRegionService (enables gctonative/findpointersin/maddress)
+
+Implement in the native bridge using /proc/<pid>/maps + ELF symbolization; wire to NativeAddressHelper.
+Start minimal (read-only regions + basic symbol resolve), expand as needed.
+dso accuracy
+
+Trace stack root enumeration; double-check thread context (RIP/RSP/RBP), partial reads, and any missing ILLDBServices callbacks.
+Add a tiny “diagnose-dso” trace mode to log root discovery.
+Command parity + UX polish
+
+Audit vs LLDB list; fill any gaps/synonyms; ensure “help” and “soshelp” surface everything users expect.
+Optional: add command aliases where WinDbg casing differs.
+Symbols and hosting
+
+Make setsymbolserver/loadsymbols flow smooth under GDB.
+Auto-detect managed hosting readiness and print a one-liner hint only when needed.
+Perf/robustness
+
+Cache module lookups and /proc maps; keep ReadVirtual partial-read behavior but cap retries.
+Add lightweight error codes-to-hints for common failures.
+Packaging/docs/tests
+
+Single-line import instructions; env var table (SOS_LIB_PATH, SOS_BRIDGE_LIB_PATH, SOS_PY_*).
+Add a few smoke tests (clrstack, dumpobj, dumpheap) against the SimpleThrow sample.
+Which one should we tackle first? My vote: IMemoryRegionService (unlocks 3 commands) or dso accuracy, depending on your priority.

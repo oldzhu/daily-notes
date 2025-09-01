@@ -1,0 +1,43 @@
+I’ll refactor sos.py to remove redundant per-command registrations, add automatic command registration on load (configurable via an env var), and hide the registration command by converting it into internal helpers; after edits I’ll keep a short checkpoint and what changed.
+
+sos.py+124-97
+I’ll streamline sos.py to remove redundant registrations, auto-register commands on load, and hide the ad‑hoc registrar so the UX matches LLDB.
+
+Checklist
+
+Remove manual per-command registrations in favor of automatic registration. Done
+Auto-run command registration on import; allow opt-out/config via env var. Done
+Hide the sosregister command (keep logic internal). Done
+Re-attempt managed command registration once hosting is initialized. Done
+Keep “sos” umbrella and tracing intact. Done
+What changed
+
+Removed explicit registrations: dumpobj, clrstack, dso, dumpheap, soshelp. Commands are now registered automatically.
+Added internal helpers: _register_names, _parse_managed_help, _parse_native_help, _auto_register.
+Auto-registration on import:
+Controlled by SOS_PY_AUTOREG (default: all). Values: native, managed, all, or disable via 0/false/off/no/none.
+Registers native commands immediately via “sos help”.
+Registers managed commands when hosting is ready; if not ready at import, it will retry after hosting initializes or after the first successful managed dispatch.
+Removed the public sosregister command to avoid divergence from LLDB; logic is internal.
+On successful sethostruntime, managed commands are auto-registered silently.
+After any successful managed dispatch through “sos <cmd>”, the plugin will attempt a one-time managed command auto-registration.
+How to use
+
+Load sos.py as before; commands will be available without running sosregister.
+Use “sos <command> …” for anything not yet bound or before hosting is initialized.
+To disable auto-registration or limit scope, set SOS_PY_AUTOREG accordingly.
+Notes
+
+Native SOS commands (e.g., DumpObj/ClrStack) register immediately.
+Managed-only commands (e.g., soshelp, dumpheap variants requiring hosting) auto-register once hosting is available; until then, “sos soshelp” works via the umbrella.
+Quality gates
+
+Syntax check: PASS (Python-only changes; no build required).
+Behavior smoke: Native exports resolve via “sos help”; managed list deferred until hosting.
+Requirements coverage
+
+Remove redundant registrations: Done
+Auto-run registration at load: Done
+Hide sosregister: Done
+Keep parity/clarity with minimal surface: Done
+If you want “soshelp” to be available before hosting, I can pre-register just that one name while keeping everything else auto-registered.

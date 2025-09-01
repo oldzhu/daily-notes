@@ -1,0 +1,54 @@
+Thanks for the clear repro. I’ll make the GDB plugin register commands like LLDB does so both “clrstack” and “sos clrstack” work cleanly without confusing messages.
+
+Checklist
+
+Mirror LLDB’s explicit command registration. Done
+Prefer native exports first so “sos clrstack” doesn’t print “Unrecognized SOS command”. Done
+Remove help-parsing auto-registration and the extra sosregister concept. Done
+Add “ext” alias like LLDB (“ext <cmd>” forwards to “sos <cmd>”). Done
+Actions taken
+
+Refactored sos.py:
+Added MANUAL_EXPORTS mapping to mirror LLDB’s soscommand.cpp list.
+Introduced a common export-resolution helper and switched dispatch to try native exports first, then managed.
+Removed the help-output auto-registration and the hidden re-registration hooks.
+Registered a comprehensive default command set at import (like LLDB) so direct commands exist immediately: e.g., “clrstack”, “dumpobj”, “dumpheap”, “dso”, etc.
+Added “ext” umbrella alias that forwards to “sos”.
+Kept “sos” umbrella and tracing as-is.
+What this fixes
+
+“sos clrstack” now resolves to the native export ClrStack first, avoiding the managed-side “Unrecognized SOS command” noise.
+“clrstack” (and other commands) are registered up-front, so they work without the “sos” prefix, matching LLDB’s UX.
+No more visible “sosregister” command; behavior is deterministic and matches LLDB’s explicit registrations.
+How to use
+
+Use either:
+Direct: clrstack, dumpobj, dumpheap, dso, …
+Umbrella: sos clrstack, sos dumpheap, …
+Alias: ext clrstack (LLDB-style)
+If a command isn’t a native export, the plugin falls back to managed dispatch automatically.
+Notes
+
+Managed-only commands (like some heap/path commands) will route through the bridge/libsos forwarder as needed.
+If managed hosting isn’t initialized, managed-only commands will print a short guidance message.
+If you want me to add/remove specific commands from the default set for parity with your exact SOS build, say the word—easy tweak.
+
+my thought:
+
+Another concern is we mantained the hard coded _register_default_commands like lldb doing in the soscommand.cpp, that bring a sync problem between
+our code and lldb/SOS part.
+
+Another issue is that why some commands does not show in gdb/lldb
+Summary
+
+Why missing: GCToNative and FindPointersIn (and MAddress) have a FilterInvoke that requires NativeAddressHelper + IMemoryRegionService. That service exists in WinDbg/cdb but not in our GDB/LLDB host, so the commands don’t register or show in soshelp/help.
+Affected commands (from the repo):
+gctonative — GCToNativeCommand.cs
+findpointersin — FindPointersInCommand.cs
+maddress — MAddressCommand.cs
+Expected behavior: They won’t appear in soshelp/help and won’t run under GDB/LLDB; the code explicitly says “only supported under windbg/cdb.”
+Options
+
+Leave as-is (parity with LLDB: it doesn’t register these either).
+If you want them in GDB, we’d need to implement IMemoryRegionService in the bridge and wire NativeAddressHelper (likely via /proc/<pid>/maps,+symbol resolution). That’s a larger change.
+UX tweak (optional): register stubs that print “This command is only supported under windbg/cdb” to avoid confusion if users try them. Say the word and I’ll add that.
