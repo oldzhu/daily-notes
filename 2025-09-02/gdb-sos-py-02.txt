@@ -1,0 +1,41 @@
+SOS_HOSTING: Fail to create hosting delegate 80070002
+[sos] Bridge DispatchManagedCommand('dso') => 0x-7fffbffb
+Managed command 'dso' failed (HRESULT=0x80004005). Unspecified failure. Try 'sostrace on' for details.
+
+need to make sure bridge so located in the same folder as libsos.so
+
+I’ll fix the split-debug step so objcopy can find the .dbg file and your build completes.
+
+Checklist:
+
+Inspect the bridge CMake split-debug commands
+Remove the quoting that breaks objcopy’s --add-gnu-debuglink
+Rebuild and verify .so/.dbg and debuglink section
+Confirm install and default deploy
+Actions taken:
+
+Updated CMakeLists.txt: removed quotes around the debuglink path in the POST_BUILD step so CMake VERBATIM doesn’t pass literal quotes to objcopy.
+Before: --add-gnu-debuglink=".../libsosgdbbridge.so.dbg"
+After: --add-gnu-debuglink=.../libsosgdbbridge.so.dbg
+Rebuilt and installed the bridge; default deploy to diagnostics is still on.
+Verification:
+
+Build: PASS (Release)
+Split debug: PASS
+Generated: libsosgdbbridge.so.dbg
+.gnu_debuglink section present in libsosgdbbridge.so
+Install: PASS
+libsosgdbbridge.so
+libsosgdbbridge.so.dbg
+Deploy (default): PASS
+Copied .so next to diagnostics’ libsos.so at linux.x64.Release
+Try it:
+
+Rebuild/install the bridge (diagnostics skipped for speed):
+build.sh -c Release --skip-diagnostics
+Optional: verify debuglink
+readelf -SW libsosgdbbridge.so | grep .gnu_debuglink
+Notes:
+
+The failure was due to quoted arg being passed literally to objcopy; removing quotes fixes it.
+Deploy copies the .so by default; if you also want the .dbg deployed to diagnostics/current, I can add that.

@@ -1,0 +1,31 @@
+[sos] Failed to load libsosgdbbridge.so from '/workspaces/gdbsos/artifacts/bin/current/libsosgdbbridge.so': /workspaces/gdbsos/artifacts/bin/current/libsosgdbbridge.so: undefined symbol: _ZTI10Extensions
+
+
+Good catch on the diffs. Here’s how to inspect and compare, plus why GetDebuggerServices is missing and why it’s fine.
+
+Tools to inspect symbols
+
+nm (demangled, dynamic table): nm -D -C <lib.so> | sort
+objdump (dynamic symbols): objdump -T -C <lib.so> | sort
+readelf (symbol table with bind/vis): readelf -Ws <lib.so> | grep -i extensions
+relocations targeting a symbol: objdump -r -C <lib.so> | grep -i Extensions
+needed DSOs: readelf -d <lib.so> | grep NEEDED
+object-level check: nm -C <obj.o> | grep GetDebuggerServices
+Why U typeinfo disappeared
+
+Adding -fno-rtti removes RTTI references (typeinfo/dynamic_cast). That’s why “U typeinfo for Extensions” is gone. This fixes the runtime undefined typeinfo you saw.
+Why GetDebuggerServices isn’t in our .so
+
+In diagnostics it shows as W (weak), typically from an inline method emitted into COMDAT. Whether it appears depends on usage, optimization, and linker GC. If nothing references it, the compiler/linker can omit it; our build simply didn’t emit/retain it.
+It’s not harmful. The vtable and used methods are present; missing an unreferenced weak inline is expected and shouldn’t affect behavior.
+If you want to force parity
+
+Force emission: add a tiny TU that references Extensions::GetDebuggerServices(), or mark it used in the header (attribute((used)))—low value unless you truly need the symbol exported.
+Force archive inclusion: wrap libextensions.a with -Wl,--whole-archive/--no-whole-archive around just that archive so all needed COMDATs are pulled (useful if anything else goes missing).
+Fail fast: add -Wl,--no-undefined to catch unresolveds at link time.
+Flag comparison (quick checks)
+
+Our flags: artifacts/obj/gdbbridge/linux.x64.<Cfg>/CMakeFiles/sosgdbbridge.dir/flags.make, link.txt; compile_commands.json.
+Diagnostics flags: src/diagnostics/artifacts/obj/linux.x64.<Cfg>/**/flags.make and link.txt near the Extensions/SOS build; compile_commands.json at their obj root.
+Key bits to align: -fms-extensions, -fvisibility=default, -fPIC, -fno-rtti (now added), link options like --no-undefined and any --gc-sections/--as-needed.
+Net: You’re good functionally with -fno-rtti (no more typeinfo U). The missing weak GetDebuggerServices symbol is expected and not an issue unless you explicitly need it exported. I can wire whole-archive and --no-undefined if you want stricter link parity.
