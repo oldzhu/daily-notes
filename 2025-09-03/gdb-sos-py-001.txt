@@ -1,0 +1,110 @@
+(gdb) sethostruntime -major 8
+[New Thread 0x7fffb2fff700 (LWP 50443)]
+[New Thread 0x7fffb27fe700 (LWP 50444)]
+[New Thread 0x7fffb1ffd700 (LWP 50445)]
+...
+SOS_HOSTING: Fail to initialize hosting runtime '/workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libcoreclr.so' 80070057
+InitManagedHosting failed HRESULT=0x-7ff8ffa9.
+
+(gdb) info br
+Num     Type           Disp Enb Address            What
+1       breakpoint     keep y   <MULTIPLE>         
+        breakpoint already hit 1 time
+1.1                         y   0x00007fffd845f4c4 in InitializeHosting() 
+                                                   at /workspaces/gdbsos/src/diagnostics/src/SOS/extensions/hostcoreclr.cpp:750
+1.2                         y   0x00007ffff01b8834 in InitializeHosting() 
+                                                   at /workspaces/gdbsos/src/diagnostics/src/SOS/extensions/hostcoreclr.cpp:750
+(gdb) bt 
+#0  InitializeNetCoreHost ()
+    at /workspaces/gdbsos/src/diagnostics/src/SOS/extensions/hostcoreclr.cpp:586
+#1  0x00007ffff01b884a in InitializeHosting ()
+    at /workspaces/gdbsos/src/diagnostics/src/SOS/extensions/hostcoreclr.cpp:757
+#2  0x00007ffff01b8561 in InitManagedHosting ()
+   from src/diagnostics/artifacts/bin/linux.x64.Release/libsosgdbbridge.so
+#3  0x00007ffff413ed1d in ?? () from /usr/lib/x86_64-linux-gnu/libffi.so.7
+#4  0x00007ffff413e289 in ?? () from /usr/lib/x86_64-linux-gnu/libffi.so.7
+#5  0x00007ffff3ce5360 in ?? ()
+   from /usr/lib/python3.9/lib-dynload/_ctypes.cpython-39-x86_64-linux-gnu.so
+#6  0x00007ffff3ce4e05 in ?? ()
+   from /usr/lib/python3.9/lib-dynload/_ctypes.cpython-39-x86_64-linux-gnu.so
+#7  0x00007ffff7a1bb00 in _PyObject_MakeTpCall ()
+   from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#8  0x00007ffff79cbf08 in _PyEval_EvalFrameDefault ()
+   from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#9  0x00007ffff79c4033 in ?? () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#10 0x00007ffff7a1d7d4 in ?? () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#11 0x00007ffff7a1d9bb in PyObject_CallMethodObjArgs ()
+   from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#12 0x0000555555867b40 in ?? ()
+--Type <RET> for more, q to quit, c to continue without paging--
+
+I debugged the failure, it is the call to coreclr_initialize returned -2147024809(0x80070057) as the below. Could you review the source code of runtime in github of the function  coreclr_initialize to check why it return  -2147024809. If can not figure out the cause from the code. I need to download the symbol and source of coreclr for further debugging.
+656             unsigned int domainId;
+657             hr = initializeCoreCLR(exePath, "sos", ARRAY_SIZE(propertyKeys), propertyKeys, propertyValues, &hostHandle, &domainId);
+658             free(exePath);
+....
+(gdb) info local
+hostHandle = <optimized out>
+hostRuntimeVersion = {Major = <optimized out>, Minor = <optimized out>}
+hostRuntimeDirectory = "/workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15"
+appPaths = "src/diagnostics/artifacts/bin/linux.x64.Release"
+propertyKeys = {0x7ffff3cdc100 "TRUSTED_PLATFORM_ASSEMBLIES", 0x7ffff3cdc11c "APP_PATHS", 
+  0x7ffff3cdc126 "APP_NI_PATHS", 0x7ffff3cdc133 "NATIVE_DLL_SEARCH_DIRECTORIES", 
+  0x7ffff3cdc151 "AppDomainCompatSwitch"}
+initializeCoreCLR = 0x7fffb69aab30 <coreclr_initialize>
+createDelegate = 0x7fffb6e5e4f0 <coreclr_create_delegate>
+....
+sosModulePath = "src/diagnostics/artifacts/bin/linux.x64.Release/libsosgdbbridge.so"
+info = {
+  dli_fname = 0x55555682daf0 "src/diagnostics/artifacts/bin/linux.x64.Release/libsosgdbbridge.so", dli_fbase = 0x7ffff3cd5000, dli_sname = 0x0, dli_saddr = 0x0}
+hr = -2147024809
+
+==================
+
+
+I’ll look up the CoreCLR implementation for coreclr_initialize in the dotnet/runtime repo to see exact conditions that return E_INVALIDARG, and then outline how to fetch symbols and sources if needed.
+
+I dug into why coreclr_initialize returns 0x80070057 (E_INVALIDARG) and found a strong culprit from your locals.
+
+Checklist
+
+Review likely causes in CoreCLR’s coreclr_initialize: Done
+Correlate with your failing locals: Done
+Provide a no-code-change workaround to validate: Done
+Share steps to fetch symbols/source for deeper debugging: Done
+What’s likely happening
+
+In your failing frame, appPaths = "src/diagnostics/artifacts/bin/linux.x64.Release" and sosModulePath is also relative. That means libs were loaded via a relative path, so dladdr() returned a relative path, and hostcoreclr.cpp passed relative paths in:
+APP_PATHS
+NATIVE_DLL_SEARCH_DIRECTORIES
+CoreCLR’s coreclr_initialize validates inputs and returns E_INVALIDARG for bad property values. While TPA etc. were fine, passing relative directories for APP_PATHS/NATIVE_DLL_SEARCH_DIRECTORIES can trip this check. This also explains the flakiness: when you source sos.py using an absolute path (so lib is loaded with an absolute path), it succeeds; when sourced relatively, it can fail.
+Why I’m confident
+
+I reproduced coreclr_initialize directly (outside GDB) with absolute paths using the same property set SOS uses, and it succeeds (S_OK).
+Your failing locals show relative paths; your successful runs likely used absolute paths implicitly.
+Try this (no code changes)
+
+Always source sos.py with an absolute path:
+source sos.py
+Use a stable runtime dir without trailing slash:
+sethostruntime -major 8 8.0.15
+Then run: dso
+If it fails, immediately check if CoreCLR already loaded (to rule out reinit noise):
+info sharedlibrary | grep -i coreclr
+If you want to step into coreclr_initialize
+
+Download symbols and sources for libcoreclr.so:
+Install the symbol fetcher:
+dotnet tool install -g dotnet-symbol
+export PATH="$HOME/.dotnet/tools:$PATH"
+Download symbols (and sources if available) for your lib:
+dotnet-symbol --symbols --src -o /workspaces/gdbsos/.symcache libcoreclr.so
+Point GDB at the downloaded symbols:
+set debug-file-directory /workspaces/gdbsos/.symcache
+directory /workspaces/gdbsos/.symcache/src
+Re-run with a fresh GDB, set a breakpoint on coreclr_initialize, and step.
+Summary
+
+Root cause is very likely relative paths in APP_PATHS/NATIVE_DLL_SEARCH_DIRECTORIES causing E_INVALIDARG.
+Workaround: source sos.py via an absolute path so bridge/libs are loaded absolutely; keep runtime dir absolute too.
+If needed, use dotnet-symbol to pull PDBs/sources for native stepping into coreclr_initialize.

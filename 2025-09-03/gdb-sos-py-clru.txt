@@ -1,0 +1,156 @@
+
+back to our clru issue, I run it with pagination off and it enter into endless with garbage characters displayed in terminal and finally the container is restarted, CTRL+c also cant stop the loop.
+
+
+========================
+
+I’m going to stop the clru “endless loop” by fixing our ILLDBServices.Disassemble so it always makes forward progress and can’t spin on the same address.
+
+Checklist
+
+Fix infinite loop: ensure Disassemble advances endOffset and returns sensible status
+Correct ABI signature for Disassemble buffer to avoid memory misuse
+Null-terminate and bounds-check output text
+Keep the change minimal and safe
+Actions taken
+
+Corrected ABI for Disassemble to match diagnostics’ IDL (buffer is void*, not char*):
+Updated ILLDBServicesVtbl.Disassemble signature in abi.py to use ctypes.c_void_p.
+Updated vtable creation in services.py to match.
+Implemented a safe Disassemble in GdbServices:
+lldb_disassemble now tries a one-instruction disassembly via gdb.execute("x/1i <addr>", to_string=True).
+Writes the decoded text into the provided buffer, NUL-terminated, respecting bufferSize.
+Sets disSize to bytes written.
+Always advances endOffset by at least 1 byte even if text isn’t produced, guaranteeing forward progress.
+Returns S_OK (0) when something was written, S_FALSE (1) otherwise, avoiding callers looping on the same address.
+This directly addresses the behavior where our previous stub returned S_FALSE and left endOffset unchanged, which can cause a tight, uninterruptible loop with garbage output and eventual terminal meltdown.
+Try it
+
+Since this is Python-only, you can just re-source the script in GDB:
+From the directory where you source sos.py (diagnostics/artifacts/bin/current), run in GDB:
+source sos.py
+Then run your clru scenario again with pagination off.
+If you use our deploy flow, copy updated Python files next to libsos.so as usual, then source again.
+Notes
+
+Ctrl+C couldn’t stop the loop before because the caller was stuck requesting the same disassembly repeatedly; advancing endOffset breaks that cycle.
+If disassembly isn’t possible at some addresses, it will still progress byte-by-byte and terminate based on the SOS command’s count/limit.
+Quality gates
+
+Build/lint: Python files updated; no syntax/type errors detected in the workspace for the edited files.
+Runtime: Behavior changes are localized to the ILLDBServices.Disassemble callback used by clru/u.
+Requirements coverage
+
+clru infinite loop: Done (Disassemble now advances and returns stable results)
+Avoid garbage/unbounded printing: Done (bounded writes, NUL-terminated, forward progress)
+If clru still floods the terminal due to sheer volume, we can add a small optional cap (e.g., max N instructions per call) or temporarily disable GDB pagination during SOS calls and restore it afterward, but let’s see if this fix resolves your issue first.
+
+
+yes the endloop fixed but the output does not make sense to me at least it is not meaninful and helpful as clru in windbg/cdb(not check in lldb could compare and check later). I know it could be complex to fix so we can delay that kind of work to later stage
+
+(gdb) clru 0x00007FFF784E9B60
+preJIT generated code
+System.Runtime.EH.RhThrowEx(System.Object, ExInfo ByRef)
+ilAddr is 00007FFF789D2AC4 pImport is 00005753ADC95660
+Begin 00007FFF784E9B30, size 65
+
+
+
+
+
+
+
+
+
+mov    0.000000e+00si,0.000000e+00bx
+
+
+test   0.000000e+00di,0.000000e+00di
+
+je     0x7fff784e9b77
+(bad)
+
+
+mov    $0xb0,0.000000e+00bx
+
+
+
+
+xor    0.000000e+00di,0.000000e+00di
+
+
+
+mov    $0x208,0.000000e+00bx
+
+
+
+
+
+
+mov    $0xc0,0.000000e+00bx
+
+
+
+
+
+mov    0.000000e+00bx,0.000000e+00si
+
+
+adc    $0x912308,0.000000e+00ax
+
+
+xchg   0.000000e+00ax,0.000000e+00cx
+
+>>> 
+
+add    $0x9122e1,0.000000e+00ax
+loope  0x7fff784e9b87
+
+xchg   0.000000e+00ax,0.000000e+00cx
+
+mov    $0x1,0.000000e+00di
+
+
+
+
+xor    0.000000e+00si,0.000000e+00si
+
+
+add    $0x8,0.000000e+00sp
+(bad)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+mov    $0xf8,564262832h
+clc
+
+
+
+mov    $0x8,0.000000e+00di
+
+
+
+
+
+adc    $0x9122d0,0.000000e+00ax
+
+
+xchg   0.000000e+00ax,0.000000e+00cx
+
+
+mov    0.000000e+00ax,0.000000e+00di
+clc
+jmp    0x7fff784e9b40
+

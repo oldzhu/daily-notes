@@ -1,0 +1,58 @@
+(gdb) dso
+Managed hosting initialized.
+OS Thread Id: 0x259e (9)
+          SP/REG           Object Name
+    7fffffff92b8     7fbf66814108 System.InvalidOperationException
+    7fffffff9310     7fbf66814108 System.InvalidOperationException
+    7fffffff9468     7fbf66814108 System.InvalidOperationException
+    7fffffff9470     7fbf66814108 System.InvalidOperationException
+    7fffffff9550     7fbf66814108 System.InvalidOperationException
+    7fffffff97d8     7ffff43ad780 System.String
+    7fffffff9940     7fbf6680e118 System.UnhandledExceptionEventHandler
+    7fffffffa148     7ffff43ad780 System.String
+    7fffffffa188     7ffff43ad780 System.String
+    7fffffffa1a8     7ffff43ad780 System.String
+    7fffffffa310     7ffff43ad780 System.String
+    7fffffffa390     7fbf6680e118 System.UnhandledExceptionEventHandler
+    7fffffffa3a8     7fbf66814108 System.InvalidOperationException
+    7fffffffa3b0     7ffff43ad780 System.String
+    7fffffffa4a8     7ffff43ad780 System.String
+    7fffffffa610     7fbf6680e118 System.UnhandledExceptionEventHandler
+    7fffffffb148     7ffff43ad780 System.String
+    7fffffffb2b0     7fbf6680e118 System.UnhandledExceptionEventHandler
+--Type <RET> for more, q to quit, c to continue without paging--q
+Exception ignored on calling ctypes callback function: <bound method GdbServices.dbg_output_string of <services.GdbServices object at 0x72d2d4382c10>>
+Traceback (most recent call last):
+  File "/workspaces/gdbsos/src/diagnostics/artifacts/bin/linux.x64.Release/services.py", line 970, in dbg_output_string
+    gdb.write(message.decode() if isinstance(message, (bytes, bytearray)) else str(message))
+KeyboardInterrupt: Quit
+    7fffffffc060     7ffff43ad7d8 System.String
+    7fffffffc068     7fbf66814108 System.InvalidOperationException
+    7fffffffc0f8     7ffff43ad7d8 System.String
+    7fffffffc138     7ffff43ad7d8 System.String
+    7fffffffc158     7ffff43ad7d8 System.String
+    7fffffffc238     7ffff43ad780 System.String
+    7fffffffc3a0     7fbf6680e118 System.UnhandledExceptionEventHandler
+    7fffffffcba8     7ffff43ad780 System.String
+    7fffffffcbe8     7ffff43ad780 System.String
+    7fffffffcc08     7ffff43ad780 System.String
+    7fffffffcd70     7ffff43ad780 System.String
+    7fffffffcdf0     7fbf6680e118 System.UnhandledExceptionEventHandler
+    7fffffffce08     7fbf66814108 System.InvalidOperationException
+    7fffffffce10     7ffff43ad780 System.String
+    7fffffffce70     7ffff43ad780 System.String
+    7fffffffce78     7fbf66814108 System.InvalidOperationException
+    7fffffffce80     7fbf668140b8 System.String
+    7fffffffce90     7ffff43ab778 System.String
+    7fffffffce98     7fbf668140a0 UserObject
+    7fffffffceb8     7fbf668140a0 UserObject
+    7fffffffcec8     7fbf668140a0 UserObject
+--Type <RET> for more, q to quit, c to continue without paging--q
+Exception ignored on calling ctypes callback function: <bound method GdbServices.dbg_output_string of <services.GdbServices object at 0x72d2d4382c10>>
+Traceback (most recent call last):
+  File "/workspaces/gdbsos/src/diagnostics/artifacts/bin/linux.x64.Release/services.py", line 970, in dbg_output_string
+    gdb.write(message.decode() if isinstance(message, (bytes, bytearray)) else str(message))
+KeyboardInterrupt: Quit
+    7fffffffd460     7fbf6680cd50 System.String[]
+    7fffffffd478     7fbf6680cd70 System.String[]
+    7fffffffd5f0     7fbf6680cd70 System.String[]

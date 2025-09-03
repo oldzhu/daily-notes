@@ -1,0 +1,7 @@
+another issue need to note is the order to run SOS managed command which could impact the running result.
+for example run dso before the target host runtime and would get the error which it is expected as the target runtime
+is still not loded. the issue is that after target runtime loaded, if u run dso again in the same session you will always get the error unless u restart the debugging session. Could you pls check how lldb plugin handle this scneario. I 
+guess it will check if the target runtime is loaded or not, if it is not loaded in the target process, then lldb plugin
+will not initialize the SOS host runtime also otherwise it will get the same behavoir as us, if run managed command 
+before the target runtime, the error will persists even after the target runtime was loaded. Could we do the same as lldb plugin to avoid that wired behavior. 
+  

@@ -1,0 +1,25 @@
+after using absolute path to sos.py in source command, the 0x8005007 gone, but that kind of behavior would make end users confuse, every time using long absoulate path is also not convenient for end users, why lldb plugin has no such behavior, could we fix this wired behavior by modify sos.py?
+
+================
+
+I’ll make sourcing resilient so relative paths don’t break hosting; plan: canonicalize the plugin directory to an absolute path and leave everything else unchanged.
+
+Checklist
+
+Resolve sos.py’s directory to an absolute real path: Done
+Keep co-location loading logic intact: Done
+No other behavior changes: Done
+What I changed
+
+sos.py: _THIS_DIR now uses os.path.realpath(__file__) so it’s always absolute. This ensures loading libsosgdbbridge.so and libsos.so uses absolute paths even when you source sos.py with a relative path, avoiding coreclr_initialize E_INVALIDARG.
+How to verify
+
+In gdb, source with a relative path:
+source sos.py
+sostrace on
+sethostruntime -major 8 8.0.15
+dso
+Why LLDB didn’t hit this
+
+Its plugin resolves its own .so path via dladdr and uses absolute paths by default, so APP_PATHS/NATIVE_DLL_SEARCH_DIRECTORIES are absolute.
+Requirements coverage: Modify sos.py to avoid requiring absolute source path for end users — Done.
