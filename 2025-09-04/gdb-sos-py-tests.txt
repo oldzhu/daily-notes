@@ -1,0 +1,99 @@
+
+how to deisgn auto tests in our gdb sos?
+
+Here’s the game plan: I’ll first distill how the LLDB suite works, then map it to an equivalent GDB approach we can implement in this repo.
+
+Checklist
+
+Summarize LLDB’s test harness (control flow, artifacts, assertions, timeouts, reporting)
+Outline our GDB test harness design (structure, APIs, command invocation, logging)
+Call out key differences and adjustments for GDB
+Propose initial scenarios to implement first
+Note prerequisites and risks
+How LLDB tests work
+Orchestration
+
+A Python runner (test_libsosplugin.py) spawns lldb in batch mode with a long command line.
+It loads the SOS LLDB plugin, wires two flag files (fail_flag and fail_flag.lldb), sets a summary file, and redirects stdout/stderr to per-test logs.
+Each test calls self.do_test('t_cmd_<name>'), which runs a scenario module inside the LLDB process via script test.run(assembly, scenario).
+In-LLDB test loop
+
+testutils.run uses the LLDB Python API:
+Sets a breakpoint on coreclr_execute_assembly and launches the target (process launch) with host + assembly.
+Imports the per-command scenario module (t_cmd_*.py) and calls runScenario(assemblyName, debugger, target).
+Scenarios drive the debugger (set/verify breakpoints, execute SOS commands, parse outputs).
+Assertions go through testutils.assert*, which:
+Append pass/fail to a shared summary file.
+On failure, record call sites and mark failed = True.
+On success, fail_flag is deleted. A separate fail_flag.lldb file is created early to prove LLDB progressed to the scenario.
+Resilience and reporting
+
+A thread-enforced timeout kills LLDB if it hangs; “Timeout!” is written to the summary.
+After unittest finishes, a generate_report() pass turns the summary into a human-readable suite status (Success/Fail/Crash/Timeout).
+How we’ll test in GDB
+Orchestration (outer Python, mirrors LLDB)
+
+A tests/gdb/test_gdbsos.py runner will spawn gdb in batch mode with -q -nx and a set of -ex commands:
+Disable confirmation and pagination.
+source our plugin sos.py (or -ex "python import sys; sys.path.insert(0, ...)" then import sos).
+Import gdbtestutils (our GDB analog of testutils.py), set fail_flag and summary_file.
+python gdbtestutils.run(host, assembly, scenario) to execute a scenario in the GDB process.
+quit when done, with logs redirected to tests/logs/<scenario>.log.
+Enforce a per-test timeout in the outer Python runner; kill GDB if it hangs and mark summary accordingly.
+Regex filter and repeat count like LLDB for selective runs.
+In-GDB test loop
+
+gdbtestutils.run(host, assembly, scenario) will:
+Turn off pagination (“set pagination off”) to avoid paging and integrate cleanly with our interrupt handling.
+Allow pending breakpoints (“set breakpoint pending on”).
+Set a breakpoint on coreclr_execute_assembly.
+Point GDB at the host (file <host>) and set args (set args <assembly>), then run.
+Import tests/gdb/scenarios/<scenario>.py and call runScenario(assemblyName).
+On scenario pass and no internal failures, delete fail_flag.
+Assertions and helpers
+
+tests/gdb/gdbtestutils.py will offer:
+assertTrue/assertFalse/assertEqual/assertNotEqual writing to summary_file, same failure callstack capture style.
+exec_and_find(cmd, regex) using gdb.execute(cmd, to_string=True) to run and regex-scan outputs.
+stop_in_main() analog that verifies we hit the breakpoint after libcoreclr loads (GDB’s gdb.selected_thread().stop_reason can be used; we can keep checks lightweight initially).
+exit_gdb() to delete breakpoints, continue until exit, assert zero exit code.
+Scenarios
+
+tests/gdb/scenarios/ modules (t_cmd_*.py) with a runScenario(assemblyName):
+Drive SOS via gdb.execute("clrstack", to_string=True), dso, soshelp, etc.
+Use gdbtestutils.assert* for output checks.
+For commands that need the runtime initialized: our plugin already lazy-inits hosting when CLR is present, so no special handling needed.
+We’ll call our GdbServices.clear_interrupt() at the start of each scenario or rely on command start to clear (already wired in).
+Logging and flags
+
+Per-test stdout/stderr redirection to tests/logs/<scenario>.log.
+fail_flag/summary_file semantics identical to LLDB’s so the same style of post-run report applies.
+Key differences vs LLDB (and how we handle them)
+Debugger API
+LLDB uses the SB API from an external Python process; GDB’s Python API is available only inside GDB.
+We’ll issue most actions with gdb.execute and use gdb Python objects when needed (breakpoints, threads, exit status).
+Startup and target
+LLDB launches host assembly in one shot; in GDB we explicitly file the host, set args to the assembly, then run.
+Output and pager
+We’ll always set pagination off in tests. Our interrupt handling is already in place for safety.
+Symbol readiness
+We’ll enable pending breakpoints before running so break coreclr_execute_assembly binds when the CLR loads.
+First test set
+t_cmd_soshelp: Ensure managed help is used when CLR is loaded; check a few signature lines that are only in managed help.
+t_cmd_dso: Validate that we can list managed modules and find the test assembly.
+t_cmd_clrstack: Verify managed frames appear after breakpoint hits.
+We can add t_cmd_clru later once we refine disassembly formatting expectations.
+
+Prereqs and risks
+Host/assembly: We need a known debuggee. Two options:
+Use the diagnostics TestDebuggee.dll (like LLDB) with dotnet host. Requires dotnet present or fetched via diagnostics scripts.
+Alternatively, use the existing SimpleThrow binary you pointed at; we’ll need to verify it loads libcoreclr.so under GDB reliably.
+Environment: Ensure symbols are available enough to resolve coreclr_execute_assembly (pending breakpoint alleviates timing).
+Timeouts: A conservative default (e.g., 90s per test) with kill-on-timeout.
+If this plan looks good, I’ll scaffold:
+
+tests/gdb/gdbtestutils.py
+tests/gdb/scenarios/{t_cmd_soshelp.py,t_cmd_dso.py,t_cmd_clrstack.py}
+tests/gdb/test_gdbsos.py (runner)
+README.md and a tiny test.sh
+Then we can iterate on wiring the host/assembly paths and expand coverage.

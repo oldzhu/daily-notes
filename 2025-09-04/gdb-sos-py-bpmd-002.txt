@@ -1,0 +1,48 @@
+I’ve double-checked and aligned the active artifacts, and I’ll briefly explain how LLDB’s SOS wiring delivers notifications so bpmd can bind.
+
+actions taken
+Verified parity across services:
+services.py: Stop/new-objfile hooks, immediate-callback helpers, and fallback breakpoint are present. Fixed duplicate stop-handler and indentation.
+services.py: Brought to parity and fixed indentation issues in init and dbg_flush_check. Confirmed the following exist:
+Global stop hook that invokes SOS’s exception callback on each stop.
+New-objfile hook to detect libcoreclr.so and invoke runtime-loaded + exception callbacks once.
+Immediate-callback helpers: invoke callbacks right away if CoreCLR is already mapped.
+Fallback one-shot breakpoint on coreclr_execute_assembly in both runtime-loaded and exception-callback paths.
+Validated syntax: no errors reported in services.py, services.py, or services.py.
+Checkpoint summary
+
+Changed files:
+services.py: fixed init indentation for new hook fields.
+services.py: fixed indentation, removed duplicate stop-handler, kept all hooks and fallbacks.
+services.py: fixed indentation and kept all hooks and fallbacks.
+Quality gates: Lint/syntax PASS (no errors).
+how LLDB plugin delivers notifications to SOS
+Callback contracts:
+
+SOS registers two callbacks with the host:
+“Runtime loaded” callback (via ILLDBServices2::SetRuntimeLoadedCallback).
+“Exception” callback (via ILLDBServices::SetExceptionCallback) that SOS uses as a generic “CLR notification pump” to bind pending breakpoints (bpmd), process module loads, JIT events, etc.
+LLDB-side delivery:
+
+The plugin installs one or more mechanisms to guarantee these callbacks get invoked:
+A listener or breakpoint that guarantees at least one stop early in CoreCLR startup (often a one-shot BP on the runtime entry/known symbol).
+Stop/event wiring that, on process stops, calls back into SOS via the stored exception callback so it can process any pending CLR notifications.
+A module-load (new objfile) hook: when libcoreclr.so loads, it invokes the runtime-loaded callback and then the exception callback once to jump-start bpmd binding.
+If CoreCLR is already loaded when the callback is registered, the plugin invokes the callbacks immediately once.
+Result: When you issue bpmd, SOS sets pending managed BPs; as stops occur (or immediately/at module load), the plugin calls the exception callback, SOS observes CLR loader/JIT events, and it binds bpmd to real IPs.
+Our GDB plugin mirrors this:
+
+Global stop hook → invoke SOS’s exception callback on each stop (with a re-entrancy guard).
+New-objfile hook → when libcoreclr.so appears, invoke runtime-loaded then exception callback once and disconnect.
+Immediate-invocation helpers → call callbacks right away if CoreCLR is already mapped.
+Fallback one-shot breakpoint on coreclr_execute_assembly to ensure at least one stop to deliver notifications even if the user set different breakpoints.
+what’s next
+Please retry your manual scenario and look for:
+“[new-objfile] detected ...”, “[invoke] RuntimeLoaded callback ...”, “[invoke] Exception callback ...”, or “[stop-hook] Exception callback ...”.
+Confirm that bpmd binds and the managed breakpoint is hit.
+If it still doesn’t bind, we can add one or two extra traces around callback registration sites to verify SOS registers the exception callback early enough for your flow.
+requirements coverage
+
+Verify linux artifact parity: Done.
+Ensure hooks and fallback exist in both active artifacts: Done.
+Explain how LLDB plugin connects and delivers notifications to SOS for bpmd: Done.

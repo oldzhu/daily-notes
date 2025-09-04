@@ -1,0 +1,252 @@
+in lldb, when run clru
+
+(lldb) clru 00007FFF78ED46DB
+Normal JIT generated code
+UserObject.UseObject(System.String)
+ilAddr is 00007FFFF774628C pImport is 00000000223EE660
+Begin 00007FFF78ED4630, size b3
+
+/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/UserObject.cs @ 14:
+00007fff78ed4630 55                   push    rbp
+00007fff78ed4631 4883ec30             sub     rsp, 0x30
+00007fff78ed4635 488d6c2430           lea     rbp, [rsp + 0x30]
+00007fff78ed463a c4413857c0           vxorps  xmm8, xmm8, xmm8
+00007fff78ed463f c57e7f45d0           vmovdqu ymmword ptr [rbp - 0x30], ymm8
+00007fff78ed4644 48897df8             mov     qword ptr [rbp - 0x8], rdi
+00007fff78ed4648 488975f0             mov     qword ptr [rbp - 0x10], rsi
+00007fff78ed464c 833dcd2d0a0000       cmp     dword ptr [rip + 0xa2dcd], 0x0
+00007fff78ed4653 7405                 je      0x7fff78ed465a
+00007fff78ed4655 e8e63d487e           call    0x7ffff7358440 (JitHelp: CORINFO_HELP_DBG_IS_JUST_MY_CODE)
+00007fff78ed465a 90                   nop
+
+/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/UserObject.cs @ 15:
+00007fff78ed465b 488b75f0             mov     rsi, qword ptr [rbp - 0x10]
+00007fff78ed465f 48bfb04933f4ff7f0000 movabs  rdi, 0x7ffff43349b0
+00007fff78ed4669 ff1581fd2800         call    qword ptr [rip + 0x28fd81]
+00007fff78ed466f 488945e0             mov     qword ptr [rbp - 0x20], rax
+00007fff78ed4673 488b7de0             mov     rdi, qword ptr [rbp - 0x20]
+00007fff78ed4677 ff153b2cf8ff         call    qword ptr [rip - 0x7d3c5]
+00007fff78ed467d 90                   nop
+
+/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/UserObject.cs @ 16:
+00007fff78ed467e c745ec01000000       mov     dword ptr [rbp - 0x14], 0x1
+
+/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/UserObject.cs @ 17:
+00007fff78ed4685 837dec01             cmp     dword ptr [rbp - 0x14], 0x1
+00007fff78ed4689 0f94c0               sete    al
+00007fff78ed468c 0fb6c0               movzx   eax, al
+00007fff78ed468f 8945e8               mov     dword ptr [rbp - 0x18], eax
+00007fff78ed4692 837de800             cmp     dword ptr [rbp - 0x18], 0x0
+00007fff78ed4696 7444                 je      0x7fff78ed46dc
+
+/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/UserObject.cs @ 18:
+00007fff78ed4698 90                   nop
+
+/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/UserObject.cs @ 19:
+00007fff78ed4699 48bf90621479ff7f0000 movabs  rdi, 0x7fff79146290
+00007fff78ed46a3 e888c1477e           call    0x7ffff7350830 (JitHelp: CORINFO_HELP_NEWSFAST)
+00007fff78ed46a8 488945d8             mov     qword ptr [rbp - 0x28], rax
+00007fff78ed46ac bf77000000           mov     edi, 0x77
+00007fff78ed46b1 48be5870f778ff7f0000 movabs  rsi, 0x7fff78f77058
+00007fff78ed46bb e830ca477e           call    0x7ffff73510f0 (JitHelp: CORINFO_HELP_STRCNS)
+00007fff78ed46c0 488945d0             mov     qword ptr [rbp - 0x30], rax
+00007fff78ed46c4 488b75d0             mov     rsi, qword ptr [rbp - 0x30]
+00007fff78ed46c8 488b7dd8             mov     rdi, qword ptr [rbp - 0x28]
+00007fff78ed46cc ff150e132900         call    qword ptr [rip + 0x29130e]
+00007fff78ed46d2 488b7dd8             mov     rdi, qword ptr [rbp - 0x28]
+00007fff78ed46d6 e8f528487e           call    0x7ffff7356fd0 (JitHelp: CORINFO_HELP_THROW)
+>>> 00007fff78ed46db cc                   int3
+
+/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/UserObject.cs @ 21:
+00007fff78ed46dc 90                   nop
+00007fff78ed46dd 4883c430             add     rsp, 0x30
+00007fff78ed46e1 5d                   pop     rbp
+00007fff78ed46e2 c3                   ret
+
+but in our clru
+
+(gdb) clru 00007FFF792A3CEC
+Normal JIT generated code
+UserObject.UseObject(System.String)
+ilAddr is 00007FFFF403E28C pImport is 0000619538A6FA00
+Begin 00007FFF792A3C40, size b4
+
+
+sub    $0x30,0.000000e+00sp
+
+
+
+
+
+
+
+vxorps b9b49120mm8,0mm8,b9b49c00mm8
+
+
+
+rol    $0x7e, h
+
+jle    0x7fff792a3cd1
+jg     0x7fff792a3c98
+
+
+
+
+jge    0x7fff792a3c50
+clc
+
+
+jne    0x7fff792a3c4c
+
+
+cmp    $0xb3775,0.000000e+00ax
+jne    0x7fff792a3c97
+(bad)
+
+
+
+je     0x7fff792a3c6a
+add    $0x4090e6e8,0.000000e+00ax
+call   0x7ffff76acd50
+
+nop
+rex jle 0x7fff792a3bfb
+jle    0x7fff792a3bfb
+nop
+
+
+jne    0x7fff792a3c5f
+
+
+mov    $0xe7338748,0.000000e+00di
+
+
+xor    0.000000e+00di,0.000000e+00sp
+out    0.000000e+00ax,$0xff
+(bad)
+jg     0x7fff792a3c78
+
+
+
+adc    $0xfff8c1a9,0.000000e+00ax
+test   $0x48fff8c1,0.000000e+00ax
+sar    $0xff,0.000000e+00ax
+clc
+
+
+
+rex.RB loopne 0x7fff792a3ccc
+loopne 0x7fff792a3ccc
+
+
+jge    0x7fff792a3c67
+loopne 0x7fff792a3c87
+
+adc    $0xfff83883,0.000000e+00ax
+
+
+clc
+
+nop
+
+
+
+
+
+
+
+
+jge    0x7fff792a3c84
+
+
+
+xchg   0.000000e+00ax,0.000000e+00sp
+
+
+mov    $0xc0,-1179348704h
+
+
+rex.RB call 0x7fff7a12ba29
+call   0x7fff7a12ba29
+
+jge    0x7fff792a3c8d
+call   0x7fff096fb0a9
+
+je     0x7fff792a3ced
+
+nop
+
+mov    $0x795196d0,0.000000e+00di
+
+xchg   0.000000e+00ax,0.000000e+00si
+
+jns    0x7fff792a3caf
+(bad)
+jg     0x7fff792a3cb2
+
+
+call   0x7ffff77feeb0
+clc
+mov    $0x55, l
+
+jle    0x7fff792a3d01
+
+
+
+
+mov    $0x77,0.000000e+00di
+ja     0x7fff792a3cbf
+
+
+
+
+mov    $0x79357128,0.000000e+00si
+
+jno    0x7fff792a3cfb
+xor    $0x7fff79,0.000000e+00ax
+jns    0x7fff792a3cc7
+(bad)
+jg     0x7fff792a3cca
+
+
+
+adc    $0x2914cf,0.000000e+00ax
+iret
+
+
+
+
+
+
+
+
+
+jne    0x7fff792a3ca9
+
+
+
+jge    0x7fff792a3cb5
+fdivr  t(7),(null)t
+
+adc    $0x2914d5,0.000000e+00ax
+(bad)
+
+
+
+
+
+jge    0x7fff792a3cbf
+fsubr  t(0),(null)t
+call   0x7ffff76ac8f0
+
+
+rex jle 0x7fff792a3cb9
+jle    0x7fff792a3cb9
+>>> int3
+nop
+
+add    $0x30,0.000000e+00sp
+(bad)
+
+
+ret

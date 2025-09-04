@@ -1,0 +1,53 @@
+gdb -q -nx -ex 'set pagination off' -ex 'set breakpoint pending on' -ex 'source /workspaces/gdbsos/src/diagnostics/artifacts/bin/current/sos.py' -ex 'file $(command -v dotnet)' -ex 'set args /workspaces/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Release/net8.0/TestDebuggee.dll' -ex 'break coreclr_execute_assembly' -ex run -ex 'sosstatus' -ex 'bpmd TestDebuggee.dll Test.Main' -ex 'info break' -ex continue -ex 'clrstack' -ex 'quit'
+
+===========
+
+
+(gdb) file $(command -v dotnet)
+$(command: No such file or directory.
+(gdb) file /workspaces/gdbsos/src/diagnostics/.dotnet/dotnet
+Reading symbols from /workspaces/gdbsos/src/diagnostics/.dotnet/dotnet...
+(No debugging symbols found in /workspaces/gdbsos/src/diagnostics/.dotnet/dotnet)
+(gdb) set args /workspaces/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Release/net8.0/TestDebuggee.dll
+(gdb) break coreclr_execute_assembly
+Function "coreclr_execute_assembly" not defined.
+Breakpoint 1 (coreclr_execute_assembly) pending.
+(gdb) sosstatus
+Using no runtime to host the managed SOS code. Some commands are not availible.
+(gdb) bpmd TestDebuggee.dll Test.Main
+bpmd is not supported on a dump file.
+(gdb) r
+Starting program: /workspaces/gdbsos/src/diagnostics/.dotnet/dotnet /workspaces/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Release/net8.0/TestDebuggee.dll
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff7171700 (LWP 57209)]
+[New Thread 0x7ffff6970700 (LWP 57210)]
+[New Thread 0x7ffff616f700 (LWP 57211)]
+[New Thread 0x7ffff5965700 (LWP 57212)]
+[New Thread 0x7ffff514f700 (LWP 57213)]
+[New Thread 0x7ffff494a700 (LWP 57214)]
+[New Thread 0x7fffe7fff700 (LWP 57215)]
+[New Thread 0x7fbed63ff700 (LWP 57227)]
+
+Thread 1 "dotnet" hit Breakpoint 1, 0x00007ffff73a9434 in coreclr_execute_assembly ()
+   from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libcoreclr.so
+(gdb) bpmd TestDebuggee.dll Test.Main
+bpmd is not supported on a dump file
+
+You’re hitting this because GDB doesn’t do shell command substitution. The -ex strings are interpreted by GDB, not by bash, so $(command -v dotnet) won’t expand.
+
+Use either a pre-resolved path or let bash resolve it before launching GDB. Here’s a one-liner with the explicit dotnet path:
+
+
+gdb -q -nx \  -ex 'set pagination off' \  -ex 'set breakpoint pending on' \  -ex 'source /workspaces/gdbsos/src/diagnostics/artifacts/bin/current/sos.py' \  -ex 'file /workspaces/gdbsos/src/diagnostics/.dotnet/dotnet' \  -ex 'set args /workspaces/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Release/net8.0/TestDebuggee.dll' \  -ex 'break coreclr_execute_assembly' \  -ex run
+Alternative (let bash resolve first, then pass into GDB):
+
+
+DOTNET="$(command -v dotnet)" gdb -q -nx -ex 'set pagination off' -ex 'set breakpoint pending on' \  -ex 'source /workspaces/gdbsos/src/diagnostics/artifacts/bin/current/sos.py' \  -ex "file $DOTNET" \  -ex 'set args /workspaces/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Release/net8.0/TestDebuggee.dll' \  -ex 'break coreclr_execute_assembly' -ex run
+If that’s good, we’ll tackle bpmd next.
+
+
+DOTNET="$(command -v dotnet)" gdb -q -nx -ex 'set pagination off' -ex 'set breakpoint pending on' -ex 'source /workspaces/gdbsos/src/diagnostics/artifacts/bin/current/sos.py' -ex "file $DOTNET" -ex 'set args /workspaces/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Release/net8.0/TestDebuggee.dll' -ex 'break coreclr_execute_assembly' -ex run -ex 'sosstatus' -ex 'bpmd TestDebuggee.dll Test.Main' -ex 'info break' -ex continue -ex 'clrstack' -ex 'quit'
+
+
+bash -lc 'set -euo pipefail; echo Using plugin: /workspaces/gdbsos/src/diagnostics/artifacts/bin/current/sos.py; echo Using host: $(command -v dotnet); echo Using assembly: /workspaces/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Release/net8.0/TestDebuggee.dll; REGEX="t_cmd_soshelp\.py" TIMEOUT=90 PLUGIN_PATH=/workspaces/gdbsos/src/diagnostics/artifacts/bin/current/sos.py HOST_BIN=$(command -v dotnet) ASSEMBLY=/workspaces/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Release/net8.0/TestDebuggee.dll bash /workspaces/gdbsos/tests/gdb/test.sh'
