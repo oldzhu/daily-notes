@@ -15,8 +15,8 @@ oldzhu@oldzhu-box-999:~/buildroot$ make dotnetruntime-rebuild V=1 2>&1 | tee ~/b
 oldzhu@oldzhu-box-999:~/buildroot$ ls -la /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release/dlls/mscordac/libmscordaccore.so.dbg
 -rwxr-xr-x 1 oldzhu oldzhu 65570688 Sep  3 20:04 /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release/dlls/mscordac/libmscordaccore.so.dbg
 
-oldzhu@oldzhu-box-999:~/buildroot$ touch output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/src/mi/Gget_reg.c
-oldzhu@oldzhu-box-999:~/buildroot$ touch output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/src/mi/Lget_reg.c
-oldzhu@oldzhu-box-999:~/buildroot$ touch output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/exception/remote-unwind.cpp
-
+touch output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/src/mi/Gget_reg.c
+touch output/build/dotnetruntime-origin_risc-v/src/native/external/libunwind/src/mi/Lget_reg.c
+touch output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/exception/remote-unwind.cpp
+touch output/build/dotnetruntime-origin_risc-v/src/coreclr/pal/src/exception/seh.cpp
 

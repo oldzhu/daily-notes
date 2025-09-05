@@ -1,0 +1,12 @@
+(lldb) plugin load src/diagnostics/artifacts/bin/current/libsosplugin.so
+(lldb) bpmd TestDebuggee.dll Test.Main
+Adding pending breakpoints...
+(lldb) c
+Process 12866 resuming
+JITTED TestDebuggee!Test.Main()
+Setting breakpoint: breakpoint set --address 0x00007FFF79031920 [Test.Main()]
+warning: failed to set breakpoint site at 0x7fff79031920 for breakpoint 3.1: error: 9 sending the breakpoint request
+test dumpil
+I would like to be inlined
+I would not like to be inlined
+Process 12866 exited with status = 0 (0x00000000) 
