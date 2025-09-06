@@ -1,0 +1,37 @@
+(gdb) source src/diagnostics/artifacts/bin/current/sos.py
+[sos] Probing for libsosgdbbridge.so...
+[sos] Loading bridge from '/workspaces/gdbsos/src/diagnostics/artifacts/bin/linux.x64.Release/libsosgdbbridge.so'...
+[sos] Loading libsos from '/workspaces/gdbsos/src/diagnostics/artifacts/bin/linux.x64.Release/libsos.so'...
+[sos] Creating GdbServices...
+[new-objfile] connected (early)
+[sos] Resolving SOSInitializeByHost...
+[sos] Calling SOSInitializeByHost(NULL, IDebuggerServices) ...
+SOS GDB Python extension loaded and initialized successfully.
+(gdb) bpmd SimpleThrow.dll Simple.Main
+(gdb) r
+Starting program: /workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Release/net10.0/SimpleThrow 
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[new-objfile] detected /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libcoreclr.so
+[one-shot] tbreak set at *0x7ffff7fe2590
+
+Temporary breakpoint 1, 0x00007ffff7fe2590 in _dl_debug_state () from /lib64/ld-linux-x86-64.so.2
+(gdb) c
+Continuing.
+[New Thread 0x7ffff7101700 (LWP 84982)]
+[New Thread 0x7fffee900700 (LWP 84983)]
+[New Thread 0x7ffff6900700 (LWP 84984)]
+[New Thread 0x7ffff60f4700 (LWP 84985)]
+[New Thread 0x7ffff58df700 (LWP 84986)]
+[New Thread 0x7ffff50de700 (LWP 84987)]
+[New Thread 0x7fffeffff700 (LWP 84988)]
+[New Thread 0x7fffef7fe700 (LWP 84990)]
+[New Thread 0x7fffecef9700 (LWP 85005)]
+This is some simple exception.
+argument passed: A string!
+Unhandled exception. System.InvalidOperationException: Throwing an invalid operation....
+   at UserObject.UseObject(String argument) in /workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/UserObject.cs:line 19
+   at Simple.Main() in /workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/SimpleThrow.cs:line 12
+
+Thread 1 "SimpleThrow" received signal SIGABRT, Aborted.
+0x00007ffff7ad5d61 in raise () from /lib/x86_64-linux-gnu/libc.so.6

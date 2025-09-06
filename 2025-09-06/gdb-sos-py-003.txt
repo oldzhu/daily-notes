@@ -1,0 +1,67 @@
+(gdb) set pagination off
+(gdb) set breakpoint pending on
+(gdb) break coreclr_execute_assembly
+Function "coreclr_execute_assembly" not defined.
+Breakpoint 1 (coreclr_execute_assembly) pending.
+(gdb) r
+Starting program: /workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Release/net10.0/SimpleThrow 
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff7101700 (LWP 87682)]
+[New Thread 0x7fffee900700 (LWP 87683)]
+[New Thread 0x7ffff6900700 (LWP 87685)]
+[New Thread 0x7ffff60f4700 (LWP 87686)]
+[New Thread 0x7ffff58df700 (LWP 87687)]
+[New Thread 0x7ffff50de700 (LWP 87688)]
+[New Thread 0x7fffeffff700 (LWP 87689)]
+[New Thread 0x7fffef7fe700 (LWP 87701)]
+
+Thread 1 "SimpleThrow" hit Breakpoint 1, 0x00007ffff73c9484 in coreclr_execute_assembly () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libcoreclr.so
+(gdb) source src/diagnostics/artifacts/bin/current/sos.py
+[sos] Probing for libsosgdbbridge.so...
+[sos] Loading bridge from '/workspaces/gdbsos/src/diagnostics/artifacts/bin/linux.x64.Release/libsosgdbbridge.so'...
+[sos] Loading libsos from '/workspaces/gdbsos/src/diagnostics/artifacts/bin/linux.x64.Release/libsos.so'...
+[sos] Creating GdbServices...
+[new-objfile] connected (early)
+[sos] Resolving SOSInitializeByHost...
+[sos] Calling SOSInitializeByHost(NULL, IDebuggerServices) ...
+SOS GDB Python extension loaded and initialized successfully.
+(gdb) bpmd SimpleThrow.dll Simple.Main
+[sos] Dispatching SOS command with ILLDBServices client
+QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+Adding pending breakpoints...
+call into lldb_set_exception_callback
+exception cb registered
+QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+[ILLDBServices.Execute] process continue
+[invoke] Exception callback HR=0x00000000
+[one-shot] tbreak set at *0x7ffff73c9484
+(gdb) [continue] issued via post_event
+[New Thread 0x7fffecef9700 (LWP 87964)]
+This is some simple exception.
+argument passed: A string!
+Unhandled exception. System.InvalidOperationException: Throwing an invalid operation....
+   at UserObject.UseObject(String argument) in /workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/UserObject.cs:line 19
+   at Simple.Main() in /workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/SimpleThrow.cs:line 12
+
+Thread 1 "SimpleThrow" received signal SIGABRT, Aborted.
+0x00007ffff7ad5d61 in raise () from /lib/x86_64-linux-gnu/libc.so.6
+QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+[ILLDBServices.Execute] process continue
+[stop-hook] Exception callback HR=0x00000000
+[continue] issued via post_event
+[Thread 0x7fffecef9700 (LWP 87964) exited]
+[Thread 0x7fffef7fe700 (LWP 87701) exited]
+[Thread 0x7fffeffff700 (LWP 87689) exited]
+[Thread 0x7ffff50de700 (LWP 87688) exited]
+[Thread 0x7ffff58df700 (LWP 87687) exited]
+[Thread 0x7ffff60f4700 (LWP 87686) exited]
+[Thread 0x7ffff6900700 (LWP 87685) exited]
+[Thread 0x7fffee900700 (LWP 87683) exited]
+[Thread 0x7ffff7101700 (LWP 87682) exited]
+
+Program terminated with signal SIGABRT, Aborted.
+The program no longer exists.

@@ -1,0 +1,14 @@
+2025-09-06 15:00:30 (23.2 KB/s) - ‘/home/oldzhu/buildroot/output/build/.linux-6.16.4.tar.xz.pAUBju/output’ saved [152687456/152687456]
+
+ERROR: No hash found for linux-6.16.4.tar.xz
+
+
+oldzhu@oldzhu-box-999:~/buildroot$ sha256sum /home/oldzhu/buildroot/dl/linux/linux-6.16.4.tar.xz
+d6a5e3c71a10b533a756251387cc8bf48bbd5c76d842ba5e957d8b1c316ab622  /home/oldzhu/buildroot/dl/linux/linux-6.16.4.tar.xz
+
+filename="linux-6.16.4.tar.xz"
+echo "sha256  $(sha256sum "$filename" | cut -d' ' -f1)  $filename" > linux.hash
+
+# 使用 sha512sum（注意前缀是 "sha512"）
+echo "sha512  $(sha512sum linux-6.16.4.tar.xz | cut -d' ' -f1)  linux-6.16.4.tar.xz" > linux.hash
+

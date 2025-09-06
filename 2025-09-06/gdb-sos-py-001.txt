@@ -1,0 +1,30 @@
+I’ll wire the mandatory early exception-callback registration and add the simple one-shot follow-up stop. Here’s the plan and what I changed.
+
+Checklist:
+
+Mandatory: Ensure the exception callback is registered and invoked immediately after the runtime loads.
+Option A: Keep auto-continue but install a one-shot breakpoint at the current PC to guarantee one more stop so the callback can observe CLR notifications.
+Actions taken:
+
+Added _set_one_shot_pc_breakpoint() in services.py to set a temporary breakpoint at the current PC (uses tbreak, with a Python BP fallback).
+Called this helper in two spots:
+In the new-objfile handler after invoking runtime-loaded and exception callbacks (when libcoreclr.so loads).
+In the runtime-loaded breakpoint’s stop handler, right before auto-continue.
+Kept the ordering: invoke runtime-loaded callback first (so SOS can set the exception callback), then invoke the exception callback immediately, then schedule the one-shot stop. This satisfies the “mandatory” requirement and Option A flow.
+Quick quality gates:
+
+Lint/type: Python file loads cleanly (no syntax errors).
+Behavior: No change to public APIs; added safe, one-shot breakpoint logic.
+Try it:
+
+Run your scenario where bpmd is issued before runtime load. You should now see, shortly after libcoreclr.so loads:
+Runtime-loaded callback and early exception callback fired.
+A guaranteed next stop, giving SOS a chance to pick up CLRN events (expect “JITTED …” soon after if applicable).
+Requirements coverage:
+
+Early SetExceptionCallback registration: Done (callbacks fired immediately after runtime load).
+One-shot follow-up stop: Done (temporary breakpoint at PC).
+Guarded “process continue” via post_event: Deferred for now per your choice; we can add it if needed based on your test results.
+Your move:
+
+Please run your bpmd tests and check for the “JITTED …” output and timely binding. If it still misses, we’ll add the guarded continue path next.
