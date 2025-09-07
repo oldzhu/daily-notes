@@ -1,0 +1,61 @@
+still failed the same, please refer the below log trace
+(gdb) source src/diagnostics/artifacts/bin/current/sos.py
+[sos] Probing for libsosgdbbridge.so...
+[sos] Loading bridge from '/workspaces/gdbsos/src/diagnostics/artifacts/bin/linux.x64.Release/libsosgdbbridge.so'...
+[sos] Loading libsos from '/workspaces/gdbsos/src/diagnostics/artifacts/bin/linux.x64.Release/libsos.so'...
+[sos] Creating GdbServices...
+[new-objfile] connected (early)
+[sos] Resolving SOSInitializeByHost...
+[sos] Calling SOSInitializeByHost(NULL, IDebuggerServices) ...
+SOS GDB Python extension loaded and initialized successfully.
+(gdb) bpmd SimpleThrow.dll Simple.Main
+[sos] Dispatching SOS command with ILLDBServices client
+QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+call into lldb2_set_runtime_loaded_callback
+runtime-loaded cb registered
+Function "coreclr_execute_assembly" not defined.
+Breakpoint 1 (coreclr_execute_assembly) pending.
+(gdb) r
+Starting program: /workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Release/net8.0/SimpleThrow 
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[new-objfile] detected /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libcoreclr.so
+QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+Failed to load data access module, 0x80131c4e
+Can not load or initialize libmscordaccore.so. The target runtime may not be initialized.
+
+For more information see https://go.microsoft.com/fwlink/?linkid=2135652
+RuntimeLoaded callback HR=0x80131c4e
+(gdb) [New Thread 0x7ffff7171700 (LWP 55415)]
+
+is the below trace record meas that libcoreclr.so was already load or means it ocurred when coreclr_exeute_assembly bp already hit or after?
+
+[new-objfile] detected /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libcoreclr.so
+it is wired if load failure of libmscordaccore occurred after or when the coreclr_exeute_assembly bp was hit as in my previous testing, if manual set coreclr_execute_assembly bp and run bpmd after it was hit, i wont see the loading failure.
+
+==================
+
+Thanks for the trace—that explains it. The DAC load error happened because we were still calling into the runtime-loaded/exception plumbing too early, right when libcoreclr.so was mapped (new-objfile), not when the runtime entry actually executes.
+
+What I changed now (to match LLDB behavior more closely):
+
+Don’t call into SOS callbacks on libcoreclr load:
+In the diagnostics copy you sourced, services.py, the new-objfile hook no longer invokes runtime-loaded or exception callbacks on seeing libcoreclr.so. It just auto-continues the loader stop.
+Defer DAC exposure until runtime entry:
+Introduced a flag that marks the runtime “initialized” only when the coreclr_execute_assembly breakpoint is hit.
+lldb_get_coreclr_directory now returns None until that flag is true, preventing early DAC loads.
+The stop-hook won’t invoke the exception callback until runtime is initialized.
+The runtime-loaded callback and exception callback will run when the entry breakpoint is hit (the pending bp you created with bpmd).
+Removed/avoided any one-shot temp breakpoints around these transitions in this diagnostics path.
+What this means for your next run:
+
+After sourcing src/diagnostics/artifacts/bin/current/sos.py:
+bpmd should still create the pending breakpoint immediately.
+run should not display the early DAC load failure anymore before coreclr_execute_assembly hits.
+When coreclr_execute_assembly triggers, we mark the runtime initialized and then run the callbacks; managed breakpoints should bind and you should start seeing the expected JITTED/binding chatter.
+Answering your specific question:
+
+“[new-objfile] detected … libcoreclr.so” occurs when the loader maps libcoreclr.so, before coreclr_execute_assembly is executed. In LLDB the plugin typically doesn’t try DAC until later; we now mirror that by deferring until the entry bp hits.
+If you still see a DAC failure before the entry bp is hit, let me know the exact trace segment and which services.py pair you sourced (diagnostics current vs linux.x64.Release), and I’ll align that copy as well.

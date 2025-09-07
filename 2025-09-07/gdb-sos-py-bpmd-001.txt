@@ -1,0 +1,29 @@
+I dont think the change exactly aligned with lldb. In lldb, after u run plugin load libsosplgin.so, u wont see the pending bp was set, u will only see the pedning bp after u run bpmd, that also match with what I see in the submodule source code as the below:
+
+the bp to coreclr_execute_assembly was set in lldbplugin/services.cpp:LLDBServices::SetRuntimeLoadedCallback
+the LLDBServices::SetRuntimeLoadedCallback was called in Strike/strike.cpp:DECLARE_API(bpmd)
+why we don't deliver bpmd to libsos direcly like lldb no matter if runtime loaded or not loaded so that the pending bp would be set and no matter runtime is loaded or not, is my understanding of lldb plugin bpmd behavior correct? any special considerration?
+
+=====================
+
+Purpose: explain LLDB vs our GDB behavior and propose the minimal, aligned fix before editing.
+
+Your understanding is correct:
+
+In LLDB, bpmd is delivered to libsos immediately, even pre-CLR. Inside strike.cpp::bpmd, SOS calls LLDBServices::SetRuntimeLoadedCallback, which plants a pending breakpoint on coreclr_execute_assembly via the host services. No CLR is required at that moment; actual binding happens later.
+Our GDB plugin deferred bpmd until CLR load, so libsos never got the call, and our lldb2_set_runtime_loaded_callback() never ran. That’s why you didn’t see lldb_set_exception_callback/lldb2_set_runtime_loaded_callback and why “info breakpoints” was empty pre-CLR.
+Special considerations (why we deferred originally):
+
+To avoid early managed hosting init or DAC reads before the runtime is ready. But bpmd’s native export doesn’t require CLR; it just sets callbacks and a pending bp.
+GDB “continue” safety and event pumping were fragile early on; now we’ve added safe-continue and a one-shot tbreak, so we can safely let libsos drive callbacks.
+Recommended alignment (what I’ll implement if you say yes):
+
+Always dispatch bpmd to libsos (native export) regardless of CLR presence; do not defer.
+Let libsos call our lldb2_set_runtime_loaded_callback(); our implementation already enables “set breakpoint pending on” and sets the pending bp on coreclr_execute_assembly.
+Keep managed hosting lazy (unchanged) and maintain stop/new-objfile pumping.
+For dump sessions, libsos should naturally no-op or error as in LLDB.
+Outcome you should see after the change:
+
+Immediately after issuing bpmd pre-CLR: traces for lldb2_set_runtime_loaded_callback and a pending bp on coreclr_execute_assembly (no locations yet).
+On libcoreclr.so load: callbacks fire; bpmd binds when the method jit occurs.
+Proceed to switch bpmd to “always deliver to libsos” and remove our local pre-CLR pending-bp planting so behavior exactly mirrors LLDB?

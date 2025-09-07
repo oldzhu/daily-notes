@@ -1,0 +1,47 @@
+Thanks for the detailed logs and “info br/threads.” That confirms the crash is in GDB itself immediately after Execute('process continue'), and there were no breakpoints left at that moment. I’ve implemented a set of defensive fixes to avoid GDB re-entrancy/continue races:
+
+What I changed
+
+No auto-continue on libcoreclr load: new-objfile handler no longer continues automatically.
+Runtime entry breakpoint is temporary and doesn’t self-delete inside stop:
+We set a temporary breakpoint (tbreak) on coreclr_execute_assembly.
+The stop handler returns True to present a stop; we do not delete the bp inside the stop method (let GDB handle temp deletion). This avoids touching breakpoint state during stop dispatch, which can crash GDB in some versions.
+Suppress re-entrant continues:
+Execute('process continue') now returns S_FALSE when called inside stop/exception callbacks or when a continue is already pending.
+Stop-hook toggles an _in_exception_callback flag around SOS’s exception callback so Execute can detect and suppress nested continues.
+Hardened safe-continue:
+Added extra try/excepts around gdb.execute('continue') and around clearing _continue_pending to avoid exceptions propagating into GDB internals.
+Deployed to diagnostics “current” so you can retry right away.
+
+Next run steps
+
+source sos.py
+bpmd SimpleThrow.dll Simple.Main
+run
+Expectations
+
+No early DAC failure.
+Stop at coreclr_execute_assembly. If SOS issues “process continue” inside the callback window, it will be safely suppressed; otherwise we’ll schedule a safe continue. No GDB crash.
+Managed bp binds and hits after entry.
+If it still crashes
+
+Enable infrun logging so we can see GDB’s internal state around the crash:
+In GDB before run:
+set debug infrun 1
+set debug event 1
+After the crash, please share:
+Last ~100 lines of the debug output.
+bt full
+Symbols for gdb:
+On Debian/Ubuntu: install gdb with debug symbols via apt:
+sudo apt update
+sudo apt install gdb-dbgsym
+If dbgsym repo not enabled, enable debuginfod:
+export DEBUGINFOD_URLS=https://debuginfod.elfutils.org/
+gdb will fetch symbols on demand.
+Alternatively: apt-get install gdb-dbg on some distros.
+Optional extra checks
+
+info auto-load (confirm our Python auto-load state)
+show pagination (ensure pager isn’t interrupting)
+

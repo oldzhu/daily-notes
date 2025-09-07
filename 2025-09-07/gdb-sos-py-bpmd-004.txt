@@ -1,0 +1,32 @@
+Got it. We’ll pause edits and focus on the root cause.
+
+Checklist I propose before any change
+
+Compare with LLDB host loop: confirm the exception callback is expected to be pumped repeatedly on each stop until it returns S_FALSE.
+Hypothesis: We only call the exception callback once per stop (HR=0x00000000 = S_OK), so pending notifications (module load/jit) aren’t drained; “JITTED …” never prints and bpmd never binds before the exception.
+Minimal targeted fix (keeping the crash fix): change the stop-hook to loop-call the exception callback until it returns S_FALSE (1) or any non-S_OK, with a small iteration cap.
+Why this change
+
+In LLDB’s host, ExceptionCallback is typically pumped until the queue is empty (S_FALSE). Our trace shows HR=0 (S_OK), which likely means “processed an event; please call again.” We return immediately, so JIT/breakpoint-binding events remain undelivered.
+Exactly what I would change (for your review, not applied yet)
+
+In services.py, inside _make_stop_handler’s _on_stop:
+After ensuring runtime is initialized and CoreCLR present, replace the single call:
+hr = ecb(…)
+With a drain loop like:
+for i in range(64): hr = ecb(…); if hr != 0: break
+Keep the existing re-entrancy guards and not auto-continuing during the loop. Keep the temporary entry breakpoint and crash-avoidance changes intact.
+Expected outcome
+
+At the coreclr entry stop, we invoke runtime-loaded (once) and then drain exception notifications; libsos should bind bpmd and emit “JITTED …” before we continue.
+After that, normal stops will also drain notifications, keeping binding consistent.
+Please confirm if you want me to implement just this looped-pump change. If yes, I’ll make only that edit, redeploy, and ask you to rerun your same scenario.
+
+Optional data you can gather meanwhile (no code changes)
+
+Right after the “[stop-hook] Exception callback HR=0x00000000” line at entry stop, manually run the callback via a small loop (to validate the hypothesis):
+In GDB: run “pe” again or single-step one instruction to cause another stop; if JITTED shows up only after extra stops, it reinforces the need to drain.
+If you want a symbolic GDB backtrace for future issues:
+Enable debuginfod: export DEBUGINFOD_URLS=https://debuginfod.elfutils.org/
+Or install symbols: sudo apt update && sudo apt install gdb-dbgsym
+Once you approve, I’ll implement only the stop-hook pump loop and nothing else.

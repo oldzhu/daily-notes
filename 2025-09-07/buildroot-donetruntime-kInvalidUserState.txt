@@ -1,0 +1,13 @@
+  In file included from <built-in>:1:
+  In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/artifacts/obj/coreclr/linux.arm64.Release/debug/di/CMakeFiles/cordbdi.dir/cmake_pch.hxx:5:
+  In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/debug/di/stdafx.h:32:
+  /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/debug/di/rspriv.h:6380:40: error: constexpr variable 'kInvalidUserState' must be initialized by a constant expression
+   6380 |     static constexpr CorDebugUserState kInvalidUserState = CorDebugUserState(-1);
+        |                                        ^                   ~~~~~~~~~~~~~~~~~~~~~
+  /home/oldzhu/buildroot/output/build/dotnetruntime-origin_risc-v/src/coreclr/debug/di/rspriv.h:6380:60: note: integer value -1 is outside the valid range of values [0, 511] for the enumeration type 'CorDebugUserState'
+   6380 |     static constexpr CorDebugUserState kInvalidUserState = CorDebugUserState(-1);
+        |                                                            ^
+
+================
+
+
