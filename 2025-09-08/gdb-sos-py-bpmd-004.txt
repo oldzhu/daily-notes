@@ -1,0 +1,51 @@
+Got it—before we implement the proper host path tomorrow, here’s exactly what ITarget must provide and why, straight from your diagnostics submodule.
+
+Checklist:
+
+Enumerate native ITarget methods (plus IUnknown) you must implement.
+Explain how SOS uses each one and when they’re called.
+Note minimal viable behavior for our GDB host.
+Native ITarget contract (the one SOS expects)
+Source: target.h
+
+ITarget is a COM interface (inherits IUnknown), with these methods:
+
+GetOperatingSystem() → OperatingSystem
+Purpose: Tell SOS which OS the target is (Windows, Linux, OSX). SOS uses this to select the right runtime flavor (see Target::CreateInstance logic in targetimpl.cpp) and do OS-specific behavior.
+GetService(REFIID serviceId, void** service) → HRESULT
+Purpose: Provide per-target native services on demand. Typical consumers:
+ISymbolService (for symbol resolution/downloads) [e.g., used in extensions.cpp]
+ICLRMAService (managed analysis) [e.g., managedanalysis.cpp]
+If you don’t support a service, return E_NOINTERFACE. Must AddRef() the returned service when successful.
+GetRuntime(IRuntime** ppRuntime) → HRESULT
+Purpose: Return the current .NET runtime object SOS will use to talk to DAC/CLR data (ICLRDataProcess, module/thread enumeration, JIT info, etc.). This is the central call clrstack and friends depend on. Must set *ppRuntime and AddRef() it. Return an error (E_FAIL/E_NOINTERFACE) if not available yet.
+Flush() → void
+Purpose: Invalidate any cached target/runtime state. SOS calls this when it needs a clean view (e.g., after module loads/unloads or explicit flush commands). Should clear any caches you maintain; SOS will also flush its DAC/metadata caches.
+Because it’s COM:
+
+You must also implement IUnknown: QueryInterface, AddRef, Release.
+GetCurrentTarget lives on IHost (native) not ITarget: IHost::GetCurrentTarget(ITarget**). SOS calls this first (after SOSInitializeByHost) to get your ITarget, then calls GetRuntime() on it. Returning NULL here is what caused the earlier E_FAIL path.
+Where it’s used in SOS:
+
+Host to target: IHost::GetCurrentTarget → ITarget::GetRuntime [platform bridge in hostimpl.cpp and targetimpl.cpp]
+Services: ITarget::GetService(__uuidof(ISymbolService)) etc. [e.g., extensions.cpp, managedanalysis.cpp]
+Flush: target->Flush() shows up in strike.cpp and others.
+Note: You’ll also see an internal helper in SOS’s default Target (platform/targetimpl.h/cpp) named GetTempDirectory(), but that’s not part of the ITarget interface you need to implement when hosting—ignore it unless you choose to mirror SOS’s internal target.
+
+Managed-side ITarget (for the DebugServices pipeline)
+Source: ITarget.cs
+
+If you ever go through SOS.Hosting’s TargetWrapper bridge, the managed ITarget includes:
+
+Properties: Host, Id, OperatingSystem (OSPlatform), Architecture, IsDump, ProcessId, Services.
+Events: OnFlushEvent, OnDestroyEvent.
+Methods: Flush(), Destroy().
+SOS.Hosting’s TargetWrapper projects this managed ITarget into the native ITarget for SOS. For our Python host, we’re aiming to implement the native ITarget directly instead.
+
+Minimal viable behavior for our GDB host (tomorrow’s work)
+IHost::GetCurrentTarget: return a stable ITarget instance (AddRef) tied to the current process.
+ITarget::GetOperatingSystem: return Linux.
+ITarget::GetService: return E_NOINTERFACE initially (you can add ISymbolService later).
+ITarget::GetRuntime: return the SOS runtime created against the current process once libcoreclr.so is mapped/DAC is resolvable; cache and AddRef it; return a failure until ready.
+ITarget::Flush: clear any local caches; it’s okay to no-op initially.
+That’s the full set. Passing None (NULL) avoided this path because SOS fell back to its internal Target; once we provide a real ITarget, the above methods must behave correctly for clrstack, bpmd, and JIT notifications to work.

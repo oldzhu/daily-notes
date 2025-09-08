@@ -1,0 +1,206 @@
+Let us continue to work on our sos bpmd does not work for non-jitted function - specially CNotitication::OnCodeGenerated was not called and no JITTED msg. I used gdb to  debugged the gdb sos and lldb sos plugin for both bpmd run before the target program runtime started. I could see the main diffence is as the below:
+
+1. in gdb sos, after bpmd run, you can see only libsosgdbbridge,libsos were loaded.
+2. in lldb plugin, after bpmd run, you can see after libsosplugin, libsos, other host runtime so libs like libcoreclr.so were also loaded which seems means host runtime were also initialzied after bpmd and before the target program.
+
+I think this difference is the cause of the issue. 
+
+You can refer the debugging out and comapre the lldb plugin bpmd and our sos bpmd implementation, and align our implementaion to fix the issue.
+
+ 
+our gdb sos:
+vscode ➜ /workspaces/gdbsos (main) $ gdb --args gdb src/diagnostics/artifacts/bin/SimpleThrow/Release/net10.0/SimpleThrow
+GNU gdb (Debian 10.1-1.7) 10.1.90.20210103-git
+....
+(gdb) set pagination off
+(gdb) set breakpoint pending on
+(gdb) br strike.cpp:CNotification::OnCodeGenerated2
+No symbol table is loaded.  Use the "file" command.
+Breakpoint 1 (strike.cpp:CNotification::OnCodeGenerated2) pending.
+(gdb) r
+Starting program: /usr/bin/gdb src/diagnostics/artifacts/bin/SimpleThrow/Release/net10.0/SimpleThrow
+...
+(No debugging symbols found in src/diagnostics/artifacts/bin/SimpleThrow/Release/net10.0/SimpleThrow)
+(gdb) source src/diagnostics/artifacts/bin/current/sos.py 
+[sos] Probing for libsosgdbbridge.so...
+[sos] Loading bridge from '/workspaces/gdbsos/src/diagnostics/artifacts/bin/linux.x64.Release/libsosgdbbridge.so'...
+[sos] Loading libsos from '/workspaces/gdbsos/src/diagnostics/artifacts/bin/linux.x64.Release/libsos.so'...
+[sos] Creating GdbServices...
+[new-objfile] connected (early)
+[sos] Resolving SOSInitializeByHost...
+[sos] Calling SOSInitializeByHost(NULL, IDebuggerServices) ...
+SOS GDB Python extension loaded and initialized successfully.
+(gdb) bpmd SimpleThrow.dll Simple.Main
+[sos] Dispatching SOS command with ILLDBServices client
+QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+call into lldb2_set_runtime_loaded_callback
+runtime-loaded cb registered
+Function "coreclr_execute_assembly" not defined.
+Temporary breakpoint 1 (coreclr_execute_assembly) pending.
+(gdb) 
+Thread 1 "gdb" received signal SIGINT, Interrupt.
+0x00007ffff70a4a1f in poll () from /lib/x86_64-linux-gnu/libc.so.6
+(gdb) info shared 
+From                To                  Syms Read   Shared Object Library
+0x00007ffff7fd3090  0x00007ffff7ff22d0  Yes (*)     /lib64/ld-linux-x86-64.so.2
+...
+0x00007ffff0178400  0x00007ffff017b95c  Yes         /workspaces/gdbsos/src/diagnostics/artifacts/bin/linux.x64.Release/libsosgdbbridge.so
+0x00007fffd040bc00  0x00007fffd048a42a  Yes         /workspaces/gdbsos/src/diagnostics/artifacts/bin/linux.x64.Release/libsos.so
+0x00007ffff016d3b0  0x00007ffff01705ac  Yes (*)     /lib/x86_64-linux-gnu/librt.so.1
+0x00007ffff7fc7090  0x00007ffff7fc71d5  Yes (*)     /usr/lib/python3.9/lib-dynload/_uuid.cpython-39-x86_64-linux-gnu.so
+(*): Shared library is missing debugging information.
+(gdb) info br
+Num     Type           Disp Enb Address            What
+1       breakpoint     keep y   0x00007fffd043edf6 in CNotification::OnCodeGenerated2(IXCLRDataMethodInstance*, unsigned long) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5651
+(gdb) c
+Continuing.
+
+[sos] Dispatching SOS command with ILLDBServices client
+QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+call into lldb2_set_runtime_loaded_callback
+runtime-loaded cb registered
+(gdb) r
+Starting program: /workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Release/net10.0/SimpleThrow 
+[Detaching after vfork from child process 38650]
+[Detaching after fork from child process 38651]
+[Detaching after fork from child process 38653]
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[new-objfile] detected /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libcoreclr.so
+[New Thread 0x7ffff7101700 (LWP 38654)]
+[New Thread 0x7ffff6900700 (LWP 38655)]
+[New Thread 0x7ffff60ff700 (LWP 38656)]
+[New Thread 0x7ffff58f3700 (LWP 38657)]
+[New Thread 0x7ffff50df700 (LWP 38658)]
+[New Thread 0x7ffff48de700 (LWP 38659)]
+[New Thread 0x7fffe7f36700 (LWP 38660)]
+[New Thread 0x7fbed65ff700 (LWP 38661)]
+QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+call into lldb_set_exception_callback
+exception cb registered
+QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+[ILLDBServices.Execute] process continue
+--Type <RET> for more, q to quit, c to continue without paging--This is some simple exception.
+argument passed: A string!
+Unhandled exception. System.InvalidOperationException: Throwing an invalid operation....
+   at UserObject.UseObject(String argument) in /workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/UserObject.cs:line 19
+   at Simple.Main() in /workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/SimpleThrow.cs:line 12
+
+Thread 1 "SimpleThrow" received signal SIGABRT, Aborted.
+0x00007ffff7ad5d61 in raise () from /lib/x86_64-linux-gnu/libc.so.6
+[continue] issued via post_event
+^C
+Thread 1 "gdb" received signal SIGINT, Interrupt.
+0x00007ffff70a4a1f in poll () from /lib/x86_64-linux-gnu/libc.so.6
+(gdb) info shared 
+From                To                  Syms Read   Shared Object Library
+0x00007ffff7fd3090  0x00007ffff7ff22d0  Yes (*)     /lib64/ld-linux-x86-64.so.2
+...
+0x00007ffff0178400  0x00007ffff017b95c  Yes         /workspaces/gdbsos/src/diagnostics/artifacts/bin/linux.x64.Release/libsosgdbbridge.so
+0x00007fffd040bc00  0x00007fffd048a42a  Yes         /workspaces/gdbsos/src/diagnostics/artifacts/bin/linux.x64.Release/libsos.so
+0x00007ffff016d3b0  0x00007ffff01705ac  Yes (*)     /lib/x86_64-linux-gnu/librt.so.1
+0x00007ffff7fc7090  0x00007ffff7fc71d5  Yes (*)     /usr/lib/python3.9/lib-dynload/_uuid.cpython-39-x86_64-linux-gnu.so
+0x00007ffff011d130  0x00007ffff0120fc7  Yes (*)     /lib/x86_64-linux-gnu/libthread_db.so.1
+0x00007fffbaca1d50  0x00007fffbae3479d  Yes (*)     /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libmscordaccore.so
+(*): Shared library is missing debugging information.
+(gdb) 
+
+lldb sos plugin:
+
+vscode ➜ /workspaces/gdbsos (main) $ gdb --args lldb src/diagnostics/artifacts/bin/SimpleThrow/Release/net10.0/SimpleThrow
+...
+(gdb) set pagination off
+(gdb) set breakpoint pending on
+(gdb) br strike.cpp:CNotification::OnCodeGenerated2
+No symbol table is loaded.  Use the "file" command.
+Breakpoint 1 (strike.cpp:CNotification::OnCodeGenerated2) pending.
+(gdb) r
+Starting program: /usr/bin/lldb src/diagnostics/artifacts/bin/SimpleThrow/Release/net10.0/SimpleThrow
+...
+(lldb) target create "src/diagnostics/artifacts/bin/SimpleThrow/Release/net10.0/SimpleThrow"
+Current executable set to '/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Release/net10.0/SimpleThrow' (x86_64).
+[Thread 0x7fffed0c6700 (LWP 42354) exited]
+[New Thread 0x7fffed0c6700 (LWP 42355)]
+(lldb) plugin load src/diagnostics/artifacts/bin/current/libsosplugin.so
+(lldb) bpmd SimpleThrow.dll Simple.Main
+[New Thread 0x7fffe77ff700 (LWP 42568)]
+...
+[New Thread 0x7fffde7fd700 (LWP 42575)]
+(lldb) 
+Thread 1 "lldb" received signal SIGINT, Interrupt.
+0x00007fffeee68ed3 in select () from /lib/x86_64-linux-gnu/libc.so.6
+(gdb) info shared
+From                To                  Syms Read   Shared Object Library
+0x00007ffff7fd3090  0x00007ffff7ff22d0  Yes (*)     /lib64/ld-linux-x86-64.so.2
+...
+0x00007fffec89a390  0x00007fffec8a916c  Yes         /workspaces/gdbsos/src/diagnostics/artifacts/bin/current/libsosplugin.so
+0x00007fffec60bc00  0x00007fffec68a42a  Yes         /workspaces/gdbsos/src/diagnostics/artifacts/bin/current/libsos.so
+0x00007fffe79a9130  0x00007fffe7e5e6a1  Yes (*)     /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libcoreclr.so
+0x00007fffec5842c0  0x00007fffec5a8f20  Yes (*)     /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libcoreclrtraceptprovider.so
+0x00007fffec4d1620  0x00007fffec511091  Yes (*)     /usr/lib/x86_64-linux-gnu/liblttng-ust.so.0
+0x00007fffec871300  0x00007fffec8776ad  Yes (*)     /usr/lib/x86_64-linux-gnu/liblttng-ust-tracepoint.so.0
+0x00007fffec8645f0  0x00007fffec868ff7  Yes (*)     /usr/lib/x86_64-linux-gnu/libnuma.so.1
+0x00007fffec859310  0x00007fffec85c631  Yes (*)     /usr/lib/x86_64-linux-gnu/liburcu-bp.so.6
+0x00007fffec84c320  0x00007fffec850371  Yes (*)     /usr/lib/x86_64-linux-gnu/liburcu-cds.so.6
+0x00007fffe4496b20  0x00007fffe475f6b6  Yes (*)     /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libclrjit.so
+0x00007fffec347ae0  0x00007fffec3514d9  Yes (*)     /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libSystem.Native.so
+0x00007fffdf07d490  0x00007fffdf16283d  Yes (*)     /usr/lib/x86_64-linux-gnu/libicuuc.so.67
+0x00007fffdc4e5040  0x00007fffdc4e50f5  Yes (*)     /usr/lib/x86_64-linux-gnu/libicudata.so.67
+0x00007fffdc2ce590  0x00007fffdc445433  Yes (*)     /usr/lib/x86_64-linux-gnu/libicui18n.so.67
+(*): Shared library is missing debugging information.
+(gdb) info br
+Num     Type           Disp Enb Address            What
+1       breakpoint     keep y   0x00007fffec63edf6 in CNotification::OnCodeGenerated2(IXCLRDataMethodInstance*, unsigned long) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5651
+(gdb) c
+Continuing.
+...
+(lldb) r
+[Detaching after fork from child process 42772]
+[New Thread 0x7fffde7fd700 (LWP 42773)]
+...
+[New Thread 0x7fbebeccd700 (LWP 42780)]
+Process 42777 launched: '/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Release/net10.0/SimpleThrow' (x86_64)
+1 location added to breakpoint 1
+[New Thread 0x7fbebdd86700 (LWP 42789)]
+[Switching to Thread 0x7fffed0c6700 (LWP 42355)]
+
+Thread 3 "dbg.evt-handler" hit Breakpoint 1, CNotification::OnCodeGenerated2 (this=0x7fffed0c55d0, method=0x7fffe81fbda0, nativeCodeLocation=140735226255456) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5651
+5651            ULONG32 len = mdNameLen;
+(gdb) info shared
+From                To                  Syms Read   Shared Object Library
+0x00007ffff7fd3090  0x00007ffff7ff22d0  Yes (*)     /lib64/ld-linux-x86-64.so.2
+....
+0x00007fffec89a390  0x00007fffec8a916c  Yes         /workspaces/gdbsos/src/diagnostics/artifacts/bin/current/libsosplugin.so
+0x00007fffec60bc00  0x00007fffec68a42a  Yes         /workspaces/gdbsos/src/diagnostics/artifacts/bin/current/libsos.so
+0x00007fffe79a9130  0x00007fffe7e5e6a1  Yes (*)     /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libcoreclr.so
+0x00007fffec5842c0  0x00007fffec5a8f20  Yes (*)     /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libcoreclrtraceptprovider.so
+0x00007fffec4d1620  0x00007fffec511091  Yes (*)     /usr/lib/x86_64-linux-gnu/liblttng-ust.so.0
+0x00007fffec871300  0x00007fffec8776ad  Yes (*)     /usr/lib/x86_64-linux-gnu/liblttng-ust-tracepoint.so.0
+0x00007fffec8645f0  0x00007fffec868ff7  Yes (*)     /usr/lib/x86_64-linux-gnu/libnuma.so.1
+0x00007fffec859310  0x00007fffec85c631  Yes (*)     /usr/lib/x86_64-linux-gnu/liburcu-bp.so.6
+0x00007fffec84c320  0x00007fffec850371  Yes (*)     /usr/lib/x86_64-linux-gnu/liburcu-cds.so.6
+0x00007fffe4496b20  0x00007fffe475f6b6  Yes (*)     /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libclrjit.so
+0x00007fffec347ae0  0x00007fffec3514d9  Yes (*)     /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libSystem.Native.so
+0x00007fffdf07d490  0x00007fffdf16283d  Yes (*)     /usr/lib/x86_64-linux-gnu/libicuuc.so.67
+0x00007fffdc4e5040  0x00007fffdc4e50f5  Yes (*)     /usr/lib/x86_64-linux-gnu/libicudata.so.67
+0x00007fffdc2ce590  0x00007fffdc445433  Yes (*)     /usr/lib/x86_64-linux-gnu/libicui18n.so.67
+0x00007fbebc79bb50  0x00007fbebc7fcc08  Yes (*)     /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libSystem.IO.Compression.Native.so
+0x00007fbebcca1d50  0x00007fbebce3479d  Yes (*)     /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libmscordaccore.so
+(*): Shared library is missing debugging information.
+(gdb) c
+Continuing.
+JITTED SimpleThrow!Simple.Main()
+Setting breakpoint: breakpoint set --address 0x00007FFF792B1860 [Simple.Main()]
+warning: failed to set breakpoint site at 0x7fff792b1860 for breakpoint 3.1: error: 9 sending the breakpoint request
+This is some simple exception.
+argument passed: A string!
+Unhandled exception. System.InvalidOperationException: Throwing an invalid operation....
+   at UserObject.UseObject(String argument) in /workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/UserObject.cs:line 19
+   at Simple.Main() in /workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/SimpleThrow.cs:line 12
+Process 42777 stopped
+* thread #1, name = 'SimpleThrow', stop reason = signal SIGABRT
+    frame #0: 0x00007ffff7ad5d61 libc.so.6`raise + 321

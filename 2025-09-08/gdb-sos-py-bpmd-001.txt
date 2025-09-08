@@ -1,0 +1,119 @@
+(gdb) info br
+Num     Type           Disp Enb Address            What
+1       breakpoint     keep y   0x00007fffd843edf6 in CNotification::OnCodeGenerated2(IXCLRDataMethodInstance*, unsigned long) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5651
+...
+[Thread 0x7fffee1ff700 (LWP 26399) exited]
+
+Thread 1 "SimpleThrow" hit Temporary breakpoint 1, 0x00007ffff73a9434 in coreclr_execute_assembly () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libcoreclr.so
+QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+[ILLDBServices.Execute] process continue
+[stop-hook] Exception callback HR=0x00000000
+(gdb) [continue] issued via post_event
+[New Thread 0x7fffee1ff700 (LWP 26455)]
+[New Thread 0x7fffed50f700 (LWP 26459)]
+This is some simple exception.
+argument passed: A string!
+Unhandled exception. [New Thread 0x7fffb6ffd700 (LWP 26461)]
+[Thread 0x7fffb6ffd700 (LWP 26461) exited]
+System.InvalidOperationException: Throwing an invalid operation....
+...
+CNotification::OnCodeGenerated2 was not hit in our gdb sos beween coreclr_execute_assembly and the exception throw. 
+
+(lldb) plugin load src/diagnostics/artifacts/bin/current/libsosplugin.so
+(lldb) bpmd SimpleThrow.dll Simple.Main
+
+[New Thread 0x7fffe77ff700 (LWP 37497)]
+[New Thread 0x7fffdeffe700 (LWP 37498)]
+[New Thread 0x7fffe6ffe700 (LWP 37500)]
+[New Thread 0x7fffe67fd700 (LWP 37501)]
+[New Thread 0x7fffe5ffc700 (LWP 37502)]
+[New Thread 0x7fffe57fb700 (LWP 37503)]
+[New Thread 0x7fffe4ffa700 (LWP 37504)]
+[New Thread 0x7fffde7fd700 (LWP 37513)]
+(lldb) 
+error: No auto repeat.
+(lldb) --Type <RET> for more, q to quit, c to continue without paging--
+
+Thread 1 "lldb" received signal SIGINT, Interrupt.
+0x00007fffeee68ed3 in select () from /lib/x86_64-linux-gnu/libc.so.6
+(gdb) info shared
+From                To                  Syms Read   Shared Object Library
+0x00007ffff7fd3090  0x00007ffff7ff22d0  Yes         /lib64/ld-linux-x86-64.so.2
+....
+0x00007fffec89b390  0x00007fffec8aa16c  Yes         /workspaces/gdbsos/src/diagnostics/artifacts/bin/current/libsosplugin.so
+0x00007fffec60bc00  0x00007fffec68a42a  Yes         /workspaces/gdbsos/src/diagnostics/artifacts/bin/current/libsos.so
+0x00007fffe79a9130  0x00007fffe7e5e6a1  Yes (*)     /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libcoreclr.so
+0x00007fffec5842c0  0x00007fffec5a8f20  Yes (*)     /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libcoreclrtraceptprovider.so
+0x00007fffec4d1620  0x00007fffec511091  Yes         /usr/lib/x86_64-linux-gnu/liblttng-ust.so.0
+0x00007fffec872300  0x00007fffec8786ad  Yes         /usr/lib/x86_64-linux-gnu/liblttng-ust-tracepoint.so.0
+0x00007fffec8655f0  0x00007fffec869ff7  Yes         /usr/lib/x86_64-linux-gnu/libnuma.so.1
+0x00007fffec85a310  0x00007fffec85d631  Yes         /usr/lib/x86_64-linux-gnu/liburcu-bp.so.6
+0x00007fffec84d320  0x00007fffec851371  Yes         /usr/lib/x86_64-linux-gnu/liburcu-cds.so.6
+0x00007fffe4496b20  0x00007fffe475f6b6  Yes (*)     /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libclrjit.so
+0x00007fffec347ae0  0x00007fffec3514d9  Yes (*)     /workspaces/gdbsos/src/diagnostics/.dotnet/sha--Type <RET> for more, q to quit, c to continue without paging--
+red/Microsoft.NETCore.App/8.0.15/libSystem.Native.so
+0x00007fffdf07d490  0x00007fffdf16283d  Yes         /usr/lib/x86_64-linux-gnu/libicuuc.so.67
+0x00007fffdc4e5040  0x00007fffdc4e50f5  Yes (*)     /usr/lib/x86_64-linux-gnu/libicudata.so.67
+0x00007fffdc2ce590  0x00007fffdc445433  Yes         /usr/lib/x86_64-linux-gnu/libicui18n.so.67
+(*): Shared library is missing debugging information.
+(gdb) set pagination off
+(gdb) info func CNotification::OnCodeGenerated2
+All functions matching regular expression "CNotification::OnCodeGenerated2":
+
+File /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:
+5648:   HRESULT CNotification::OnCodeGenerated2(IXCLRDataMethodInstance*, unsigned long);
+(gdb) br strike.cpp:CNotification::OnCodeGenerated2
+Breakpoint 1 at 0x7fffec63edf6: file /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp, line 5651.
+(gdb) c
+Continuing.
+[Thread 0x7fffde7fd700 (LWP 37513) exited]
+
+(lldb) r
+[Detaching after fork from child process 38035]
+[New Thread 0x7fffde7fd700 (LWP 38036)]
+[New Thread 0x7fff6880f700 (LWP 38037)]
+[New Thread 0x7fbebf4ce700 (LWP 38045)]
+[New Thread 0x7fbebeccd700 (LWP 38046)]
+Process 38041 launched: '/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Release/net8.0/SimpleThrow' (x86_64)
+1 location added to breakpoint 1
+[New Thread 0x7fbebd9ff700 (LWP 38055)]
+[Switching to Thread 0x7fffed0c6700 (LWP 36861)]
+
+Thread 3 "dbg.evt-handler" hit Breakpoint 1, CNotification::OnCodeGenerated2 (this=0x7fffed0c55d0, method=0x7fffe81d6ec0, nativeCodeLocation=140735223437600) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5651
+5651            ULONG32 len = mdNameLen;
+(gdb) bt
+#0  CNotification::OnCodeGenerated2 (this=0x7fffed0c55d0, method=0x7fffe81d6ec0, nativeCodeLocation=140735223437600) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5651
+#1  0x00007fbebc91ceff in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libmscordaccore.so
+#2  0x00007fffec632bf3 in HandleCLRNotificationEvent () at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5900
+#3  0x00007fffec632d6d in HandleExceptionNotification (client=<optimized out>) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5958
+#4  0x00007fffec89f8ff in ExceptionBreakpointCallback (baton=0x7fffec632cd0 <HandleExceptionNotification(ILLDBServices*)>, process=..., thread=..., location=...) at /workspaces/gdbsos/src/diagnostics/src/SOS/lldbplugin/services.cpp:292
+#5  0x00007ffff72363e9 in lldb::SBBreakpointCallbackBaton::PrivateBreakpointHitCallback(void*, lldb_private::StoppointCallbackContext*, unsigned long, unsigned long) () from /usr/lib/x86_64-linux-gnu/liblldb-11.so.1
+#6  0x00007ffff76d85fc in ?? () from /usr/lib/x86_64-linux-gnu/liblldb-11.so.1
+#7  0x00007ffff76b1d60 in ?? () from /usr/lib/x86_64-linux-gnu/liblldb-11.so.1
+#8  0x00007ffff76b20b3 in ?? () from /usr/lib/x86_64-linux-gnu/liblldb-11.so.1
+#9  0x00007ffff774fa6a in ?? () from /usr/lib/x86_64-linux-gnu/liblldb-11.so.1
+#10 0x00007ffff774ffc5 in ?? () from /usr/lib/x86_64-linux-gnu/liblldb-11.so.1
+#11 0x00007ffff77500c7 in ?? () from /usr/lib/x86_64-linux-gnu/liblldb-11.so.1
+#12 0x00007ffff756427a in ?? () from /usr/lib/x86_64-linux-gnu/liblldb-11.so.1
+#13 0x00007ffff7564676 in ?? () from /usr/lib/x86_64-linux-gnu/liblldb-11.so.1
+#14 0x00007ffff760a489 in ?? () from /usr/lib/x86_64-linux-gnu/liblldb-11.so.1
+#15 0x00007ffff7fa9ea7 in start_thread (arg=<optimized out>) at pthread_create.c:477
+#16 0x00007fffeee72adf in clone () from /lib/x86_64-linux-gnu/libc.so.6
+(gdb) info threads
+  Id   Target Id                                           Frame 
+  1    Thread 0x7fffed0c9c40 (LWP 35751) "lldb"            0x00007fffeee68ed3 in select () from /lib/x86_64-linux-gnu/libc.so.6
+* 3    Thread 0x7fffed0c6700 (LWP 36861) "dbg.evt-handler" CNotification::OnCodeGenerated2 (this=0x7fffed0c55d0, method=0x7fffe81d6ec0, nativeCodeLocation=140735223437600) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5651
+  4    Thread 0x7fffe77ff700 (LWP 37497) "lldb-ust"        0x00007fffeee6bfd9 in syscall () from /lib/x86_64-linux-gnu/libc.so.6
+  5    Thread 0x7fffdeffe700 (LWP 37498) "lldb-ust"        0x00007fffeee6bfd9 in syscall () from /lib/x86_64-linux-gnu/libc.so.6
+  6    Thread 0x7fffe6ffe700 (LWP 37500) ".NET SynchManag" 0x00007fffeee66a1f in poll () from /lib/x86_64-linux-gnu/libc.so.6
+  7    Thread 0x7fffe67fd700 (LWP 37501) ".NET EventPipe"  0x00007fffeee66a1f in poll () from /lib/x86_64-linux-gnu/libc.so.6
+  8    Thread 0x7fffe5ffc700 (LWP 37502) ".NET DebugPipe"  0x00007ffff7fb47e4 in __libc_open64 (file=0x6e03e4 "/tmp/clr-debug-pipe-35751-4730542-in", oflag=0) at ../sysdeps/unix/sysv/linux/open64.c:48
+  9    Thread 0x7fffe57fb700 (LWP 37503) ".NET Debugger"   futex_wait_cancelable (private=0, expected=0, futex_word=0x6eb530) at ../sysdeps/nptl/futex-internal.h:186
+  10   Thread 0x7fffe4ffa700 (LWP 37504) ".NET Finalizer"  futex_abstimed_wait_cancelable (private=0, abstime=0x7fffe4ff9750, clockid=-453011760, expected=0, futex_word=0x6f6ea0) at ../sysdeps/nptl/futex-internal.h:323
+  12   Thread 0x7fffde7fd700 (LWP 38036) "it4(pid=38035)>" 0x00007fffeee3e7f7 in wait4 () from /lib/x86_64-linux-gnu/libc.so.6
+  13   Thread 0x7fff6880f700 (LWP 38037) "b-remote.async>" futex_wait_cancelable (private=0, expected=0, futex_word=0x828d10) at ../sysdeps/nptl/futex-internal.h:186
+  14   Thread 0x7fbebf4ce700 (LWP 38045) "intern-state"    futex_wait_cancelable (private=0, expected=0, futex_word=0x8193f4) at ../sysdeps/nptl/futex-internal.h:186
+  15   Thread 0x7fbebeccd700 (LWP 38046) ".process.stdio>" 0x00007fffeee68ed3 in select () from /lib/x86_64-linux-gnu/libc.so.6
+  16   Thread 0x7fbebd9ff700 (LWP 38055) ".NET Tiered Com" futex_abstimed_wait_cancelable (private=0, abstime=0x7fbebd9fe8b0, clockid=-1113593808, expected=0, futex_word=0x7fffe8013560) at ../sysdeps/nptl/futex-internal.h:323
+

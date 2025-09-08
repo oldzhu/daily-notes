@@ -1,0 +1,57 @@
+I’ll align our GDB SOS flow with the LLDB plugin so the host CLR loads eagerly on bpmd and the runtime-loaded path fires as soon as libcoreclr.so is mapped, which should unblock OnCodeGenerated/JITTED.
+
+Checklist
+
+Load host runtime libs (libcoreclr.so, libclrjit.so) in the debugger after bpmd, like LLDB: Done
+Fire runtime-loaded at libcoreclr.so load (target), not only at entry, and prime exceptions once: Done
+Allow DAC path immediately (ungate lldb_get_coreclr_directory): Done
+Deploy updated plugin for testing: Done
+Actions taken
+
+Updated lldb_get_coreclr_directory and new-objfile handling to enable early runtime setup:
+File: services.py
+new-objfile: when libcoreclr.so is detected, mark runtime initialized, call runtime-loaded callback once, then invoke exception callback once. This mimics LLDB’s early init so JIT/codegen notifications start flowing pre-exception.
+lldb_get_coreclr_directory: removed gating on “runtime_initialized,” returning the CoreCLR directory as soon as it’s discoverable so DAC can load immediately.
+Eagerly initialize managed hosting when loading SOS:
+File: sos.py
+In lazy_load_sos(), after loading libsos and initializing the bridge, attempt InitManagedHosting (libsos forwarder first, bridge fallback). This mirrors LLDB, which loads the host CLR into the debugger process after bpmd, enabling early binding.
+Deployed updates to diagnostics bin/current for immediate testing.
+What to expect now
+
+After sourcing sos.py and running bpmd before starting the target:
+info shared in the controlling debugger (gdb) should show host runtime libs loaded (libcoreclr.so, libclrjit.so), similar to your LLDB snapshot.
+When you run the target:
+As soon as libcoreclr.so is mapped in the target, our new-objfile hook fires runtime-loaded and one exception callback pump, allowing SOS to register JIT-codegen notifications.
+You should see “JITTED …” and the bpmd binding before the first exception, and a hit in CNotification::OnCodeGenerated2 if you set that native bp.
+Try it
+
+Optional:
+Start nested debug as you did, source sos.py, then run bpmd before target run. Check info shared shows libcoreclr.so (host).
+Run the target and watch for:
+[new-objfile] detected …libcoreclr.so
+[new-objfile] runtime-loaded fired HR=0x…
+[new-objfile] exception fired HR=0x…
+JITTED SimpleThrow!Simple.Main()
+Optional: native bp at strike.cpp:CNotification::OnCodeGenerated2 should bind and hit.
+Notes
+
+We kept the safe-continue guards to avoid “program is already running” errors.
+If eager hosting isn’t available (init fails), it’s a soft failure with a trace note; the rest of the flow still works, just without host CLR loaded pre-run.
+Quality gates
+
+Python syntax/type check: PASS (no errors reported).
+Deployment: PASS (bridge + Python files copied to diagnostics bin/current).
+Requirements coverage
+
+LLDB-style bpmd pre-run parity (host CLR load): Done
+Early runtime-loaded + exception priming on libcoreclr.so load: Done
+DAC gating removed to allow early JIT notifications: Done
+Stability (no nested-continue crashes): Preserved
+Next steps
+
+If JITTED still doesn’t appear, turn on tracing: sostrace on bpmd,stop,newobj
+Share the trace lines around:
+runtime-loaded fired HR=…
+exception fired HR=…
+stop-hook lines (if any)
+We’ll then inspect SOS ExtOut/OnCodeGenerated2 paths with those HRs.
