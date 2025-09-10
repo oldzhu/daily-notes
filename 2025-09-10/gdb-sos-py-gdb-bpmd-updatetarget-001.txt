@@ -1,0 +1,40 @@
+I'll add a small native bridge API to force UpdateTarget(pid) and wire sos.py to call it when the CLR first loads, ensuring the managed host has the correct process id and can enumerate runtimes.
+
+gdbbridge.cpp+19-0
+sos.py+34-0
+sos.py+17-0
+I’ll wire up the host so the managed side actually sees your target process and can discover runtimes, which should unblock GetCurrentRuntime() and bpmd.
+
+Actions taken
+Ensured HostServices.UpdateTarget(pid) runs when CLR loads or hosting inits, so DebugServices can build a proper Target and enumerate runtimes.
+Bridge: added an exported helper UpdateManagedTarget(pid) and used the existing Extensions plumbing to invoke HostServices.UpdateTarget.
+Python plugin:
+When we detect the target CLR has just loaded (the first time), we now call UpdateManagedTarget(pid) once.
+After initializing managed hosting (both the “bpmd pre-CLR” path and the regular “CLR present” path), we also call UpdateManagedTarget(pid).
+Files changed
+gdbbridge.cpp
+Added exported C function:
+int UpdateManagedTarget(unsigned int processId): initializes hosting on-demand if needed and calls Extensions::UpdateTarget(pid), returning an HRESULT.
+sos.py
+In SOSCommand._maybe_flush_after_runtime_load(): after the one-time SOS flush, call UpdateManagedTarget(pid).
+In SOSCommand._ensure_hosting_for_bpmd(): after hosting initializes, call UpdateManagedTarget(pid).
+In SOSCommand._try_initialize_hosting_if_needed(): after hosting initializes, call UpdateManagedTarget(pid).
+Why this fixes the empty runtimes
+Managed SOS builds its service graph during HostServices.RegisterDebuggerServices → CreateTarget/UpdateTarget. If the managed host never gets the current PID, RuntimeService won’t have an IDataReader-backed target, so RuntimeProvider yields no runtimes and ContextService.GetCurrentRuntime() fails.
+The update makes sure we explicitly push the PID into HostServices as soon as CoreCLR is detected or hosting starts, matching how the LLDB plugin keeps HostServices in sync with the debuggee.
+How to try
+Rebuild the bridge so the new UpdateManagedTarget export is present, then re-run your GDB session:
+Run your usual build script (it builds libsosgdbbridge.so): build.sh
+Start GDB, source sos.py, and use sos commands.
+With tracing enabled (sostrace on), you should see lines like:
+[sos] UpdateManagedTarget(pid=12345) => 0x00000000
+Runtime discovery should now succeed and bpmd should set and bind as the runtime starts JITting.
+Notes and next steps
+If you still see “RuntimeLoaded callback HR=0x80004002,” that no longer blocks runtime enumeration because HostServices has an updated target; but if it persists, share the sostrace output for the sequence around lldb2_set_runtime_loaded_callback and the stop at coreclr_execute_assembly.
+Small adjacent improvement (optional): we can add a one-time call to HostServices.CreateTarget() right after RegisterDebuggerServices, but UpdateTarget(pid) already creates when needed per managed logic.
+Requirements coverage:
+
+Align to single native host/runtime and LLDB parity: Done.
+Avoid DAC/env re-entrancy: Preserved.
+Defer init and auto-flush stale error: Preserved.
+Fix bpmd/GetCurrentRuntime empty runtimes: Implemented by pushing PID via UpdateManagedTarget; expected to unblock runtime discovery.

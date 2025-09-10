@@ -1,0 +1,51 @@
+1. no frames in clrstack even there are managed frames. sos flush does not fix and reload source sos.py seems fixed the issue.  
+
+(gdb) sosflush
+Internal cached state reset
+(gdb) clrstack
+OS Thread Id: 0x33ce (23)
+        Child SP               IP Call Site
+....
+(gdb) source src/diagnostics/artifacts/bin/current/sos.py
+(gdb) clrstack
+SOS GDB Python extension loaded (host path enabled).
+Internal cached state reset
+OS Thread Id: 0x33ce (23)
+        Child SP               IP Call Site
+00007FFFFFFFCC20 00007FFF3861DCC3 Microsoft.Diagnostics.DebugServices.Implementation.ContextService.GetCurrentTarget()
+00007FFFFFFFCC60 00007FFF3861E620 Microsoft.Diagnostics.DebugServices.Implementation.ContextService.get_RuntimeService()
+00007FFFFFFFCC90 00007FFF3861E03D Microsoft.Diagnostics.DebugServices.Implementation.ContextService.GetCurrentRuntime()
+00007FFFFFFFCDE0 00007FFF3861DA71 Microsoft.Diagnostics.DebugServices.Implementation.ContextService+ContextServiceProvider.GetService(System.Type)
+00007FFFFFFFCE90 00007FFF38614447 Microsoft.Diagnostics.DebugServices.ServiceContainer.GetService(System.Type)
+00007FFFFFFFCEE0 00007FFF38614319 Microsoft.Diagnostics.DebugServices.ServiceProviderExtensions.GetService[[System.__Canon, System.Private.CoreLib]](System.IServiceProvider)
+00007FFFFFFFCF20 00007FFF3861DFAD Microsoft.Diagnostics.DebugServices.ContextServiceExtensions.GetCurrentRuntime(Microsoft.Diagnostics.DebugServices.IContextService)
+00007FFFFFFFCF40 00007FFF3861DE8C SOS.Hosting.TargetWrapper.GetRuntime(IntPtr, IntPtr*)
+00007FFFFFFFCFA0 00007FFF3861DDD1 ILStubClass.IL_STUB_ReversePInvoke(Int64, Int64)
+
+2. dumpmt on wrong method table could crash.
+
+(gdb) dumpobj 0x7fbf229a46b0
+Name:        SOS.Extensions.ContextServiceFromDebuggerServices
+MethodTable: 00007fff38d19aa0
+EEClass:     00007fff38d8f528
+Tracked Type: false
+Size:        72(0x48) bytes
+File:        /workspaces/gdbsos/src/diagnostics/artifacts/bin/linux.x64.Release/SOS.Extensions.dll
+Fields:
+              MT    Field   Offset                 Type VT     Attr            Value Name
+00007fff389c73d0  4000010        8 ...bugServices.IHost  0 instance 00007fbf2280cf90 _host
+00007fff38d16520  4000011       10 ....ServiceContainer  0 instance 00007fbf229a47c0 _serviceContainer
+00007fff389c91a8  4000012       18 ...gServices.ITarget  0 instance 00007fbf229ad570 _currentTarget
+00007fff38aec120  4000013       20 ...gServices.IThread  0 instance 0000000000000000 _currentThread
+00007fff38aeb610  4000014       28 ...Services.IRuntime  0 instance 0000000000000000 _currentRuntime
+00007fff38ae0050  4000015       30 ...ces.IServiceEvent  0 instance 00007fbf229a46f8 <OnContextChange>k__BackingField
+00007fff38d18000  4000005       38 ....DebuggerServices  0 instance 00007fbf2283bbf0 _debuggerServices
+
+(gdb) dumpmt -md 00007fbf229ad570
+Aborted (core dumped) 
+
+3. dso require IThread service
+
+(gdb) dso
+The IThread service is required by the CurrentThread property
+Managed command 'dso' failed (HRESULT=0x80004005). Unspecified failure. Try 'sostrace on' for details.

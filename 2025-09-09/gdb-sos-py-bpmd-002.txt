@@ -1,0 +1,46 @@
+(gdb) thread 18
+[Switching to thread 18 (Thread 0x7fffb73ff700 (LWP 46070))]
+#0  0x00007ffff7941e2b in __lll_lock_wait () from /lib/x86_64-linux-gnu/libpthread.so.0
+(gdb) bt 
+#0  0x00007ffff7941e2b in __lll_lock_wait () from /lib/x86_64-linux-gnu/libpthread.so.0
+#1  0x00007ffff793a843 in pthread_mutex_lock () from /lib/x86_64-linux-gnu/libpthread.so.0
+#2  0x00007fffb7605b04 in GetEnvironmentVariableA () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libmscordaccore.so
+#3  0x00007fffb74a5a99 in ClrDataAccess::ClrDataAccess(ICorDebugDataTarget*, ICLRDataTarget*) () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libmscordaccore.so
+#4  0x00007fffb74b2484 in CLRDataAccessCreateInstance () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libmscordaccore.so
+#5  0x00007fffb74b253d in CLRDataCreateInstance () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libmscordaccore.so
+#6  0x00007ffff413ed1d in ?? () from /usr/lib/x86_64-linux-gnu/libffi.so.7
+#7  0x00007ffff413e289 in ?? () from /usr/lib/x86_64-linux-gnu/libffi.so.7
+#8  0x00007ffff3ce5360 in ?? () from /usr/lib/python3.9/lib-dynload/_ctypes.cpython-39-x86_64-linux-gnu.so
+#9  0x00007ffff3ce4e05 in ?? () from /usr/lib/python3.9/lib-dynload/_ctypes.cpython-39-x86_64-linux-gnu.so
+#10 0x00007ffff7a1bb00 in _PyObject_MakeTpCall () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#11 0x00007ffff79cbf08 in _PyEval_EvalFrameDefault () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#12 0x00007ffff7af9fdc in ?? () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#13 0x00007ffff7a16d2d in _PyFunction_Vectorcall () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#14 0x00007ffff79c9719 in _PyEval_EvalFrameDefault () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#15 0x00007ffff79c4033 in ?? () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#16 0x00007ffff79cc4b7 in _PyEval_EvalFrameDefault () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#17 0x00007ffff79c4033 in ?? () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#18 0x00007ffff79cc4b7 in _PyEval_EvalFrameDefault () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#19 0x00007ffff79c4033 in ?? () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#20 0x00007ffff7a1e86c in ?? () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#21 0x00007ffff7bb4289 in ?? () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#22 0x00007ffff7b47ab7 in ?? () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#23 0x00007ffff7937ea7 in start_thread () from /lib/x86_64-linux-gnu/libpthread.so.0
+#24 0x00007ffff70b0adf in clone () from /lib/x86_64-linux-gnu/libc.so.6
+(gdb) f 2
+#2  0x00007fffb7605b04 in GetEnvironmentVariableA () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libmscordaccore.so
+(gdb) info locals
+No symbol table info available.
+(gdb) p gcsEnvironment
+$1 = {DebugInfo = 0x0, LockCount = 0, RecursionCount = 0, OwningThread = 0x0, SpinCount = 0, dwInitState = 1, csnds = {rgNativeDataStorage = '\000' <repeats 95 times>, pvAlign = 0x0}}
+
+the code for ClrDataAccess::CkrDataAccess is at https://github.com/dotnet/runtime/blob/6e60229391c46b8bbb591d530124c38fe052fc11/src/coreclr/debug/daccess/daccess.cpp#L3037
+and the below code lines is related
+...
+m_instanceAge = 0;
+m_debugMode = GetEnvironmentVariableA("MSCORDACWKS_DEBUG", NULL, 0) != 0;
+
+
+m_enumMemCb = NULL;
+...
+the code for GetEnvironmentVariableA is located at https://github.com/dotnet/runtime/blob/6e60229391c46b8bbb591d530124c38fe052fc11/src/coreclr/pal/src/misc/environ.cpp#L76

@@ -1,0 +1,30 @@
+Actions taken
+Wired a callable into GdbServices so it can call the bridge’s UpdateManagedTarget(pid):
+In both sos.py, sos.py, and sos.py: after InitGdbExtensions(...), we resolve UpdateManagedTarget and assign a small wrapper onto SOSCommand.gdb_services._bridge_update_fn.
+Proactively call UpdateManagedTarget(pid) from services at the right times:
+In both services.py, services.py, and services.py:
+On new-objfile when libcoreclr.so is detected.
+Immediately before invoking the RuntimeLoaded callback.
+These calls log to trace as:
+[bpmd] [update] UpdateManagedTarget(pid=...) => 0xXXXXXXXX
+Checkpoint:
+
+Edited 4 files to ensure the running “sourced” copy also gets the fix:
+sos.py — wire bridge update into services.
+sos.py — same wiring for the script you’re sourcing.
+services.py — call UpdateManagedTarget at runtime-load.
+services.py — same (for parity if you source from here later).
+What to do next
+Re-source the same sos.py you’re using so the wiring is loaded:
+source sos.py
+With sostrace on, repeat your scenario:
+Set bpmd and run the target.
+Watch for these in the trace:
+[bpmd] [new-objfile] detected …libcoreclr.so
+[bpmd] [update] UpdateManagedTarget(pid=NNN) => 0x00000000
+RuntimeLoaded callback HR=0x00000000
+If UpdateManagedTarget shows a non-zero HRESULT or RuntimeLoaded still reports 0x80004002, share that exact code. That would indicate the managed host didn’t accept the DebuggerServices or the bridge export didn’t wire, and we’ll dig into the host registration next.
+
+Requirements coverage:
+
+“Seems UpdateManagedTarget was not called” → Now called on libcoreclr load and just before RuntimeLoaded; trace shows status. Done.

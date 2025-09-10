@@ -1,0 +1,77 @@
+(gdb) !less  /proc/23382/maps |grep coreclr
+7ffff7123000-7ffff7166000 r--p 00000000 08:30 3325241                    /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libcoreclrtraceptprovider.so
+7ffff7166000-7ffff7193000 r-xp 00042000 08:30 3325241                    /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libcoreclrtraceptprovider.so
+7ffff7193000-7ffff71fd000 r--p 0006e000 08:30 3325241                    /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libcoreclrtraceptprovider.so
+7ffff71fd000-7ffff71ff000 rw-p 000d7000 08:30 3325241                    /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libcoreclrtraceptprovider.so
+7ffff7200000-7ffff72bd000 r--p 00000000 08:30 3325245                    /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libcoreclr.so
+7ffff72bd000-7ffff72be000 r--p 000bd000 08:30 3325245                    /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libcoreclr.so
+7ffff72be000-7ffff73c8000 r--p 000be000 08:30 3325245                    /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libcoreclr.so
+7ffff73c8000-7ffff787c000 r-xp 001c7000 08:30 3325245                    /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libcoreclr.so
+7ffff787c000-7ffff78a4000 r--p 0067a000 08:30 3325245                    /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libcoreclr.so
+7ffff78a4000-7ffff78cd000 rw-p 006a1000 08:30 3325245                    /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libcoreclr.so
+(gdb) bt
+#0  EENotLoadedMessage (Status=-2147467262) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/exts.cpp:289
+#1  0x00007fffd0432eb5 in HandleRuntimeLoadedNotification (client=<optimized out>) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5963
+#2  0x00007ffff413ed1d in ?? () from /usr/lib/x86_64-linux-gnu/libffi.so.7
+#3  0x00007ffff413e289 in ?? () from /usr/lib/x86_64-linux-gnu/libffi.so.7
+
+strike.cpp
+
+HRESULT HandleExceptionNotification(ILLDBServices *client)
+{
+    INIT_API_EFN();
+    return HandleCLRNotificationEvent();
+}
+
+HRESULT HandleRuntimeLoadedNotification(ILLDBServices *client)
+{
+    INIT_API_EFN();
+    EnableModuleLoadUnloadCallbacks();
+    return g_ExtServices->SetExceptionCallback(HandleExceptionNotification);
+}
+
+exts.h
+
+#define INIT_API_EFN()                                          \
+    INIT_API_NODAC()                                            \
+    INIT_API_DAC()
+
+#define INIT_API_NODAC()                                        \
+    INIT_API_NOEE()                                             \
+    INIT_API_EE()
+
+// Also initializes the target machine
+#define INIT_API_NOEE()                                         \
+    INIT_API_EXT()                                              \
+    if ((Status = ArchQuery()) != S_OK) return Status;
+
+#define INIT_API_EXT()                                          \
+    HRESULT Status;                                             \
+    __ExtensionCleanUp __extensionCleanUp;                      \
+    if ((Status = ExtInit(client)) != S_OK) return Status;
+
+
+#define INIT_API_EE()                                           \
+    if ((Status = GetRuntime(&g_pRuntime)) != S_OK)             \
+    {                                                           \
+        EENotLoadedMessage(Status);                             \
+        return Status;                                          \
+    }                               
+
+
+#define INIT_API_EE()                                           \
+    if ((Status = GetRuntime(&g_pRuntime)) != S_OK)             \
+    {                                                           \
+        EENotLoadedMessage(Status);                             \
+        return Status;                                          \
+    }                               
+
+Thread 1 "gdb" hit Breakpoint 7, HandleRuntimeLoadedNotification (client=0x7ffff01cf210) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5963
+5963        INIT_API_EFN();
+(gdb) info br
+Num     Type           Disp Enb Address            What
+1       breakpoint     keep y   <PENDING>          strike.cpp:CNotification::OnCodeGenerate2
+2       breakpoint     keep y   0x00007fffd0432ae9 in HandleCLRNotificationEvent() at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5885
+6       breakpoint     keep y   0x00007fffd0416cc6 in EENotLoadedMessage(HRESULT) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/exts.cpp:289
+7       breakpoint     keep y   0x00007fffd0432e7e in HandleRuntimeLoadedNotification(ILLDBServices*) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5963
+        breakpoint already hit 1 time

@@ -1,0 +1,60 @@
+(gdb) c
+Continuing.
+
+Thread 1 "lldb" hit Breakpoint 4, 0x00007fffc2432ac4 in minipal_mutex_enter () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libmscordaccore.so
+(gdb) disas
+Dump of assembler code for function minipal_mutex_enter:
+   0x00007fffc2432ac0 <+0>:     push   %rbp
+   0x00007fffc2432ac1 <+1>:     mov    %rsp,%rbp
+=> 0x00007fffc2432ac4 <+4>:     pop    %rbp
+   0x00007fffc2432ac5 <+5>:     jmp    0x7fffc2434dd0 <pthread_mutex_lock@plt>
+End of assembler dump.
+(gdb) ptype pthread_mutex_t
+type = union {
+    struct __pthread_mutex_s __data;
+    char __size[40];
+    long __align;
+}
+(gdb) ptype __pthread_mutex_s
+type = struct __pthread_mutex_s {
+    int __lock;
+    unsigned int __count;
+    int __owner;
+    unsigned int __nusers;
+    int __kind;
+    short __spins;
+    short __elision;
+    __pthread_list_t __list;
+}
+(gdb) p (__pthread_mutex_s)gcsEnvironment
+$2 = {__lock = 0, __count = 0, __owner = 0, __nusers = 0, __kind = 0, __spins = 0, __elision = 0, __list = {__prev = 0x0, __next = 0x1}}
+(gdb) p (__pthread_mutex_s)&gcsEnvironment
+Invalid cast.
+(gdb) p (__pthread_mutex_s)gcsEnvironment
+$3 = {__lock = 0, __count = 0, __owner = 0, __nusers = 0, __kind = 0, __spins = 0, __elision = 0, __list = {__prev = 0x0, __next = 0x1}}
+(gdb) p &gcsEnvironment
+$4 = (CRITICAL_SECTION *) 0x7fffe4a26268 <gcsEnvironment>
+(gdb) p &gcsEnvironment
+$4 = (CRITICAL_SECTION *) 0x7fffe4a26268 <gcsEnvironment>
+(gdb) info br
+Num     Type           Disp Enb Address            What
+2       breakpoint     keep y   0x00007fffc22a5864 <ClrDataAccess::ClrDataAccess(ICorDebugDataTarget*, ICLRDataTarget*)+4>
+        breakpoint already hit 1 time
+3       breakpoint     keep y   <MULTIPLE>         
+        breakpoint already hit 1 time
+3.1                         y   0x00007fffc2405a64 <GetEnvironmentVariableA+4>
+3.2                         y   0x00007fffe4872d07 in GetEnvironmentVariableA(LPCSTR, LPSTR, DWORD) at /workspaces/gdbsos/src/diagnostics/src/shared/pal/src/misc/environ.cpp:91
+4       breakpoint     keep y   0x00007fffc2432ac4 <minipal_mutex_enter+4>
+        breakpoint already hit 1 tim
+
+(gdb) bt 
+#0  0x00007fffc2432ac4 in minipal_mutex_enter () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libmscordaccore.so
+#1  0x00007fffc2405aba in GetEnvironmentVariableA () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libmscordaccore.so
+#2  0x00007fffc22a5a99 in ClrDataAccess::ClrDataAccess(ICorDebugDataTarget*, ICLRDataTarget*) () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libmscordaccore.so
+#3  0x00007fffc22b2484 in CLRDataAccessCreateInstance () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libmscordaccore.so
+#4  0x00007fffc22b253d in CLRDataCreateInstance () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libmscordaccore.so
+#5  0x00007fff53a5cdf3 in ?? ()
+#6  0x0000000001d6f0b9 in ?? ()
+#7  0x00007fffd2272588 in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libcoreclr.so
+#8  0xffffffffffffffff in ?? ()
+#9  0x0000000000000000 in ?? ()

@@ -1,0 +1,50 @@
+I tested and found a small issue which is error cache but can be fixed by run sosflush. 
+The issue is if I run clrstack after source sos.py and before start the target, I will get the below error which is expected
+Failed to find runtime module (libcoreclr.so), 0x80004002
+Extension commands need it in order to have something to do.
+For more information see https://go.microsoft.com/fwlink/?linkid=2135652
+Command 'clrstack' failed with HRESULT -2147467262.
+but if I preess r and let the program run untile the exception throw, if I run clrstack again I will get the same error which seems like the error cached in sos side although at this point libcoreclr.so obviously loaded already, if I run sosflush and then clrstack, it wil work. That expect so far.
+
+if we add check in our side befoere dispacth the command to SOS, that could prevent bpmd command run before the target starting. 
+May we can consider add the checking for the command which could cache the error but the others.
+
+but in the lldb side, I didn't see this error cache, I mean, if run clrstack 1st get error in lldb, the clrstack will work after the target started and target runtime loaded.
+another thing I want to ask is that could we delay the host runtime initialzation(only once ) before each dispatching command but not at the time when source sos.py? because I saw in lldb, when run plugin load libsosplugin.so, the host runtime wont initialzied, when u run any command like clrstack or some other command, then host runtime will initialzied once at that time, could we align with lldb plugin on that too?
+
+================
+
+actions taken
+Defer initialization
+Removed eager libsos/SOS init from command registration.
+Now libsos.so (and bridge) load on-demand inside the first command invocation only.
+Auto-clear cached error after CLR loads
+Detect transition from “runtime not loaded” → “loaded” and call SOSFlush once automatically before dispatching the next command.
+Applied to both per-command wrappers (e.g., clrstack) and the umbrella sos command.
+files changed
+sos.py
+SOSCommand.init:
+Removed lazy_load_sos() call to delay initialization until command execution.
+Added:
+_call_sosflush_if_available() to invoke native SOSFlush export.
+_maybe_flush_after_runtime_load() to detect runtime load transition and flush once.
+Invoke paths:
+At the start of both SOSCommand.invoke(...) and SosUmbrellaCommand.invoke(...), call _maybe_flush_after_runtime_load() after lazy_load_sos() and before dispatch.
+how this addresses your issues
+Stale error cache
+Before: running clrstack pre-CLR caused SOS to cache an error; subsequent clrstack still failed until manual sosflush.
+Now: after the CLR maps (libcoreclr.so present), the next SOS command auto-runs SOSFlush once to clear that state, so clrstack works without manual flushing.
+Deferred host/runtime init (LLDB parity)
+Before: we initialized SOS at source sos.py time.
+Now: SOS/bridge load and initialization happen only when a command is executed, like LLDB’s plugin model. Managed hosting (InitManagedHosting) is still initialized lazily only when needed and only after the target CLR is loaded.
+try it
+Source sos.py.
+Run clrstack before starting the target → you’ll get the expected “Failed to find runtime module” message once.
+Press r, let the program reach the exception, then run clrstack again → it should now work without having to call sosflush.
+notes
+We kept the native host path (SOS_GDB_USE_HOST=1) as default.
+If you explicitly run sosflush, it’s still fine; the auto-flush only fires once on the first observed runtime-load transition.
+Requirements coverage:
+
+Fix stale error cached after runtime load: Done (auto SOSFlush on transition).
+Delay host runtime initialization until command dispatch: Done (deferred lazy_load_sos(); managed hosting remains lazy). 

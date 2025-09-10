@@ -1,0 +1,32 @@
+Got it—here’s why UpdateTarget is the key to making GetCurrentRuntime succeed once libcoreclr.so is mapped.
+
+How the managed pipeline finds a runtime
+UpdateTarget(pid) establishes the active Target
+
+HostServices keeps a single current Target. UpdateTarget(pid) will create it (if missing) and set OS=Linux, Arch=X64, and ProcessId=pid.
+Without this, Target may be null or have pid=0 → everything downstream has no process context.
+TargetFromDebuggerServices wires the services the runtime discovery needs
+
+It builds:
+IDataReader backed by your IDebuggerServices (memory, thread, module queries).
+IModuleService and IThreadService that call into your Python/GDB services.
+These are attached to Target.Services.
+RuntimeProvider uses IDataReader to enumerate runtimes
+
+ContextService.GetCurrentRuntime → RuntimeService → RuntimeProvider.
+RuntimeProvider constructs a ClrMD DataTarget using the IDataReader from Target.Services.
+ClrMD then:
+Enumerates modules (via your IDebuggerServices wrappers). On Linux this resolves through /proc/<pid>/maps; your code’s _scan_coreclr() is the source for GetNumberModules/GetModuleByIndex/GetModuleNames.
+Looks for libcoreclr.so; if found, identifies the runtime and its path.
+Locates DAC (libmscordaccore.so) next to coreclr, and creates IXCLRDataProcess using your ICLRDataTarget2.
+Produces an IRuntime, which populates RuntimeService._runtimes so GetCurrentRuntime returns it.
+Why timing and PID matter
+If UpdateTarget hasn’t run (or has the wrong pid), the managed Target has no valid ProcessId:
+Module enumeration returns zero (your GetNumberModules checks _scan_coreclr() for that pid).
+ClrMD can’t find libcoreclr.so → no runtime → E_NOINTERFACE.
+GDB’s process can change around run/fork/exec:
+new-objfile can fire before the final inferior PID settles; UpdateTarget at that moment may set the wrong pid.
+Your earlier “Failed to find runtime module…” came from the first RuntimeLoaded attempt before the correct pid was applied.
+Fix we added:
+UpdateManagedTarget(pid) now also runs at the runtime entry breakpoint (coreclr_execute_assembly). That guarantees the current inferior PID is applied immediately before the managed RuntimeLoaded handler runs, so the module scan sees libcoreclr.so and discovery succeeds.
+In short: UpdateTarget(pid) gives the managed side the concrete process context and the services (IDataReader/IModuleService) it needs; with the correct pid and once libcoreclr.so is mapped, RuntimeProvider’s ClrMD path can find coreclr, load DAC, and return an IRuntime so GetCurrentRuntime stops returning null. If you still see one initial “failed to find runtime” line, that’s the early try printing via va_list; the just-in-time UpdateTarget at the runtime entry should make the next call succeed.

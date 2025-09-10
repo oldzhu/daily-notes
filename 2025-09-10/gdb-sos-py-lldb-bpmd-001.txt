@@ -1,0 +1,47 @@
+(lldb) plugin load src/diagnostics/artifacts/bin/current/libsosplugin.so
+(lldb) bpmd SimpleThrow.dll Simple.Main
+[New Thread 0x7fffe77ff700 (LWP 9898)]
+[New Thread 0x7fffe6ffe700 (LWP 9899)]
+[New Thread 0x7fffe67fd700 (LWP 9900)]
+[New Thread 0x7fffe5ffc700 (LWP 9901)]
+[New Thread 0x7fffe57fb700 (LWP 9902)]
+[New Thread 0x7fffe4ffa700 (LWP 9903)]
+[New Thread 0x7fff6880f700 (LWP 9904)]
+[New Thread 0x7fbec67ff700 (LWP 9905)]
+(lldb) r[Thread 0x7fbec67ff700 (LWP 9905) exited]
+
+[Detaching after fork from child process 9950]
+[New Thread 0x7fbec67ff700 (LWP 9951)]
+[New Thread 0x7fbebffff700 (LWP 9952)]
+[New Thread 0x7fbebf7fe700 (LWP 9967)]
+[New Thread 0x7fbebeffd700 (LWP 9968)]
+Process 9956 launched: '/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Release/net10.0/SimpleThrow' (x86_64)
+1 location added to breakpoint 1
+[New Thread 0x7fbebdb7d700 (LWP 9977)]
+DW_FORM_rnglistx index pointing outside of .debug_rnglists offset array [in module /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libmscordaccore.so.dbg]
+DW_FORM_rnglistx index pointing outside of .debug_rnglists offset array [in module /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libmscordaccore.so.dbg]
+DW_FORM_rnglistx index pointing outside of .debug_rnglists offset array [in module /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libmscordaccore.so.dbg]
+DW_FORM_rnglistx index pointing outside of .debug_rnglists offset array [in module /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libmscordaccore.so.dbg]
+DW_FORM_rnglistx index pointing outside of .debug_rnglists offset array [in module /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libmscordaccore.so.dbg]
+[Switching to Thread 0x7fffed0c6700 (LWP 9571)]
+
+Thread 3 "dbg.evt-handler" hit Breakpoint 1, CNotification::OnCodeGenerated2 (this=0x7fffed0c55d0, method=0x7fffe81ba040, nativeCodeLocation=140735226255456) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5651
+5651            ULONG32 len = mdNameLen;
+(gdb) bt
+#0  CNotification::OnCodeGenerated2 (this=0x7fffed0c55d0, method=0x7fffe81ba040, nativeCodeLocation=140735226255456) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5651
+#1  0x00007fbebccac732 in ClrDataAccess::TranslateExceptionRecordToNotification(_EXCEPTION_RECORD64*, IXCLRDataExceptionNotification*) () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25411.109/libmscordaccore.so
+#2  0x00007fffec632bf3 in HandleCLRNotificationEvent () at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5900
+#3  0x00007fffec632d6d in HandleExceptionNotification (client=<optimized out>) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5958
+#4  0x00007fffec89e8ff in ExceptionBreakpointCallback (baton=0x7fffec632cd0 <HandleExceptionNotification(ILLDBServices*)>, process=..., thread=..., location=...) at /workspaces/gdbsos/src/diagnostics/src/SOS/lldbplugin/services.cpp:292
+#5  0x00007ffff72363e9 in lldb::SBBreakpointCallbackBaton::PrivateBreakpointHitCallback(void*, lldb_private::StoppointCallbackContext*, unsigned long, unsigned long) () from /usr/lib/x86_64-linux-gnu/liblldb-11.so.1
+#6  0x00007ffff76d85fc in ?? () from /usr/lib/x86_64-linux-gnu/liblldb-11.so.1
+#7  0x00007ffff76b1d60 in ?? () from /usr/lib/x86_64-linux-gnu/liblldb-11.so.1
+#8  0x00007ffff76b20b3 in ?? () from /usr/lib/x86_64-linux-gnu/liblldb-11.so.1
+#9  0x00007ffff774fa6a in ?? () from /usr/lib/x86_64-linux-gnu/liblldb-11.so.1
+#10 0x00007ffff774ffc5 in ?? () from /usr/lib/x86_64-linux-gnu/liblldb-11.so.1
+#11 0x00007ffff77500c7 in ?? () from /usr/lib/x86_64-linux-gnu/liblldb-11.so.1
+#12 0x00007ffff756427a in ?? () from /usr/lib/x86_64-linux-gnu/liblldb-11.so.1
+#13 0x00007ffff7564676 in ?? () from /usr/lib/x86_64-linux-gnu/liblldb-11.so.1
+#14 0x00007ffff760a489 in ?? () from /usr/lib/x86_64-linux-gnu/liblldb-11.so.1
+#15 0x00007ffff7fa9ea7 in start_thread () from /lib/x86_64-linux-gnu/libpthread.so.0
+#16 0x00007fffeee72adf in clone () from /lib/x86_64-linux-gnu/libc.so.6

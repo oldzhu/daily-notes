@@ -1,0 +1,16 @@
+Great—looks like aligning to the native host runtime fixed the DAC hang on clrstack.
+
+Quick sanity checklist to exercise more paths:
+
+clrthreads, dumpstack/dso, ip2md/name2ee
+dumpheap/verifyheap/gcroot/gcwhere on live run
+bpmd end-to-end: set before CLR loads, confirm pending bp flush at coreclr load, break in managed method
+dumpobj/dumpmt/dumpclass across multiple modules
+eeversion/runtimes and module size/base via lldb2_get_module_info equivalents
+Symbol flow: loadsymbols; ensure no unexpected re-entry into GDB during DAC work
+Toggles for A/B:
+
+Force legacy (Python) host path: SOS_GDB_USE_HOST=0
+Legacy diagnostics only: SOS_GDB_DAC_CALL_INLINE=1, SOS_GDB_DAC_TIMEOUT_MS=2000
+Tracing: sostrace on
+If anything regresses, capture the hang point with sostrace and we’ll iterate.

@@ -1,0 +1,43 @@
+Checklist:
+
+Add IRuntime ABI and struct types.
+Create a minimal IRuntime instance in Python.
+Return it from ITarget::GetRuntime once libcoreclr.so is mapped.
+Implement the read-only parts SOS needs: config, module address/size, runtime directory.
+Stub the heavy parts for now: GetClrDataProcess (DAC), GetCorDebugInterface, GetEEVersion.
+What I changed:
+
+abi.py:
+Added IRuntime vtable signatures and struct: GetRuntimeConfiguration, GetModuleAddress, GetModuleSize, Set/GetRuntimeDirectory, GetClrDataProcess, GetCorDebugInterface, GetEEVersion.
+services.py:
+Built a minimal IRuntime object with those methods:
+runtime_get_config returns UnixCore.
+runtime_get_module_address/size read from /proc/<pid>/maps (we already track base; I added a size calculator).
+runtime_set/get_runtime_directory supports an override; else uses the discovered libcoreclr dir buffer.
+runtime_get_clr_data_process returns E_NOTIMPL for now (we’ll wire DAC next).
+GetCorDebugInterface returns E_NOINTERFACE.
+GetEEVersion returns E_NOTIMPL.
+ITarget::GetRuntime now:
+Waits for libcoreclr.so mapping.
+Computes module size if needed.
+Returns our IRuntime pointer (S_OK) so SOS can proceed with module discovery.
+Flush now clears cached module size too.
+What to expect in your test:
+
+With SOS_GDB_USE_HOST=1 enabled:
+clrstack should advance past the earlier E_NOTIMPL at “find runtime module” because GetRuntime now succeeds and reports module address/size.
+You’ll likely hit the next missing piece when SOS tries to acquire IXCLRDataProcess via GetClrDataProcess; you’ll see E_NOTIMPL (0x80004001) at that later step. That’s normal at this stage.
+With SOS_GDB_USE_HOST unset:
+Behavior stays as before (host path disabled).
+Next step after your run:
+
+Implement runtime_get_clr_data_process to load DAC (mscordaccore) and return IXCLRDataProcess. We’ll use our IMemoryService + path from runtime directory to dlopen DAC and query the exported CLRDataCreateInstance, then hand back the COM pointer. That should unlock clrstack and JIT notifications.
+Requirements coverage:
+
+Add IRuntime and return from GetRuntime: Done.
+Keep complex services E_NOINTERFACE/E_NOTIMPL as agreed: Done.
+Maintain host gating so you can flip it on/off: Done.
+When you’re ready, enable the host path and try clrstack:
+
+Export SOS_GDB_USE_HOST=1, load sos, run clrstack.
+Share the new trace; I’ll then add DAC hookup.
