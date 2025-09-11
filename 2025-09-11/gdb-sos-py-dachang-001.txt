@@ -1,0 +1,13 @@
+Hang reproduction path is now set: services.py always does the inline CLRDataCreateInstance with no timeout and the env vars are gone. All checklist items finished.
+
+Next suggested steps (if you want deeper diagnostics):
+
+Reproduce: Run your GDB session; confirm last Python trace line is “[dac] CLRDataCreateInstance inline (no timeout)”.
+Capture stacks: thread apply all bt full
+Inspect waits: info threads; focus on any thread in libmscordaccore / GetEnvironmentVariableA
+Breakpoints (optional): b GetEnvironmentVariableA and/or b CLRDataCreateInstance before reproducing to step in.
+Memory/maps: maint info sections or cat /proc/<pid>/maps to confirm DAC and libcoreclr bases.
+Env probe: In GDB: call (char*)getenv("COMPlus_Version") etc., to see if any call itself hangs (rare, but check).
+If you’d like, I can script a minimal GDB command batch to automate the capture—just ask.
+
+Let me know what you see at the hang and we can add targeted instrumentation (e.g., LD_PRELOAD shim for getenv).
