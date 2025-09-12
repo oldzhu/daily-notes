@@ -1,0 +1,16 @@
+Explanation of LLDB plugin behavior (for clarity):
+
+LLDB plugin sets a real native breakpoint on coreclr_execute_assembly in LLDBServices::SetRuntimeLoadedCallback.
+When that breakpoint hits, its C++ callback calls the managed runtime-loaded callback (registered by SOS when needed) and then (if successful) deletes the breakpoint and continues the process once.
+Pending managed breakpoints (bpmd) are managed entirely within SOS/native components. The front-end does not queue them; it just dispatches the bpmd command which causes SOS to register for JIT notifications and create pending entries inside SOS.
+JIT/code-gen notifications then trigger native SOS to resolve and set breakpoints via debugger services; front-end is passive after initial bpmd dispatch.
+Why earlier added code isn’t needed now:
+
+The native GDB bridge doesn’t yet replicate LLDB’s explicit runtime-entry breakpoint and callback semantics; adding a premature generic callback without proper ILLDBServices context doesn’t deliver real value and could mask required native work (like implementing a proper breakpoint and real services object).
+Registering a placeholder callback from Python risks diverging from the LLDB model and adds complexity without advancing actual breakpoint/JIT notification functionality.
+Next steps (if/when you choose to implement parity):
+
+Native: Implement a GDB-side mechanism (or minimal integration) to plant and remove a one-shot breakpoint at coreclr_execute_assembly when SOS requests runtime loaded callback (mirroring LLDB’s SetRuntimeLoadedCallback path).
+Provide (or adapt) an ILLDBServices-compatible facade for JIT notification flow so the callback receives a valid services pointer, not nullptr.
+After that’s in place, SOS’s bpmd native logic should function identically to LLDB (pending list internal, no Python helpers).
+Let me know if you want help designing that native breakpoint pathway or stubbing an ILLDBServices adapter.

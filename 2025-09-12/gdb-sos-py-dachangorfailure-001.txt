@@ -1,0 +1,7 @@
+Commit message suggestion: native-only hosting: remove Python host fallback, add InitManagedHosting retry
+
+Body:
+
+sos.py: attempt InitManagedHosting if native host is null, re-query; no Python host fallback (warn + NULL host)
+ensures future removal of Python host/runtime path is viable
+adds explicit warning when native host unavailable

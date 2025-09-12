@@ -1,0 +1,26 @@
+Implemented native runtime-loaded callback path and Python simplification.
+
+Key changes:
+
+Added SetRuntimeLoadedCallback export in gdbbridge.cpp with one-shot firing after hosting init or subsequent UpdateManagedTarget (stores and replays if registered late).
+Included lldbservices.h for callback typedef; passed nullptr (no ILLDBServices impl yet) to callback to avoid signature mismatch.
+Fired callback opportunistically in InitManagedHosting and UpdateManagedTarget.
+Added Python registration: after SOSInitializeByHost, sos.py now checks for SetRuntimeLoadedCallback and registers a trivial callback.
+Removed Python bpmd pending queue, runtime entry breakpoint planting, auto-continue logic, and one-shot PC breakpoints.
+Stopped auto-triggering exception callback and auto-continue in services.py; runtime-loaded breakpoint now stops for user inspection.
+Rebuilt successfully (no errors/warnings); Python byte-compiles clean.
+Next recommended native steps:
+
+Replace nullptr with a real ILLDBServices implementation (mirror LLDB or adapt existing GdbServices shim) so SOS runtime-loaded callback receives proper services.
+Add actual breakpoint planting on coreclr_execute_assembly in C++ (if needed) rather than Python, mirroring LLDB’s BreakpointCreateByName (requires minimal GDB integration or keep current manual approach if acceptable).
+Implement code-gen/JIT notification bridge (if not already provided by managed hosting) to ensure managed bpmd pending breakpoints resolve.
+Add trace logging (guarded by env) in bridge for: hosting init, runtime callback fired, callback success/failure.
+Update tests to assert runtime-loaded callback path (e.g., watch for trace string “[sos] runtime-loaded callback fired (bridge)”).
+Suggested commit message: gdb: shift bpmd lifecycle to native bridge; add SetRuntimeLoadedCallback
+
+Remove Python-layer bpmd pending queue, runtime entry bp planting, auto-continue
+Add native SetRuntimeLoadedCallback export with one-shot firing after hosting init/UpdateManagedTarget
+Register callback from sos.py post-SOSInitializeByHost
+Simplify services.py: no forced continue or synthetic exception callback trigger
+Prepare ground for native JIT notification parity with LLDB
+Let me know if you want to proceed with a real ILLDBServices shim or native breakpoint insertion next.

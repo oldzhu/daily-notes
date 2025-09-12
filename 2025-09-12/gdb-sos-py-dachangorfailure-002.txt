@@ -1,0 +1,54 @@
+what I understand about how bpmd works in lldb plugin side is that - initialzie the host runtime if it is not initialized, dispacth bpmd to host runtime - then something in host runtime will create bp to coreclr_execute_assembly and bp handler, then bp handler - somehthing in host runtime will try to load dac and create code generation hadler - > once any function jitted - code generation handler called -> code handler will our lldbservice2 to set the breakpoint if it matches with the jitted function ...
+in my understanding of the above, most of the work should be done within host runtime, only need to call our implement lldbservice2.execute to set the breapoint once the function jitted, am I right? pls review lldb plugin implementation of bpmd to see If my understanding is correct, if it is, I do think our python code part related with bpmd are doing too much which should not be done by it {such as new object, stop handler} ,am I right? if my undertstaning is correct,we need to simplify our bpmd code and align with lldb pluguin - let sos host runtime to handle most of work for us.
+
+========================
+
+Your mental model is basically correct: in the LLDB plugin the heavy lifting for bpmd lives inside native SOS/host code; the front‑end just dispatches the bpmd command.
+
+Clarifying the LLDB flow (what actually happens):
+
+User runs bpmd (even before CLR loads). The native sos bpmd implementation records (and if already JITTED, resolves) the target method; otherwise it adds a pending entry and asks for CLR (JIT) notifications.
+Host (when needed) registers a runtime-loaded callback via ILLDBServices2::SetRuntimeLoadedCallback which plants one native breakpoint on coreclr_execute_assembly with a C++ callback (services.cpp RuntimeLoadedBreakpointCallback).
+That breakpoint fires once; the callback loads DAC (now safe), performs any runtime initialization, removes the breakpoint, then continues.
+As methods JIT, the CLR sends code generation notifications; native SOS (not the Python/LLDB front-end) matches them against its pending bpmd list and (through debugger services) sets the real native breakpoints at method entry.
+Later JITs keep flowing; bpmd pending entries resolve natively; front-end Python/LLDB layer does nothing extra.
+Where your current GDB Python layer is doing “too much” compared to LLDB:
+
+Manually planting / managing a pending coreclr_execute_assembly breakpoint (duplicate of native host responsibility).
+Maintaining a Python _bpmd_pending list and flushing it after a libcoreclr load hook (should be native SOS’s pending list).
+Hooking new-objfile / stop events and issuing auto-continues (the LLDB plugin only auto-continues after the one runtime-loaded breakpoint, not on general stops or exceptions).
+Installing exception callback logic then unconditional continue (not mirroring LLDB’s narrower continue semantics).
+Extra tracing/new object logic around bpmd that belongs in native notifications.
+So yes: Python layer is overreaching; we can slim it to LLDB parity.
+
+Recommended simplification plan:
+
+Remove Python _bpmd_pending, defer hook, and manual coreclr_execute_assembly breakpoint planting in sos.py / services.py.
+Ensure native gdb bridge (C++ side) exposes/implements a SetRuntimeLoadedCallback equivalent (mirroring LLDB’s SetRuntimeLoadedCallback + breakpoint + auto-continue once).
+On first bpmd command in Python: just ensure (a) native host initialized (InitManagedHosting if not yet), then (b) DispatchManagedCommand("bpmd", args). No extra breakpoint logic.
+Drop Python stop/exception auto-continue tied to bpmd; only allow native runtime-loaded callback to continue; let exceptions stop unless user explicitly resumes.
+Keep (optional) lightweight tracing (just logging the sos bpmd dispatch + later actual method breakpoint hit) but sourced from native services if possible.
+Add regression test: issue bpmd before run, start target, verify:
+coreclr_execute_assembly single breakpoint is created and removed (native).
+Method breakpoint is inserted after JIT and triggers a stop at managed method entry.
+Remove now-obsolete environment flags / code paths referencing the Python pending queue.
+Potential additions on native side (if missing in gdb bridge):
+
+Implement runtime-loaded breakpoint logic analogous to lines ~2140–2150 of lldb services.cpp.
+Wire a code-gen notification path (should already exist via SOS pending breakpoint infra) into GDB debugger services to set native breakpoints.
+Risk / considerations:
+
+Must confirm native SOS already maintains pending list for bpmd under GDB scenario; if the gdb bridge doesn’t yet deliver the needed callbacks (method load/code-gen), we need to add them there rather than re-implement in Python.
+Ensure we don’t reintroduce early DAC load race: keep the runtime-loaded breakpoint gating DAC load like LLDB.
+If you want, I can draft the concrete Python cleanup and a stub C++ addition outline next—just say the word. Let me know if you’d like to proceed with code changes.
+
+Preparing summary of changes and next native alignment steps. Implemented Python-side simplification: removed bpmd pending queue, runtime entry breakpoint planting, defer hooks, auto-continue logic, and one-shot temporary breakpoint tricks. services.py no longer forces an immediate continue or triggers exception callback unconditionally; runtime-loaded breakpoint now stops (user control). Byte-compilation passed (no syntax errors).
+
+Next native alignment steps:
+
+Ensure native gdb bridge adds a SetRuntimeLoadedCallback path mirroring LLDB (single coreclr_execute_assembly breakpoint, auto-continue only if callback returns success).
+Confirm code-gen / JIT notification pathway in native bridge correctly causes SOS to resolve pending bpmd breakpoints (should already exist if using shared SOS code).
+Add minimal tracing in native bridge (optional) to log: runtime-loaded callback fired, method breakpoint inserted, breakpoint hit.
+Remove any now-dead Python attributes (e.g., _bpmd_pending references elsewhere) after a runtime smoke test.
+Add/update a test scenario: run dotnet target, issue bpmd before run, verify stop at managed method (adapt existing tests/gdb scenarios).
+Let me know when you’re ready to proceed with native bridge adjustments or want a commit message draft.
