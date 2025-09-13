@@ -1,0 +1,48 @@
+Flow you outlined is basically correct. Condensed clarification:
+
+LLDB plugin flow (ideal):
+
+bpmd before run → SOS hasn’t loaded DAC yet → SOS calls SetRuntimeLoadedCallback.
+Runtime hits coreclr_execute_assembly → breakpoint callback:
+Loads DAC (because CoreCLR fully initialized, DAC table ready).
+Calls EnableModuleLoadUnloadCallbacks().
+Calls SetExceptionCallback(HandleExceptionNotification).
+SetExceptionCallback plants a language exception breakpoint (BreakpointCreateForException) that will fire on each runtime “notification” exception (module load, JIT, etc.).
+Each such exception stop → HandleExceptionNotification (SOS) → translates to JIT/module events → pending bpmd entries resolved and real IL/JIT breakpoints inserted.
+Your current GDB Python differences:
+
+lldb2_set_runtime_loaded_callback already sets a symbol breakpoint, but (a) doesn’t auto-continue (you chose to defer Option 1) and (b) fires callback inside the breakpoint’s stop handler; that part is fine.
+lldb_set_exception_callback doesn’t create an exception breakpoint equivalent; instead it:
+Hooks gdb.events.stop (broad: every stop, not just JIT/notification).
+Also adds new_objfile hook (for early coreclr detection). Result: You don’t get per‑notification stops (so no “JITTED” style progression) because you’re not actually breaking on the runtime’s notification exceptions—only on generic stops (user breaks, entry bp, signals, etc.). Pending bpmd work can’t progress without those targeted exception stops.
+Why no JITTED-style binding yet:
+
+Missing exception breakpoint targeting the runtime’s managed notification mechanism. GDB stop hook is too coarse; it rarely invokes the SOS exception callback at the precise JIT notification points.
+Without those callbacks firing after runtime load, SOS pending breakpoint list isn’t processed, so you don’t see binding output.
+What you really need before Option 1: A GDB analogue of “BreakpointCreateForException”. Options: A. Use “catch throw” (limited: only C++ exceptions thrown through libstdc++; CoreCLR notification exceptions may not surface as C++ throws). B. Set breakpoints on the PAL function(s) that raise the CLR notification exception (look at where LLDB ultimately intercepts—CoreCLR raises an OS exception; on Linux it’s a signal/raise in the runtime). Candidate functions: RaiseException (PAL), or internal helpers used for CLRDATA notifications. You can locate them by:
+
+Enabling symbols and searching for ‘RaiseTheException’ / ‘RaiseException’.
+Plant temporary bp(s) and observe call stacks when normal JIT activity should occur (e.g., run a simple managed method). C. Instrument SOS fallback: after runtime load, periodically poll for new JITted methods (heavier, not preferred). D. (Later) Minimal native helper that sets a hardware/software breakpoint on the exception dispatch site once DAC is loaded.
+Pragmatic incremental path (no auto-continue yet):
+
+Keep current runtime-loaded callback.
+After it fires, set a breakpoint on RaiseException (or the specific PAL function discovered) via existing Execute mapping: breakpoint set --name RaiseException
+Modify the stop hook: only invoke exception callback if PC == RaiseException (and maybe decode exception record memory to confirm it’s a CLR notification; optional refinement).
+Verify SOS exception callback starts producing pending bp binding (watch for method/module notifications). If successful, refine to remove broad every-stop invocation.
+Minimal Python tweak sketch (future):
+
+In lldb_set_exception_callback, instead of connecting stop globally first, set a pending breakpoint: gdb.execute('break RaiseException', to_string=True)
+Provide a small subclass Breakpoint whose stop() invokes the registered _exception_cb then returns False (auto-continue) or True (stop) depending on callback HR.
+Until then, your understanding stands: missing piece is a targeted exception breakpoint, not the runtime-loaded callback sequencing.
+
+Next suggestions you can try manually (no code edit required yet):
+
+After runtime-loaded callback fires (you’ll see its trace), run: (gdb) break RaiseException continue
+Trigger managed code that should JIT a new method.
+If RaiseException breakpoint hits repeatedly, adapt logic to call the SOS exception callback there and confirm pending bp resolves.
+Tell me when you want to:
+
+Implement Option 1 (auto-continue).
+Replace stop hook with a dedicated RaiseException breakpoint handler.
+Explore which runtime function actually raises the notification (I can help search in CoreCLR sources present in tree).
+Just let me know the next move.

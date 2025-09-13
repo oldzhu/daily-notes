@@ -1,0 +1,52 @@
+Your plan is a good low‑risk probe. Key points and refinements:
+
+High‑level
+
+Try GDB catch throw first (no code changes) to see if CoreCLR’s notification mechanism surfaces as C++ throws.
+If it produces the needed stops, we can narrow the Python logic to only react on those catchpoints (reducing noise).
+If it doesn’t fire (likely if CoreCLR uses PAL RaiseException / signals instead of C++ EH), fallback is a breakpoint on RaiseException (or a lower helper) and filtering there.
+What to expect
+
+LLDB uses BreakpointCreateForException(C++, throw=true) which maps conceptually to “break on every C++ throw”. GDB’s catch throw is the closest analog.
+If CoreCLR raises notifications via real C++ throw, you’ll see stops quickly after runtime entry when methods JIT. If it uses RaiseException (structured/PAL) or signals, catch throw will NOT trigger.
+Volume risk: catch throw will also stop on any genuine C++ exception in native libraries (libstdc++, runtime internals). We’ll need a filter before invoking SOS exception callback to avoid spurious overhead.
+Manual test steps (no code edits yet)
+
+Start fresh session; issue bpmd before run as usual.
+Run the target (your current runtime-loaded callback should set the tbreak on coreclr_execute_assembly; we’ve deferred auto-continue so you’ll stop there).
+At the coreclr_execute_assembly stop: (gdb) catch throw (gdb) info break (note the new catchpoint number)
+Continue: (gdb) c
+Generate managed activity that should JIT (e.g., a simple method call or let Main proceed).
+Observe:
+Do you stop at the catchpoint repeatedly?
+Does SOS output (or our trace) show the exception callback being invoked? (Currently our stop hook will still fire on every stop; you’ll see [stop-hook] traces.)
+Re-run bpmd (if still pending) to see if it binds after at least one of these stops.
+Interpreting outcomes A. catch throw fires AND pending bpmd binds:
+
+We can then modify Python to:
+Remove the broad stop hook or gate it to only act when event.breakpoints includes a catchpoint (bp.type == gdb.BP_CATCHPOINT).
+Call the SOS exception callback only for those.
+Later we add runtime auto-continue (Option 1).
+B. catch throw fires but bpmd still not binding:
+
+The exception being caught isn’t the one SOS expects for JIT notifications, or callback not invoked yet (verify that SOS actually called SetExceptionCallback—add trace around lldb_set_exception_callback if needed).
+Next probe: break RaiseException and inspect stack.
+C. catch throw never fires:
+
+CoreCLR isn’t using C++ throws for the notifications in this build/config.
+Move to RaiseException breakpoint approach: (gdb) break RaiseException Continue, then when it hits, inspect backtrace; differentiate notification vs unrelated raises (stack frames including coreclr PAL, clrjit, etc.).
+Once pattern is known, Python breakpoint subclass can filter and invoke exception callback.
+Potential caveats
+
+GDB’s catch throw may degrade performance significantly if many runtime C++ exceptions occur; keep test runs short.
+Some distros require libstdc++ unwinder info; if symbols stripped you may still catch but frames less informative.
+Your current stop hook logic still tries to auto-schedule continue ( _schedule_safe_continue ) but that function was removed; if any leftover call remains it’s inert—just confirm no AttributeError noise in trace.
+If you want next: I can (a) add minimal filtering so stop hook only reacts on catch throw events, or (b) add instrumentation to detect if SetExceptionCallback was invoked (guard trace). Let me know which follow-up you prefer after the manual probe:
+
+Reply with:
+
+“proceed filter” to add catchpoint filtering
+“proceed raise” to prepare RaiseException breakpoint path
+“add traces” to just enhance diagnostics
+or share the stop outputs you see.
+Your move.

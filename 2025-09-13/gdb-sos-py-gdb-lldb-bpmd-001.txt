@@ -1,0 +1,77 @@
+Implementing SetRuntimeLoadedCallback (SRLC) in our GDB path is the core missing parity piece for the bpmd pending-case, but we need to be precise about what “the same as LLDB” entails and what we already (partially) replicated in Python.
+
+Summary (short answer first): Yes: adding a native (or at least authoritative) implementation of ILLDBServices2::SetRuntimeLoadedCallback that plants a breakpoint on coreclr_execute_assembly and, when hit, (1) invokes the SOS runtime-loaded callback, (2) clears the breakpoint, and (3) (optionally) continues, is the essential functionality LLDB provides that lets bpmd queue pending method breakpoints before the runtime is initialized. Additional pieces (exception callback wiring and module load notifications) are already handled in SOS after your callback fires (it calls SetExceptionCallback inside HandleRuntimeLoadedNotification). So SRLC is the primary missing behavior. A few edge behaviors must be considered so it’s correct and race‑free in GDB.
+
+Details:
+
+What LLDB does (services.cpp):
+
+On first SetRuntimeLoadedCallback call:
+Creates a named breakpoint on symbol coreclr_execute_assembly in module coreclr.
+Attaches a breakpoint callback (RuntimeLoadedBreakpointCallback) with the SOS-provided function pointer as baton.
+When breakpoint hits:
+Temporarily sets current process/thread context for services.
+Invokes SOS callback (HandleRuntimeLoadedNotification).
+Deletes the breakpoint.
+Continues the process automatically if SOS callback returned S_OK.
+What SOS relies on from that:
+
+If bpmd is issued before CoreCLR loads / before DAC is available, SOS sets a pending record and (on FEATURE_PAL path) calls g_ExtServices2->SetRuntimeLoadedCallback(HandleRuntimeLoadedNotification).
+HandleRuntimeLoadedNotification (PAL branch) enables module load/unload notifications and calls g_ExtServices->SetExceptionCallback(HandleExceptionNotification).
+After that, exception notifications (assembly load/JIT) drive feeding of pending breakpoints.
+Your current GDB Python implementation already:
+
+Provides lldb2_set_runtime_loaded_callback in Python:
+Registers callback pointer.
+Sets (pending) temporary breakpoint on coreclr_execute_assembly (if not already set).
+On hit, marks runtime initialized, fires callback once, returns True (stop) without auto-continue.
+Provides lldb_set_exception_callback: installs a GDB stop hook that calls the SOS exception callback every stop (after runtime entry).
+Differences/gaps vs LLDB behavior:
+
+Location/authority: Implemented in Python (higher overhead, depends on Python hooks) rather than native host/services. LLDB's is native, so recursion/ reentrancy and state (current thread/process) are tightly controlled.
+Continue semantics: LLDB auto-continues after firing runtime-loaded callback if it returns S_OK. Your Python BP returns True (stop) so user must manually continue once more. This is user-visible difference.
+Breakpoint cleanup: Python code uses a temporary breakpoint (good) but if symbol binding fails initially, you rely on pending + new_objfile. Equivalent, but confirm temporary semantics = single fire.
+Thread/process context setting: Python implementation doesn’t explicitly adjust current thread before invoking callback; LLDB wrapper saves/restores. Usually safe but could differ if another thread stops.
+Race if runtime already executed: If SetRuntimeLoadedCallback is called after passing coreclr_execute_assembly (user issues bpmd late), LLDB path would not retroactively fire; SOS may have already loaded runtime and maybe not need the callback. We may want a proactive check (if coreclr mapped and entry already past? Harder; likely acceptable parity to do nothing).
+Native host PID update: You already call _update_host_target_pid_if_possible() around the breakpoint event; LLDB obtains process and sets current context; similar outcome.
+Exception callback pumping: LLDB continues automatically after initial callback; Python currently leaves user at the entry point which can appear as an extra stop compared to LLDB.
+Therefore: Is implementing native SRLC “the only thing” needed?
+
+For functional pending bpmd enablement: Yes, because once runtime-loaded callback fires, SOS itself calls SetExceptionCallback and drives pending breakpoints using DAC metadata. No additional special casing required in our layer.
+For strict parity UX: Also replicate auto-continue behavior and ensure we do not generate an extra visible stop.
+Optional refinements: Provide minimal native ILLDBServices2 method only (leave others Python) OR move entire ILLDBServices/ILLDBServices2 into native for efficiency and thread safety.
+Recommended minimal plan: A. Move SetRuntimeLoadedCallback logic into native bridge (C++):
+
+Expose an exported function (e.g., SetRuntimeLoadedCallbackNative(PFN_RUNTIME_LOADED_CALLBACK cb)).
+Internally: create/record a GDB breakpoint using Python? (Hard: native code doesn’t have direct GDB API.) So either:
+Keep Python breakpoint creation but trigger it from new native export (hybrid), or
+Keep current Python implementation but add auto-continue (lowest effort), or
+Rehost services fully in Python—and accept difference (already true). Since pure native breakpoint insertion requires GDB Python or gdb internal API (not present), staying in Python is pragmatic unless you embed a mini CLI invocation (system("gdb ...") not practical). Thus, full “native” parity may not be feasible without sticking to Python for actual BP creation.
+B. Adjust Python lldb2_set_runtime_loaded_callback:
+
+After invoking SOS callback and marking fired, automatically issue a single continue (mirror LLDB behavior) if callback returned S_OK.
+Ensure this continue happens safely (avoid recursion with stop hook). You previously removed _schedule_safe_continue; you’d need a minimal guarded continue again limited just for this one scenario.
+C. Ensure exception callback registration flow is untouched (SOS will call SetExceptionCallback soon after). No extra work.
+
+Edge cases to handle in Python version:
+
+Multiple registrations: Return S_OK without planting new breakpoint (already done).
+Callback registered after breakpoint already hit (runtime_loaded_fired True): Immediately invoke callback once (optional). (Currently not done; could add proactive _invoke_runtime_loaded_cb_once call inside registration if runtime already initialized.)
+CoreCLR already mapped before registration: optional immediate fire (safe—entry maybe still not executed yet; LLDB defers until entry to guarantee DAC table ready). Keep current deferral for safety.
+Bottom line: You already implemented 80% of SRLC logic in Python. The missing pieces for parity are:
+
+Auto-continue after successful callback.
+(Optional) Immediate invocation if runtime entry already passed (if you can detect that reliably).
+Possibly moving logic away from generic stop hook for exception notifications (but that’s post-callback and SOS-driven).
+Action choices: Option 1 (fastest): Enhance existing Python lldb2_set_runtime_loaded_callback with auto-continue. Option 2 (cleaner delineation): Add a very small helper to schedule a safe continue only for runtime-loaded case (doesn’t resurrect broad auto-continue logic). Option 3 (bigger refactor): Attempt partial native reimplementation—likely blocked by needing GDB Python APIs anyway.
+
+Recommendation: Implement Option 1/2 now; defer native relocation until/unless we embed deeper GDB integration.
+
+If you want me to proceed with adding the auto-continue (guarded) and optional immediate-fire path, let me know and I’ll patch services.py.
+
+Let me know which option you prefer:
+
+A: Add auto-continue + (optional) immediate fire in current Python SRLC.
+B: Leave current stop behavior (user manual continue) and call it “good enough”.
+C: Start a hybrid native export path (will still rely on Python for breakpoint).
+Respond with A, B, or C and I’ll implement.
