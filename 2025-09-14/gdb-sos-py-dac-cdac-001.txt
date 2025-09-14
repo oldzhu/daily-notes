@@ -1,0 +1,24 @@
+in .net core, what is cdac and dac?
+In the context of .NET Core diagnostics and debugging, DAC and cDAC are components that help debuggers understand and interpret the memory of a running .NET process. 
+What is DAC?
+The Data Access Component (DAC) is a .NET runtime component that exposes internal runtime data structures to diagnostic tools like debuggers. The debugger uses the DAC to perform tasks such as: 
+Examining the managed heap.
+Displaying managed data types.
+Reporting information about all managed code. 
+Limitations of the traditional DAC:
+Version-specific: A specific version of the DAC is tightly coupled to a specific version of the .NET runtime. A debugger needs to locate and load the exact matching DAC to inspect a process or crash dump.
+Platform-specific: The traditional DAC is tied to the architecture (e.g., 32-bit or 64-bit) of the debuggee process. Debugging a process of a different architecture is complex.
+Fragile implementation: The DAC was historically a special build of the runtime itself, using C++ smart pointers to access a remote process's memory. This was difficult to maintain and posed challenges for cross-platform debugging. 
+What is cDAC?
+The Portable Data Contract-based DAC, or cDAC, is a newer, improved approach to the DAC. It was introduced to address the limitations of the traditional DAC. 
+How cDAC works:
+Instead of being a fragile, version-specific component, the cDAC relies on a stable, data contract-based system. The runtime provides a data stream that encodes information about its internal structure, including: 
+Size and endianness of machine words.
+Offsets of important fields in runtime data structures.
+Locations of relevant global data. 
+Key advantages of cDAC:
+Version-resilient: A single cDAC implementation can potentially work with any .NET runtime version that implements the data contract. The goal is for a single library to work with .NET versions 9 and newer.
+Platform-compatible: A cDAC hosted on one platform (e.g., Windows) can debug a process on another (e.g., Linux or macOS).
+Simpler distribution: Tools won't need to ship or locate a specific version of the DAC for each corresponding runtime. 
+The shift from DAC to cDAC
+Starting with .NET 9, the runtime began moving towards the new cDAC model by enabling the existing DAC to delegate some operations to the cDAC. Eventually, the goal is for diagnostics tools to use the cDAC exclusively, simplifying the packaging and distribution of diagnostics components. 

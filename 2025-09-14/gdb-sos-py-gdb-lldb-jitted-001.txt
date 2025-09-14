@@ -1,0 +1,99 @@
+vscode ➜ /workspaces/gdbsos (main) $ gdb src/diagnostics/artifacts/bin/SimpleThrow/Debug/net10.0/SimpleThrow
+GNU gdb (Debian 10.1-1.7) 10.1.90.20210103-git
+Copyright (C) 2021 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Type "show copying" and "show warranty" for details.
+This GDB was configured as "x86_64-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<https://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+    <http://www.gnu.org/software/gdb/documentation/>.
+
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+Reading symbols from src/diagnostics/artifacts/bin/SimpleThrow/Debug/net10.0/SimpleThrow...
+(No debugging symbols found in src/diagnostics/artifacts/bin/SimpleThrow/Debug/net10.0/SimpleThrow)
+(gdb) set pagination off
+(gdb) source src/diagnostics/artifacts/bin/linux.x64.Debug/sos.py
+(gdb) bpmd SimpleThrow.dll Simple.Main
+SOS GDB Python extension loaded (native host).
+Function "coreclr_execute_assembly" not defined.
+Temporary breakpoint 1 (coreclr_execute_assembly) pending.
+(gdb) r
+Starting program: /workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net10.0/SimpleThrow 
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff7101700 (LWP 11056)]
+[New Thread 0x7fffeffff700 (LWP 11057)]
+[New Thread 0x7ffff6900700 (LWP 11063)]
+[New Thread 0x7ffff60f4700 (LWP 11064)]
+[New Thread 0x7ffff58df700 (LWP 11065)]
+[New Thread 0x7ffff50de700 (LWP 11066)]
+[New Thread 0x7fffef7fe700 (LWP 11067)]
+[New Thread 0x7fffedfff700 (LWP 11080)]
+
+Thread 1 "SimpleThrow" hit Temporary breakpoint 1, 0x00007ffff73c9b74 in coreclr_execute_assembly () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.1.25420.111/libcoreclr.so
+(gdb) catch throw
+Catchpoint 2 (throw)
+(gdb) r
+The program being debugged has been started already.
+Start it from the beginning? (y or n) n
+Program not restarted.
+(gdb) c
+Continuing.
+[Thread 0x7fffedfff700 (LWP 11080) exited]
+[New Thread 0x7fffedfff700 (LWP 11192)]
+[New Thread 0x7fffecef9700 (LWP 11194)]
+This is some simple exception.
+argument passed: A string!
+Unhandled exception. System.InvalidOperationException: Throwing an invalid operation....
+   at UserObject.UseObject(String argument) in /workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/UserObject.cs:line 19
+   at Simple.Main() in /workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/SimpleThrow.cs:line 12
+
+Thread 1 "SimpleThrow" received signal SIGABRT, Aborted.
+0x00007ffff7ad5d61 in raise () from /lib/x86_64-linux-gnu/libc.so.6
+(gdb) q
+A debugging session is active.
+
+        Inferior 1 [process 11052] will be killed.
+
+Quit anyway? (y or n) y
+vscode ➜ /workspaces/gdbsos (main) $ lldb src/diagnostics/artifacts/bin/SimpleThrow/Debug/net10.0/SimpleThrow
+(lldb) target create "src/diagnostics/artifacts/bin/SimpleThrow/Debug/net10.0/SimpleThrow"
+Current executable set to '/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net10.0/SimpleThrow' (x86_64).
+(lldb) plugin load src/diagnostics/artifacts/bin/linux.x64.Debug/libsosplugin.so
+(lldb) br set -n coreclr_execute_assembly
+Breakpoint 1: no locations (pending).
+WARNING:  Unable to resolve breakpoint to any actual locations.
+(lldb) r
+Process 12126 launched: '/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net10.0/SimpleThrow' (x86_64)
+1 location added to breakpoint 1
+Process 12126 stopped
+* thread #1, name = 'SimpleThrow', stop reason = breakpoint 1.1
+    frame #0: 0x00007ffff73c9b70 libcoreclr.so`coreclr_execute_assembly
+libcoreclr.so`coreclr_execute_assembly:
+->  0x7ffff73c9b70 <+0>: pushq  %rbp
+    0x7ffff73c9b71 <+1>: movq   %rsp, %rbp
+    0x7ffff73c9b74 <+4>: pushq  %r15
+    0x7ffff73c9b76 <+6>: pushq  %r14
+(lldb) breakpoint set -E c++ -w true -h false
+Breakpoint 2: 2 locations.
+(lldb) c
+Process 12126 resuming
+This is some simple exception.
+argument passed: A string!
+Unhandled exception. System.InvalidOperationException: Throwing an invalid operation....
+   at UserObject.UseObject(String argument) in /workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/UserObject.cs:line 19
+   at Simple.Main() in /workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/SimpleThrow.cs:line 12
+Process 12126 stopped
+* thread #1, name = 'SimpleThrow', stop reason = signal SIGABRT
+    frame #0: 0x00007ffff7ad5d61 libc.so.6`raise + 321
+libc.so.6`raise:
+->  0x7ffff7ad5d61 <+321>: movq   0x108(%rsp), %rax
+    0x7ffff7ad5d69 <+329>: subq   %fs:0x28, %rax
+    0x7ffff7ad5d72 <+338>: jne    0x7ffff7ad5d94            ; <+372>
+    0x7ffff7ad5d74 <+340>: movl   %r8d, %eax
+(lldb) 
