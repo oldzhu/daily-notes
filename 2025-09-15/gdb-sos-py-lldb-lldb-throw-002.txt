@@ -1,0 +1,141 @@
+(lldb) c
+Process 29277 resuming
+Process 28820 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 2.1
+    frame #0: 0x00007fffe4de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe805f630, ContextRecord=0x00007fffe805ea10) at seh-unwind.cpp:884:5
+(lldb) bt
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 2.1
+  * frame #0: 0x00007fffe4de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe805f630, ContextRecord=0x00007fffe805ea10) at seh-unwind.cpp:884:5
+    frame #1: 0x00007fffe49aa136 libcoreclr.so`::RaiseException(dwExceptionCode=<unavailable>, dwExceptionFlags=1, nNumberOfArguments=40, lpArguments=0x00007fffed0c44a8) at seh-unwind.cpp:951:5
+    frame #2: 0x00007fffe4a030c7 libcoreclr.so`RaiseTheExceptionInternalOnly(Object*, int, int) at excep.cpp:2795:9
+    frame #3: 0x00007fffe4a02f17 libcoreclr.so`RaiseTheExceptionInternalOnly(throwable=<unavailable>, rethrow=NO, fForStackOverflow=NO) at excep.cpp:2797
+    frame #4: 0x00007fffe4b3e323 libcoreclr.so`IL_Throw(obj=0x00007fbf6871fb08) at jithelpers.cpp:4251:5
+    frame #5: 0x00007fff67c07fdd
+    frame #6: 0x00007fff67c07b76
+    frame #7: 0x00007fff67c07a38
+    frame #8: 0x00007fff67c0a6d1
+    frame #9: 0x00007fff67c07007
+    frame #10: 0x00007fff67c06f5b
+    frame #11: 0x00007fff6665fc36
+    frame #12: 0x00007fff6665f8a1
+    frame #13: 0x00007fff67c093bd
+    frame #14: 0x00007fff67c096e0
+    frame #15: 0x00007fff67c053ba
+    frame #16: 0x00007fff66c73c3f
+    frame #17: 0x00007fff66c77dfa
+    frame #18: 0x00007fff66c6abe7
+    frame #19: 0x00007fff66c69e8b
+    frame #20: 0x00007fff66c6e103
+    frame #21: 0x00007fff65cd1b29
+    frame #22: 0x00007fff666583a0
+    frame #23: 0x00007fff666577c8
+    frame #24: 0x00007fff6665014b
+    frame #25: 0x00007fff65cd20ff
+    frame #26: 0x00007fff6664fab8
+    frame #27: 0x00007fff6664f45b
+    frame #28: 0x00007fff6664eb31
+    frame #29: 0x00007fff66644eac
+    frame #30: 0x00007fff66644ca7
+    frame #31: 0x00007fff6664f36f
+    frame #32: 0x00007fff6664f1e6
+    frame #33: 0x00007fff6664f0cb
+    frame #34: 0x00007fffe5077037 libsos.so`GetRuntime(ppRuntime=0x00007fffe52d7540) at sosextensions.cpp:108:20
+    frame #35: 0x00007fffe50482ec libsos.so`HandleExceptionNotification(client=0x000000000062ae10) at strike.cpp:5957:5
+    frame #36: 0x00007fffec89282f libsosplugin.so`ExceptionBreakpointCallback(baton=0x00007fffe5048220, process=0x00007fffed0c5780, thread=0x00007fffed0c5740, location=0x00007fffed0c5770) at services.cpp:292:19
+    frame #37: 0x00007ffff72363e9 liblldb-11.so.1`::PrivateBreakpointHitCallback() at SBBreakpointOptionCommon.cpp:72:16
+    frame #38: 0x00007ffff76d85fc liblldb-11.so.1`::PerformAction() at StopInfo.cpp:501:45
+    frame #39: 0x00007ffff76b1d60 liblldb-11.so.1`::ShouldStop() at Process.cpp:4086:23
+    frame #40: 0x00007ffff76b20b3 liblldb-11.so.1`::DoOnRemoval() at Process.cpp:4150:28
+    frame #41: 0x00007ffff774fa6a liblldb-11.so.1`::FindNextEventInternal() at Listener.cpp:309:17
+    frame #42: 0x00007ffff774ffc5 liblldb-11.so.1`::GetEventInternal() at Listener.cpp:357:9
+    frame #43: 0x00007ffff77500c7 liblldb-11.so.1`lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) at Listener.cpp:399:10
+    frame #44: 0x00007ffff756427a liblldb-11.so.1`::DefaultEventHandler() at Debugger.cpp:1423:22
+    frame #45: 0x00007ffff7564676 liblldb-11.so.1`lldb_private::Debugger::EventHandlerThread(void*) at Debugger.cpp:1476:22
+    frame #46: 0x00007ffff760a489 liblldb-11.so.1`::ThreadCreateTrampoline() at HostNativeThreadBase.cpp:68:10
+    frame #47: 0x00007ffff7fa9ea7 libpthread.so.0`start_thread + 215
+    frame #48: 0x00007fffeee72adf libc.so.6`__clone + 63
+(lldb) br list
+Current breakpoints:
+1: regex = 'OnCodeGenerated2', locations = 1, resolved = 1, hit count = 1
+  1.1: where = libsos.so`CNotification::OnCodeGenerated2(IXCLRDataMethodInstance*, unsigned long) + 61 at strike.cpp:5651:17, address = 0x00007fffe505cb9d, resolved, hit count = 1 
+
+2: regex = 'RtlpRaiseException', locations = 1, resolved = 1, hit count = 7
+  2.1: where = libcoreclr.so`RtlpRaiseException(_EXCEPTION_RECORD*, _CONTEXT*) + 17 at seh-unwind.cpp:884:5, address = 0x00007fffe4de6601, resolved, hit count = 7 
+
+(lldb) c
+Process 28820 resuming
+Process 29277 stopped
+* thread #1, name = 'SimpleThrow', stop reason = breakpoint 2.1
+    frame #0: 0x00007ffff77e6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x0000555555663930, ContextRecord=0x0000555555662d10) at seh-unwind.cpp:884:5
+(lldb) br list
+Current breakpoints:
+1: regex = 'coreclr_execute_assembly', locations = 1, resolved = 1, hit count = 1
+  1.1: where = libcoreclr.so`::coreclr_execute_assembly(void *, unsigned int, int, const char **, const char *, unsigned int *) + 17 at exports.cpp:494:27, address = 0x00007ffff73a9441, resolved, hit count = 1 
+
+2: regex = 'RtlpRaiseException', locations = 1, resolved = 1, hit count = 3
+  2.1: where = libcoreclr.so`RtlpRaiseException(_EXCEPTION_RECORD*, _CONTEXT*) + 17 at seh-unwind.cpp:884:5, address = 0x00007ffff77e6601, resolved, hit count = 3 
+
+3: Exception breakpoint (catch: off throw: on) using: names = {'__cxa_throw', '__cxa_rethrow'}, locations = 2, resolved = 2, hit count = 2
+
+  Names:
+    DoNotDeleteOrDisable
+
+  3.1: where = libstdc++.so.6`__cxa_throw, address = 0x00007ffff7e74c20, resolved, hit count = 2 
+  3.2: where = libstdc++.so.6`__cxa_rethrow, address = 0x00007ffff7e74c70, resolved, hit count = 0 
+
+(lldb) bt 
+* thread #1, name = 'SimpleThrow', stop reason = breakpoint 2.1
+  * frame #0: 0x00007ffff77e6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x0000555555663930, ContextRecord=0x0000555555662d10) at seh-unwind.cpp:884:5
+    frame #1: 0x00007ffff73aa136 libcoreclr.so`::RaiseException(dwExceptionCode=<unavailable>, dwExceptionFlags=0, nNumberOfArguments=16, lpArguments=0x00007fffffff9a10) at seh-unwind.cpp:951:5
+    frame #2: 0x00007ffff74b7c23 libcoreclr.so`DACRaiseException(unsigned long*, unsigned int) [inlined] DACRaiseException(unsigned long*, unsigned int)::$_0::operator()(DACRaiseException(unsigned long*, unsigned int)::Param*) const at util.cpp:1464:9
+    frame #3: 0x00007ffff74b7c17 libcoreclr.so`DACRaiseException(args=0x00007fffffff9a10, argCount=2) at util.cpp:1466
+    frame #4: 0x00007ffff74b7e19 libcoreclr.so`DACNotifyExceptionHelper(args=0x00007fffffff9a10, argCount=2) at util.cpp:1493:9
+    frame #5: 0x00007ffff74b7f78 libcoreclr.so`DACNotify::DoModuleLoadNotification(ModulePtr=<unavailable>) at util.cpp:1574:9
+    frame #6: 0x00007ffff73f5087 libcoreclr.so`DomainAssembly::DoIncrementalLoad(FileLoadLevel) [inlined] DomainAssembly::FinishLoad(this=0x0000555555664cc0) at domainassembly.cpp:557:5
+    frame #7: 0x00007ffff73f5076 libcoreclr.so`DomainAssembly::DoIncrementalLoad(this=0x0000555555664cc0, level=FILE_LOADED) at domainassembly.cpp:436
+    frame #8: 0x00007ffff73b246a libcoreclr.so`AppDomain::TryIncrementalLoad(this=<unavailable>, pFile=0x0000555555664cc0, workLevel=FILE_LOADED, lockHolder=0x00007fffffff9b58)), &(FileLoadLock::HolderLeave(FileLoadLock*)), 0ul, &(int CompareDefault<FileLoadLock*>(FileLoadLock*, FileLoadLock*)), true>&) at appdomain.cpp:2947:31
+    frame #9: 0x00007ffff73b188f libcoreclr.so`AppDomain::LoadDomainAssembly(this=0x0000555555603da0, pLock=0x00005555555c5dd0, targetLevel=FILE_LOADED) at appdomain.cpp:2881:21
+    frame #10: 0x00007ffff73b1d4a libcoreclr.so`AppDomain::LoadDomainAssemblyInternal(this=0x0000555555603da0, pIdentity=0x00007fffffff9f58, pPEAssembly=0x00005555556662c0, targetLevel=FILE_LOADED) at appdomain.cpp:2778:40
+    frame #11: 0x00007ffff73aeb60 libcoreclr.so`AppDomain::LoadDomainAssembly(this=0x0000555555603da0, pSpec=0x00007fffffff9f58, pPEAssembly=0x00005555556662c0, targetLevel=FILE_LOADED) at appdomain.cpp:2652:19
+    frame #12: 0x00007ffff73cfa6d libcoreclr.so`Module::LoadAssemblyImpl(this=0x00007fff7909cec8, kAssemblyRef=587202562) at ceeload.cpp:3027:43
+    frame #13: 0x00007ffff73bd165 libcoreclr.so`Assembly::FindModuleByTypeRef(ModuleBase*, unsigned int, Loader::LoadFlag, int*) [inlined] ModuleBase::LoadAssembly(this=0x00007fff7909cec8, kAssemblyRef=<unavailable>) at ceeload.h:584:16
+    frame #14: 0x00007ffff73bd15c libcoreclr.so`Assembly::FindModuleByTypeRef(pModule=0x00007fff7909cec8, tkType=<unavailable>, loadFlag=Load, pfNoResolutionScope=NO) at assembly.cpp:938
+    frame #15: 0x00007ffff73e1a98 libcoreclr.so`ClassLoader::LoadTypeDefOrRefThrowing(pModule=<unavailable>, typeDefOrRef=<unavailable>, fNotFoundAction=ThrowIfNotFound, fUninstantiated=FailIfUninstDefOrRef, tokenNotToLoad=0, level=CLASS_LOADED) at clsload.cpp:2360:36
+    frame #16: 0x00007ffff7449658 libcoreclr.so`MemberLoader::GetDescFromMemberRef(pModule=0x00007fff7909cec8, MemberRef=167772177, ppMD=0x00007fffffffa288, ppFD=0x00007fffffffa280, pTypeContext=0x00007fffffffa2b0, strictMetadataChecks=YES, ppTH=0x00007fffffffa290, actualTypeRequired=YES, ppTypeSig=0x00007fffffffa4e0, pcbTypeSig=0x00007fffffffa4e8) at memberload.cpp:306:19
+    frame #17: 0x00007ffff742a37f libcoreclr.so`CEEInfo::resolveToken(this=0x00007fffffffc690, pResolvedToken=0x00007fffffffa4b0) at jitinterface.cpp:1029:17
+    frame #18: 0x00007fffe76ae219 libclrjit.so`___lldb_unnamed_symbol1268$$libclrjit.so + 7545
+    frame #19: 0x00007fffe76a8129 libclrjit.so`___lldb_unnamed_symbol1263$$libclrjit.so + 4441
+    frame #20: 0x00007fffe74ee403 libclrjit.so`___lldb_unnamed_symbol263$$libclrjit.so + 4611
+    frame #21: 0x00007fffe74ed1c4 libclrjit.so`___lldb_unnamed_symbol262$$libclrjit.so + 132
+    frame #22: 0x00007ffff743e6db libcoreclr.so`invokeCompileMethodHelper(jitMgr=0x0000555555607400, comp=0x00007fffffffc690, info=0x00007fffffffc4f0, jitFlags=CORJIT_FLAGS @ 0x00007fffffffc3f8, nativeEntry=0x00007fffffffc4b0, nativeSizeOfCode=0x00007fffffffc4ac) at jitinterface.cpp:12406:30
+    frame #23: 0x00007ffff743e8e3 libcoreclr.so`invokeCompileMethod(jitMgr=0x0000555555607400, comp=0x00007fffffffc690, info=0x00007fffffffc4f0, jitFlags=CORJIT_FLAGS @ 0x00007fffffffc648, nativeEntry=0x00007fffffffc4b0, nativeSizeOfCode=0x00007fffffffc4ac) at jitinterface.cpp:12469:24
+    frame #24: 0x00007ffff743f497 libcoreclr.so`UnsafeJitFunction(config=0x00007fffffffcbc0, ILHeader=0x00007fffffffc950, pJitFlags=0x00007fffffffc880, pSizeOfCode=0x00007fffffffc98c) at jitinterface.cpp:12914:19
+    frame #25: 0x00007ffff747b11a libcoreclr.so`MethodDesc::JitCompileCodeLocked(this=0x00007fff7909f388, pConfig=0x00007fffffffcbc0, pilHeader=0x00007fffffffc950, pEntry=0x000055555558cc90, pSizeOfCode=0x00007fffffffc98c) at prestub.cpp:939:17
+    frame #26: 0x00007ffff747a9fb libcoreclr.so`MethodDesc::JitCompileCodeLockedEventWrapper(this=0x00007fff7909f388, pConfig=0x00007fffffffcbc0, pEntry=0x000055555558cc90) at prestub.cpp:820:17
+    frame #27: 0x00007ffff747a15f libcoreclr.so`MethodDesc::JitCompileCode(this=0x00007fff7909f388, pConfig=0x00007fffffffcbc0) at prestub.cpp:707:20
+    frame #28: 0x00007ffff7479b5d libcoreclr.so`MethodDesc::PrepareILBasedCode(this=0x00007fff7909f388, pConfig=<unavailable>) at prestub.cpp:433:17
+    frame #29: 0x00007ffff73e9ec8 libcoreclr.so`CodeVersionManager::PublishVersionableCodeIfNecessary(this=0x0000555555604760, pMethodDesc=0x00007fff7909f388, callerGCMode=Coop, doBackpatchRef=0x00007fffffffcc98, doFullBackpatchRef=<unavailable>) at codeversion.cpp:1734:34
+    frame #30: 0x00007ffff747e1a6 libcoreclr.so`MethodDesc::DoPrestub(this=0x00007fff7909f388, pDispatchingMT=0x0000000000000000, callerGCMode=Coop) at prestub.cpp:2595:42
+    frame #31: 0x00007ffff747dcf4 libcoreclr.so`::PreStubWorker(pTransitionBlock=<unavailable>, pMD=0x00007fff7909f388) at prestub.cpp:2424:29
+    frame #32: 0x00007ffff76a0e40 libcoreclr.so`ThePreStub at theprestubamd64.S:16
+    frame #33: 0x00007ffff769ff27 libcoreclr.so`CallDescrWorkerInternal at calldescrworkeramd64.S:97
+    frame #34: 0x00007ffff74d84be libcoreclr.so`MethodDescCallSite::CallTargetWorker(unsigned long const*, unsigned long*, int) at callhelpers.cpp:67:5
+    frame #35: 0x00007ffff74d8464 libcoreclr.so`MethodDescCallSite::CallTargetWorker(this=0x00007fffffffd1c8, pArguments=0x00007fffffffd168, pReturnValue=0x00007fffffffd198, cbReturnValue=8) at callhelpers.cpp:562
+    frame #36: 0x00007ffff73beca5 libcoreclr.so`RunMain(MethodDesc*, short, int*, PtrArray**) [inlined] MethodDescCallSite::Call_RetArgSlot(this=0x00007fffffffd1c8, pArguments=0x00007fffffffd168) at callhelpers.h:458:9
+    frame #37: 0x00007ffff73bec9b libcoreclr.so`RunMain(MethodDesc*, short, int*, PtrArray**) at assembly.cpp:1307
+    frame #38: 0x00007ffff73beb2d libcoreclr.so`RunMain(MethodDesc*, short, int*, PtrArray**) [inlined] RunMain(pParam=0x00007fffffffd130)::$_0::operator()(Param*) const::'lambda'(Param*)::operator()(Param*) const at assembly.cpp:1375
+    frame #39: 0x00007ffff73beb2d libcoreclr.so`RunMain(MethodDesc*, short, int*, PtrArray**) at assembly.cpp:1377
+    frame #40: 0x00007ffff73beb20 libcoreclr.so`RunMain(pFD=0x00007fff7909f388, numSkipArgs=1, piRetVal=0x00007fffffffd31c, stringArgs=0x00007fffffffd5f0) at assembly.cpp:1377
+    frame #41: 0x00007ffff73bf0f8 libcoreclr.so`Assembly::ExecuteMainMethod(this=0x000055555558d620, stringArgs=0x00007fffffffd5f0, waitForOtherThreads=YES) at assembly.cpp:1504:18
+    frame #42: 0x00007ffff73ec14c libcoreclr.so`CorHost2::ExecuteAssembly(this=<unavailable>, dwAppDomainId=<unavailable>, pwzAssemblyPath=<unavailable>, argc=0, argv=0x0000000000000000, pReturnValue=0x00007fffffffd720) at corhost.cpp:349:39
+    frame #43: 0x00007ffff73a94c0 libcoreclr.so`::coreclr_execute_assembly(hostHandle=0x00005555555c98d0, domainId=1, argc=0, argv=<unavailable>, managedAssemblyPath=<unavailable>, exitCode=0x00007fffffffd720) at exports.cpp:504:24
+    frame #44: 0x00007ffff7a26a6e libhostpolicy.so`___lldb_unnamed_symbol213$$libhostpolicy.so + 910
+    frame #45: 0x00007ffff7a27b89 libhostpolicy.so`corehost_main + 345
+    frame #46: 0x00007ffff7a676db libhostfxr.so`___lldb_unnamed_symbol68$$libhostfxr.so + 1531
+    frame #47: 0x00007ffff7a66212 libhostfxr.so`___lldb_unnamed_symbol66$$libhostfxr.so + 1042
+    frame #48: 0x00007ffff7a60bb7 libhostfxr.so`hostfxr_main_startupinfo + 263
+    frame #49: 0x0000555555564b10 SimpleThrow`___lldb_unnamed_symbol142$$SimpleThrow + 1136
+    frame #50: 0x0000555555564e3f SimpleThrow`___lldb_unnamed_symbol144$$SimpleThrow + 175
+    frame #51: 0x00007ffff7ac0d7a libc.so.6`__libc_start_main + 234
+    frame #52: 0x000055555555b0f9 SimpleThrow`___lldb_unnamed_symbol1$$SimpleThrow + 41
+(lldb) 

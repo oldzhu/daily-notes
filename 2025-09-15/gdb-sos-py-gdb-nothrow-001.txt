@@ -1,0 +1,59 @@
+I dont think ur analysis is correct, i peformed a debugging for lldb plugin scenario using gdb and the following is what I am seeing:
+gdb) info br
+Num     Type           Disp Enb Address            What
+2       breakpoint     keep y   0x00007fffe7de65f0 <RtlpRaiseException(_EXCEPTION_RECORD*, _CONTEXT*)>
+        breakpoint already hit 2 times
+3       breakpoint     keep y   0x00007fffec447f38 in HandleCLRNotificationEvent() at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5885
+(gdb) bt
+#0  0x00007fffe7de65f0 in RtlpRaiseException(_EXCEPTION_RECORD*, _CONTEXT*) () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libcoreclr.so
+#1  0x00007fffe79aa136 in RaiseException () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libcoreclr.so
+#2  0x00007fffe7a030c7 in RaiseTheExceptionInternalOnly(Object*, int, int) () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libcoreclr.so
+#3  0x00007fffe7b3e323 in IL_Throw(Object*) () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libcoreclr.so
+#4  0x00007fff69635b6a in ?? ()
+#5  0x00007fbf5ea5ebd8 in ?? ()
+#6  0x0000000000000168 in ?? ()
+...
+(gdb) c
+Continuing.
+
+Thread 3 "dbg.evt-handler" hit Breakpoint 3, HandleCLRNotificationEvent () at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5885
+5885        CNotification Notification;
+(gdb) bt 
+#0  HandleCLRNotificationEvent () at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5885
+#1  0x00007fffec44841f in HandleExceptionNotification (client=0x65c980) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5958
+#2  0x00007fffec89182f in ExceptionBreakpointCallback (baton=0x7fffec448220 <HandleExceptionNotification(ILLDBServices*)>, process=..., thread=..., location=...) at /workspaces/gdbsos/src/diagnostics/src/SOS/lldbplugin/services.cpp:292
+#3  0x00007ffff72363e9 in PrivateBreakpointHitCallback () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/API/SBBreakpointOptionCommon.cpp:72
+#4  0x00007ffff76d85fc in PerformAction () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Target/StopInfo.cpp:501
+#5  0x00007ffff76b1d60 in ShouldStop () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Target/Process.cpp:4086
+#6  0x00007ffff76b20b3 in DoOnRemoval () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Target/Process.cpp:4150
+#7  0x00007ffff774fa6a in FindNextEventInternal () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Utility/Listener.cpp:309
+#8  0x00007ffff774ffc5 in GetEventInternal () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Utility/Listener.cpp:357
+#9  0x00007ffff77500c7 in lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Utility/Listener.cpp:399
+#10 0x00007ffff756427a in DefaultEventHandler () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Core/Debugger.cpp:1423
+#11 0x00007ffff7564676 in lldb_private::Debugger::EventHandlerThread(void*) () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Core/Debugger.cpp:1476
+#12 0x00007ffff760a489 in ThreadCreateTrampoline () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Host/common/HostNativeThreadBase.cpp:68
+#13 0x00007ffff7fa9ea7 in start_thread () from /lib/x86_64-linux-gnu/libpthread.so.0
+#14 0x00007fffeee72adf in clone () from /lib/x86_64-linux-gnu/libc.so.6
+....
+U could we set the two breakpoint here 1 is RtlpRaiseException and another is HandCLRNotificationEvent which will be called by registered exception call back.
+we could see as the above indeed there was c++ exception throw before the exception call back.  That is not like what r u saying managed throw path on Linux doesnot use a C++ throw per managed exception.
+The assembler for RtlpRaiseException
+(gdb) disas /m 
+Dump of assembler code for function _ZL18RtlpRaiseExceptionP17_EXCEPTION_RECORDP8_CONTEXT:
+=> 0x00007fffe7de65f0 <+0>:     push   %rbp
+   0x00007fffe7de65f1 <+1>:     mov    %rsp,%rbp
+   0x00007fffe7de65f4 <+4>:     push   %rbx
+....
+   0x00007fffe7de662e <+62>:    mov    %rbx,%rdi
+   0x00007fffe7de6631 <+65>:    call   0x7fffe7e5e7f0 <__cxa_throw@plt>
+End of assembler dump.
+the source for RtpRaiseException
+PAL_NORETURN
+__attribute__((noinline))
+__attribute__((NOOPT_ATTRIBUTE))
+static void
+RtlpRaiseException(EXCEPTION_RECORD *ExceptionRecord, CONTEXT *ContextRecord)
+{
+    throw PAL_SEHException(ExceptionRecord, ContextRecord);
+}
+so I think our key question is why in gdb sos there is no C++ exception throw? I set the same bp RtlpRaiseException in gdb sos bp md testing, but the bp won't be hit before the last excpetion throw by the target program.  Please analyze why based on related runtime code

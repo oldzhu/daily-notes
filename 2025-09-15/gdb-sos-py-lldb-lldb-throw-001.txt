@@ -1,0 +1,1290 @@
+(lldb) br set -n RtlpRaiseException
+Breakpoint 1: where = libcoreclr.so`RtlpRaiseException(_EXCEPTION_RECORD*, _CONTEXT*) + 17 at seh-unwind.cpp:884:5, address = 0x00007fffe7de6601
+(lldb) br set -n HandleCLRNotificationEvent
+Breakpoint 2: where = libsos.so`HandleCLRNotificationEvent() + 24 at strike.cpp:5885:19, address = 0x00007fffec447f38
+(lldb) c
+Process 65005 resuming
+r
+Process 66920 launched: '/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net10.0/SimpleThrow' (x86_64)
+1 location added to breakpoint 1
+Process 65005 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+    frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe81525a0, ContextRecord=0x00007fffe8151980) at seh-unwind.cpp:884:5
+(lldb) bt 
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+  * frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe81525a0, ContextRecord=0x00007fffe8151980) at seh-unwind.cpp:884:5
+    frame #1: 0x00007fffe79aa136 libcoreclr.so`::RaiseException(dwExceptionCode=<unavailable>, dwExceptionFlags=1, nNumberOfArguments=40, lpArguments=0x00007fffed0c4278) at seh-unwind.cpp:951:5
+    frame #2: 0x00007fffe7a030c7 libcoreclr.so`RaiseTheExceptionInternalOnly(Object*, int, int) at excep.cpp:2795:9
+    frame #3: 0x00007fffe7a02f17 libcoreclr.so`RaiseTheExceptionInternalOnly(throwable=<unavailable>, rethrow=NO, fForStackOverflow=NO) at excep.cpp:2797
+    frame #4: 0x00007fffe7b3e323 libcoreclr.so`IL_Throw(obj=0x00007fbf5ea18578) at jithelpers.cpp:4251:5
+    frame #5: 0x00007fff696444ea
+    frame #6: 0x00007fff69644066
+    frame #7: 0x00007fff69643f48
+    frame #8: 0x00007fff69643931
+    frame #9: 0x00007fff696435fb
+    frame #10: 0x00007fff69643157
+    frame #11: 0x00007fff696430db
+    frame #12: 0x00007fff69640656
+    frame #13: 0x00007fff696402c1
+    frame #14: 0x00007fff696401ba
+    frame #15: 0x00007fff6963ff13
+    frame #16: 0x00007fff69c4d8f3
+    frame #17: 0x00007fff69c45f3f
+    frame #18: 0x00007fff69c53c3f
+    frame #19: 0x00007fff69c57dfa
+    frame #20: 0x00007fff69c4abe7
+    frame #21: 0x00007fff69c49e8b
+    frame #22: 0x00007fff69c4e103
+    frame #23: 0x00007fff68cb1b29
+    frame #24: 0x00007fff696385c0
+    frame #25: 0x00007fff696379e8
+    frame #26: 0x00007fff6963036b
+    frame #27: 0x00007fff68cb20ff
+    frame #28: 0x00007fff6962fcd8
+    frame #29: 0x00007fff6962f67b
+    frame #30: 0x00007fff69629061
+    frame #31: 0x00007fff69624eac
+    frame #32: 0x00007fff69624ca7
+    frame #33: 0x00007fff6962f58f
+    frame #34: 0x00007fff6962f406
+    frame #35: 0x00007fff6962f2eb
+    frame #36: 0x00007fffec477037 libsos.so`GetRuntime(ppRuntime=0x00007fffec6d7540) at sosextensions.cpp:108:20
+    frame #37: 0x00007fffec4485cc libsos.so`HandleRuntimeLoadedNotification(client=0x000000000062bde0) at strike.cpp:5963:5
+    frame #38: 0x00007fffec89911f libsosplugin.so`RuntimeLoadedBreakpointCallback(baton=0x00007fffec448500, process=0x00007fffed0c5780, thread=0x00007fffed0c5740, location=0x00007fffed0c5770) at services.cpp:2108:19
+    frame #39: 0x00007ffff72363e9 liblldb-11.so.1`::PrivateBreakpointHitCallback() at SBBreakpointOptionCommon.cpp:72:16
+    frame #40: 0x00007ffff76d85fc liblldb-11.so.1`::PerformAction() at StopInfo.cpp:501:45
+    frame #41: 0x00007ffff76b1d60 liblldb-11.so.1`::ShouldStop() at Process.cpp:4086:23
+    frame #42: 0x00007ffff76b20b3 liblldb-11.so.1`::DoOnRemoval() at Process.cpp:4150:28
+    frame #43: 0x00007ffff774fa6a liblldb-11.so.1`::FindNextEventInternal() at Listener.cpp:309:17
+    frame #44: 0x00007ffff774ffc5 liblldb-11.so.1`::GetEventInternal() at Listener.cpp:357:9
+    frame #45: 0x00007ffff77500c7 liblldb-11.so.1`lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) at Listener.cpp:399:10
+    frame #46: 0x00007ffff756427a liblldb-11.so.1`::DefaultEventHandler() at Debugger.cpp:1423:22
+    frame #47: 0x00007ffff7564676 liblldb-11.so.1`lldb_private::Debugger::EventHandlerThread(void*) at Debugger.cpp:1476:22
+    frame #48: 0x00007ffff760a489 liblldb-11.so.1`::ThreadCreateTrampoline() at HostNativeThreadBase.cpp:68:10
+    frame #49: 0x00007ffff7fa9ea7 libpthread.so.0`start_thread + 215
+    frame #50: 0x00007fffeee72adf libc.so.6`__clone + 63
+(lldb) clrstack
+OS Thread Id: 0xfe15 (2)
+        Child SP               IP Call Site
+00007FFFED0C4370 00007fffe7de6601 [HelperMethodFrame: 00007fffed0c4370] 
+00007FFFED0C4490 00007FFF696444EA Microsoft.Diagnostics.Runtime.Utilities.Reader.Read[[System.Int32, System.Private.CoreLib]](UInt64 ByRef)
+00007FFFED0C44F0 00007FFF69644066 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash..ctor(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C4600 00007FFF69643F48 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash.Create(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C4650 00007FFF69643931 Microsoft.Diagnostics.Runtime.Utilities.ElfDynamicSection..ctor(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64, UInt64)
+00007FFFED0C4710 00007FFF696435FB Microsoft.Diagnostics.Runtime.Utilities.ElfFile.get_DynamicSection()
+00007FFFED0C4850 00007FFF69643157 Microsoft.Diagnostics.Runtime.Utilities.ElfFile.TryGetExportSymbol(System.String, UInt64 ByRef)
+00007FFFED0C48D0 00007FFF696430DB Microsoft.Diagnostics.Runtime.Implementation.ElfModuleInfo.GetExportSymbolAddress(System.String)
+00007FFFED0C4900 00007FFF69640656 Microsoft.Diagnostics.DebugServices.Implementation.Module.Microsoft.Diagnostics.DebugServices.IExportSymbols.TryGetSymbolAddress(System.String, UInt64 ByRef) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/Module.cs @ 240]
+00007FFFED0C4A10 00007FFF696402C1 Microsoft.Diagnostics.DebugServices.Implementation.DataReader+DataReaderModule.GetExportSymbolAddress(System.String) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/DataReader.cs @ 199]
+00007FFFED0C4A70 00007FFF696401BA Microsoft.Diagnostics.Runtime.SingleFileClrInfoProvider.ProvideClrInfoForModule(Microsoft.Diagnostics.Runtime.DataTarget, Microsoft.Diagnostics.Runtime.ModuleInfo)
+00007FFFED0C4AD0 00007FFF6963FF13 Microsoft.Diagnostics.Runtime.DataTarget+<>c__DisplayClass27_1.<GetOrCreateClrVersions>b__10(Microsoft.Diagnostics.Runtime.IClrInfoProvider)
+00007FFFED0C4AF0 00007FFF69C4D8F3 System.Linq.Enumerable+SelectListIterator`2[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4B20 00007FFF69C45F3F System.Linq.Enumerable+WhereEnumerableIterator`1[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4B50 00007FFF69C53C3F System.Linq.Enumerable+<SelectManyIterator>d__236`3[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4B80 00007FFF69C57DFA System.Collections.Generic.EnumerableHelpers.ToArray[[System.__Canon, System.Private.CoreLib]](System.Collections.Generic.IEnumerable`1<System.__Canon>, Int32 ByRef)
+00007FFFED0C4BE0 00007FFF69C4ABE7 System.Linq.Buffer`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4C20 00007FFF69C49E8B System.Linq.OrderedEnumerable`1+<GetEnumerator>d__19[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4C70 00007FFF69C4E103 System.Linq.Enumerable+SelectIPartitionIterator`2[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4CA0 00007FFF68CB1B29 System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4CF0 00007FFF696385C0 Microsoft.Diagnostics.Runtime.DataTarget.GetOrCreateClrVersions()
+00007FFFED0C4F70 00007FFF696379E8 Microsoft.Diagnostics.Runtime.DataTarget.get_ClrVersions()
+00007FFFED0C4F90 00007FFF6963036B Microsoft.Diagnostics.DebugServices.Implementation.RuntimeProvider+<EnumerateRuntimes>d__2.MoveNext() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeProvider.cs @ 40]
+00007FFFED0C5030 00007FFF68CB20FF System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]].AddRange(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C5080 00007FFF6962FCD8 Microsoft.Diagnostics.DebugServices.Implementation.RuntimeService.EnumerateRuntimes(Microsoft.Diagnostics.DebugServices.RuntimeEnumerationFlags) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeService.cs @ 59]
+00007FFFED0C5130 00007FFF6962F67B Microsoft.Diagnostics.DebugServices.Implementation.ContextService.GetCurrentRuntime() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 161]
+00007FFFED0C5210 00007FFF69629061 Microsoft.Diagnostics.DebugServices.Implementation.ContextService+ContextServiceProvider.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 260]
+00007FFFED0C53A0 00007FFF69624EAC Microsoft.Diagnostics.DebugServices.ServiceContainer.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceContainer.cs @ 97]
+00007FFFED0C5440 00007FFF69624CA7 Microsoft.Diagnostics.DebugServices.ServiceProviderExtensions.GetService[[System.__Canon, System.Private.CoreLib]](System.IServiceProvider) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceProviderExtensions.cs @ 15]
+00007FFFED0C5490 00007FFF6962F58F Microsoft.Diagnostics.DebugServices.ContextServiceExtensions.GetCurrentRuntime(Microsoft.Diagnostics.DebugServices.IContextService) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ContextServiceExtensions.cs @ 21]
+00007FFFED0C54C0 00007FFF6962F406 SOS.Hosting.TargetWrapper.GetRuntime(IntPtr, IntPtr*) [/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.Hosting/TargetWrapper.cs @ 97]
+00007FFFED0C5550 00007FFF6962F2EB ILStubClass.IL_STUB_ReversePInvoke(Int64, Int64)
+
+
+(lldb) c
+Process 65005 resuming
+r
+Process 66920 launched: '/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net10.0/SimpleThrow' (x86_64)
+1 location added to breakpoint 1
+Process 65005 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+    frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe81525a0, ContextRecord=0x00007fffe8151980) at seh-unwind.cpp:884:5
+(lldb) bt 
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+  * frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe81525a0, ContextRecord=0x00007fffe8151980) at seh-unwind.cpp:884:5
+    frame #1: 0x00007fffe79aa136 libcoreclr.so`::RaiseException(dwExceptionCode=<unavailable>, dwExceptionFlags=1, nNumberOfArguments=40, lpArguments=0x00007fffed0c4278) at seh-unwind.cpp:951:5
+    frame #2: 0x00007fffe7a030c7 libcoreclr.so`RaiseTheExceptionInternalOnly(Object*, int, int) at excep.cpp:2795:9
+    frame #3: 0x00007fffe7a02f17 libcoreclr.so`RaiseTheExceptionInternalOnly(throwable=<unavailable>, rethrow=NO, fForStackOverflow=NO) at excep.cpp:2797
+    frame #4: 0x00007fffe7b3e323 libcoreclr.so`IL_Throw(obj=0x00007fbf5ea18578) at jithelpers.cpp:4251:5
+    frame #5: 0x00007fff696444ea
+    frame #6: 0x00007fff69644066
+    frame #7: 0x00007fff69643f48
+    frame #8: 0x00007fff69643931
+    frame #9: 0x00007fff696435fb
+    frame #10: 0x00007fff69643157
+    frame #11: 0x00007fff696430db
+    frame #12: 0x00007fff69640656
+    frame #13: 0x00007fff696402c1
+    frame #14: 0x00007fff696401ba
+    frame #15: 0x00007fff6963ff13
+    frame #16: 0x00007fff69c4d8f3
+    frame #17: 0x00007fff69c45f3f
+    frame #18: 0x00007fff69c53c3f
+    frame #19: 0x00007fff69c57dfa
+    frame #20: 0x00007fff69c4abe7
+    frame #21: 0x00007fff69c49e8b
+    frame #22: 0x00007fff69c4e103
+    frame #23: 0x00007fff68cb1b29
+    frame #24: 0x00007fff696385c0
+    frame #25: 0x00007fff696379e8
+    frame #26: 0x00007fff6963036b
+    frame #27: 0x00007fff68cb20ff
+    frame #28: 0x00007fff6962fcd8
+    frame #29: 0x00007fff6962f67b
+    frame #30: 0x00007fff69629061
+    frame #31: 0x00007fff69624eac
+    frame #32: 0x00007fff69624ca7
+    frame #33: 0x00007fff6962f58f
+    frame #34: 0x00007fff6962f406
+    frame #35: 0x00007fff6962f2eb
+    frame #36: 0x00007fffec477037 libsos.so`GetRuntime(ppRuntime=0x00007fffec6d7540) at sosextensions.cpp:108:20
+    frame #37: 0x00007fffec4485cc libsos.so`HandleRuntimeLoadedNotification(client=0x000000000062bde0) at strike.cpp:5963:5
+    frame #38: 0x00007fffec89911f libsosplugin.so`RuntimeLoadedBreakpointCallback(baton=0x00007fffec448500, process=0x00007fffed0c5780, thread=0x00007fffed0c5740, location=0x00007fffed0c5770) at services.cpp:2108:19
+    frame #39: 0x00007ffff72363e9 liblldb-11.so.1`::PrivateBreakpointHitCallback() at SBBreakpointOptionCommon.cpp:72:16
+    frame #40: 0x00007ffff76d85fc liblldb-11.so.1`::PerformAction() at StopInfo.cpp:501:45
+    frame #41: 0x00007ffff76b1d60 liblldb-11.so.1`::ShouldStop() at Process.cpp:4086:23
+    frame #42: 0x00007ffff76b20b3 liblldb-11.so.1`::DoOnRemoval() at Process.cpp:4150:28
+    frame #43: 0x00007ffff774fa6a liblldb-11.so.1`::FindNextEventInternal() at Listener.cpp:309:17
+    frame #44: 0x00007ffff774ffc5 liblldb-11.so.1`::GetEventInternal() at Listener.cpp:357:9
+    frame #45: 0x00007ffff77500c7 liblldb-11.so.1`lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) at Listener.cpp:399:10
+    frame #46: 0x00007ffff756427a liblldb-11.so.1`::DefaultEventHandler() at Debugger.cpp:1423:22
+    frame #47: 0x00007ffff7564676 liblldb-11.so.1`lldb_private::Debugger::EventHandlerThread(void*) at Debugger.cpp:1476:22
+    frame #48: 0x00007ffff760a489 liblldb-11.so.1`::ThreadCreateTrampoline() at HostNativeThreadBase.cpp:68:10
+    frame #49: 0x00007ffff7fa9ea7 libpthread.so.0`start_thread + 215
+    frame #50: 0x00007fffeee72adf libc.so.6`__clone + 63
+(lldb) clrstack
+OS Thread Id: 0xfe15 (2)
+        Child SP               IP Call Site
+00007FFFED0C4370 00007fffe7de6601 [HelperMethodFrame: 00007fffed0c4370] 
+00007FFFED0C4490 00007FFF696444EA Microsoft.Diagnostics.Runtime.Utilities.Reader.Read[[System.Int32, System.Private.CoreLib]](UInt64 ByRef)
+00007FFFED0C44F0 00007FFF69644066 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash..ctor(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C4600 00007FFF69643F48 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash.Create(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C4650 00007FFF69643931 Microsoft.Diagnostics.Runtime.Utilities.ElfDynamicSection..ctor(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64, UInt64)
+00007FFFED0C4710 00007FFF696435FB Microsoft.Diagnostics.Runtime.Utilities.ElfFile.get_DynamicSection()
+00007FFFED0C4850 00007FFF69643157 Microsoft.Diagnostics.Runtime.Utilities.ElfFile.TryGetExportSymbol(System.String, UInt64 ByRef)
+00007FFFED0C48D0 00007FFF696430DB Microsoft.Diagnostics.Runtime.Implementation.ElfModuleInfo.GetExportSymbolAddress(System.String)
+00007FFFED0C4900 00007FFF69640656 Microsoft.Diagnostics.DebugServices.Implementation.Module.Microsoft.Diagnostics.DebugServices.IExportSymbols.TryGetSymbolAddress(System.String, UInt64 ByRef) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/Module.cs @ 240]
+00007FFFED0C4A10 00007FFF696402C1 Microsoft.Diagnostics.DebugServices.Implementation.DataReader+DataReaderModule.GetExportSymbolAddress(System.String) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/DataReader.cs @ 199]
+00007FFFED0C4A70 00007FFF696401BA Microsoft.Diagnostics.Runtime.SingleFileClrInfoProvider.ProvideClrInfoForModule(Microsoft.Diagnostics.Runtime.DataTarget, Microsoft.Diagnostics.Runtime.ModuleInfo)
+00007FFFED0C4AD0 00007FFF6963FF13 Microsoft.Diagnostics.Runtime.DataTarget+<>c__DisplayClass27_1.<GetOrCreateClrVersions>b__10(Microsoft.Diagnostics.Runtime.IClrInfoProvider)
+00007FFFED0C4AF0 00007FFF69C4D8F3 System.Linq.Enumerable+SelectListIterator`2[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4B20 00007FFF69C45F3F System.Linq.Enumerable+WhereEnumerableIterator`1[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4B50 00007FFF69C53C3F System.Linq.Enumerable+<SelectManyIterator>d__236`3[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4B80 00007FFF69C57DFA System.Collections.Generic.EnumerableHelpers.ToArray[[System.__Canon, System.Private.CoreLib]](System.Collections.Generic.IEnumerable`1<System.__Canon>, Int32 ByRef)
+00007FFFED0C4BE0 00007FFF69C4ABE7 System.Linq.Buffer`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4C20 00007FFF69C49E8B System.Linq.OrderedEnumerable`1+<GetEnumerator>d__19[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4C70 00007FFF69C4E103 System.Linq.Enumerable+SelectIPartitionIterator`2[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4CA0 00007FFF68CB1B29 System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4CF0 00007FFF696385C0 Microsoft.Diagnostics.Runtime.DataTarget.GetOrCreateClrVersions()
+00007FFFED0C4F70 00007FFF696379E8 Microsoft.Diagnostics.Runtime.DataTarget.get_ClrVersions()
+00007FFFED0C4F90 00007FFF6963036B Microsoft.Diagnostics.DebugServices.Implementation.RuntimeProvider+<EnumerateRuntimes>d__2.MoveNext() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeProvider.cs @ 40]
+00007FFFED0C5030 00007FFF68CB20FF System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]].AddRange(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C5080 00007FFF6962FCD8 Microsoft.Diagnostics.DebugServices.Implementation.RuntimeService.EnumerateRuntimes(Microsoft.Diagnostics.DebugServices.RuntimeEnumerationFlags) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeService.cs @ 59]
+00007FFFED0C5130 00007FFF6962F67B Microsoft.Diagnostics.DebugServices.Implementation.ContextService.GetCurrentRuntime() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 161]
+00007FFFED0C5210 00007FFF69629061 Microsoft.Diagnostics.DebugServices.Implementation.ContextService+ContextServiceProvider.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 260]
+00007FFFED0C53A0 00007FFF69624EAC Microsoft.Diagnostics.DebugServices.ServiceContainer.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceContainer.cs @ 97]
+00007FFFED0C5440 00007FFF69624CA7 Microsoft.Diagnostics.DebugServices.ServiceProviderExtensions.GetService[[System.__Canon, System.Private.CoreLib]](System.IServiceProvider) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceProviderExtensions.cs @ 15]
+00007FFFED0C5490 00007FFF6962F58F Microsoft.Diagnostics.DebugServices.ContextServiceExtensions.GetCurrentRuntime(Microsoft.Diagnostics.DebugServices.IContextService) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ContextServiceExtensions.cs @ 21]
+00007FFFED0C54C0 00007FFF6962F406 SOS.Hosting.TargetWrapper.GetRuntime(IntPtr, IntPtr*) [/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.Hosting/TargetWrapper.cs @ 97]
+00007FFFED0C5550 00007FFF6962F2EB ILStubClass.IL_STUB_ReversePInvoke(Int64, Int64)
+(lldb) c
+Process 65005 resuming
+Process 65005 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+    frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe81c3f60, ContextRecord=0x00007fffe81c3340) at seh-unwind.cpp:884:5
+(lldb) bt 
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+  * frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe81c3f60, ContextRecord=0x00007fffe81c3340) at seh-unwind.cpp:884:5
+    frame #1: 0x00007fffe79aa136 libcoreclr.so`::RaiseException(dwExceptionCode=<unavailable>, dwExceptionFlags=1, nNumberOfArguments=40, lpArguments=0x00007fffed0c42d8) at seh-unwind.cpp:951:5
+    frame #2: 0x00007fffe7a030c7 libcoreclr.so`RaiseTheExceptionInternalOnly(Object*, int, int) at excep.cpp:2795:9
+    frame #3: 0x00007fffe7a02f17 libcoreclr.so`RaiseTheExceptionInternalOnly(throwable=<unavailable>, rethrow=NO, fForStackOverflow=NO) at excep.cpp:2797
+    frame #4: 0x00007fffe7b3e323 libcoreclr.so`IL_Throw(obj=0x00007fbf5ea5db60) at jithelpers.cpp:4251:5
+    frame #5: 0x00007fff696444ea
+    frame #6: 0x00007fff69644066
+    frame #7: 0x00007fff69643f48
+    frame #8: 0x00007fff69643931
+    frame #9: 0x00007fff696435fb
+    frame #10: 0x00007fff69643157
+    frame #11: 0x00007fff696430db
+    frame #12: 0x00007fff69640656
+    frame #13: 0x00007fff696402c1
+    frame #14: 0x00007fff696401ba
+    frame #15: 0x00007fff6963ff13
+    frame #16: 0x00007fff69c4d8f3
+    frame #17: 0x00007fff69c45f3f
+    frame #18: 0x00007fff69c53c3f
+    frame #19: 0x00007fff69c57dfa
+    frame #20: 0x00007fff69c4abe7
+    frame #21: 0x00007fff69c49e8b
+    frame #22: 0x00007fff69c4e103
+    frame #23: 0x00007fff68cb1b29
+    frame #24: 0x00007fff696385c0
+    frame #25: 0x00007fff696379e8
+    frame #26: 0x00007fff6963036b
+    frame #27: 0x00007fff68cb20ff
+    frame #28: 0x00007fff6962fcd8
+    frame #29: 0x00007fff6962f67b
+    frame #30: 0x00007fff69629061
+    frame #31: 0x00007fff69624eac
+    frame #32: 0x00007fff69624ca7
+    frame #33: 0x00007fff6962f58f
+    frame #34: 0x00007fff6962f406
+    frame #35: 0x00007fff6962f2eb
+    frame #36: 0x00007fffec477037 libsos.so`GetRuntime(ppRuntime=0x00007fffec6d7540) at sosextensions.cpp:108:20
+    frame #37: 0x00007fffec4482ec libsos.so`HandleExceptionNotification(client=0x000000000062bde0) at strike.cpp:5957:5
+    frame #38: 0x00007fffec89182f libsosplugin.so`ExceptionBreakpointCallback(baton=0x00007fffec448220, process=0x00007fffed0c5780, thread=0x00007fffed0c5740, location=0x00007fffed0c5770) at services.cpp:292:19
+    frame #39: 0x00007ffff72363e9 liblldb-11.so.1`::PrivateBreakpointHitCallback() at SBBreakpointOptionCommon.cpp:72:16
+    frame #40: 0x00007ffff76d85fc liblldb-11.so.1`::PerformAction() at StopInfo.cpp:501:45
+    frame #41: 0x00007ffff76b1d60 liblldb-11.so.1`::ShouldStop() at Process.cpp:4086:23
+    frame #42: 0x00007ffff76b20b3 liblldb-11.so.1`::DoOnRemoval() at Process.cpp:4150:28
+    frame #43: 0x00007ffff774fa6a liblldb-11.so.1`::FindNextEventInternal() at Listener.cpp:309:17
+    frame #44: 0x00007ffff774ffc5 liblldb-11.so.1`::GetEventInternal() at Listener.cpp:357:9
+    frame #45: 0x00007ffff77500c7 liblldb-11.so.1`lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) at Listener.cpp:399:10
+    frame #46: 0x00007ffff756427a liblldb-11.so.1`::DefaultEventHandler() at Debugger.cpp:1423:22
+    frame #47: 0x00007ffff7564676 liblldb-11.so.1`lldb_private::Debugger::EventHandlerThread(void*) at Debugger.cpp:1476:22
+    frame #48: 0x00007ffff760a489 liblldb-11.so.1`::ThreadCreateTrampoline() at HostNativeThreadBase.cpp:68:10
+    frame #49: 0x00007ffff7fa9ea7 libpthread.so.0`start_thread + 215
+    frame #50: 0x00007fffeee72adf libc.so.6`__clone + 63
+(lldb) clrstack
+OS Thread Id: 0xfe15 (2)
+        Child SP               IP Call Site
+00007FFFED0C43D0 00007fffe7de6601 [HelperMethodFrame: 00007fffed0c43d0] 
+00007FFFED0C44F0 00007FFF696444EA Microsoft.Diagnostics.Runtime.Utilities.Reader.Read[[System.Int32, System.Private.CoreLib]](UInt64 ByRef)
+00007FFFED0C4550 00007FFF69644066 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash..ctor(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C4660 00007FFF69643F48 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash.Create(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C46B0 00007FFF69643931 Microsoft.Diagnostics.Runtime.Utilities.ElfDynamicSection..ctor(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64, UInt64)
+00007FFFED0C4770 00007FFF696435FB Microsoft.Diagnostics.Runtime.Utilities.ElfFile.get_DynamicSection()
+00007FFFED0C48B0 00007FFF69643157 Microsoft.Diagnostics.Runtime.Utilities.ElfFile.TryGetExportSymbol(System.String, UInt64 ByRef)
+00007FFFED0C4930 00007FFF696430DB Microsoft.Diagnostics.Runtime.Implementation.ElfModuleInfo.GetExportSymbolAddress(System.String)
+00007FFFED0C4960 00007FFF69640656 Microsoft.Diagnostics.DebugServices.Implementation.Module.Microsoft.Diagnostics.DebugServices.IExportSymbols.TryGetSymbolAddress(System.String, UInt64 ByRef) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/Module.cs @ 240]
+00007FFFED0C4A70 00007FFF696402C1 Microsoft.Diagnostics.DebugServices.Implementation.DataReader+DataReaderModule.GetExportSymbolAddress(System.String) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/DataReader.cs @ 199]
+00007FFFED0C4AD0 00007FFF696401BA Microsoft.Diagnostics.Runtime.SingleFileClrInfoProvider.ProvideClrInfoForModule(Microsoft.Diagnostics.Runtime.DataTarget, Microsoft.Diagnostics.Runtime.ModuleInfo)
+00007FFFED0C4B30 00007FFF6963FF13 Microsoft.Diagnostics.Runtime.DataTarget+<>c__DisplayClass27_1.<GetOrCreateClrVersions>b__10(Microsoft.Diagnostics.Runtime.IClrInfoProvider)
+00007FFFED0C4B50 00007FFF69C4D8F3 System.Linq.Enumerable+SelectListIterator`2[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4B80 00007FFF69C45F3F System.Linq.Enumerable+WhereEnumerableIterator`1[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4BB0 00007FFF69C53C3F System.Linq.Enumerable+<SelectManyIterator>d__236`3[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4BE0 00007FFF69C57DFA System.Collections.Generic.EnumerableHelpers.ToArray[[System.__Canon, System.Private.CoreLib]](System.Collections.Generic.IEnumerable`1<System.__Canon>, Int32 ByRef)
+00007FFFED0C4C40 00007FFF69C4ABE7 System.Linq.Buffer`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4C80 00007FFF69C49E8B System.Linq.OrderedEnumerable`1+<GetEnumerator>d__19[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4CD0 00007FFF69C4E103 System.Linq.Enumerable+SelectIPartitionIterator`2[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4D00 00007FFF68CB1B29 System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4D50 00007FFF696385C0 Microsoft.Diagnostics.Runtime.DataTarget.GetOrCreateClrVersions()
+00007FFFED0C4FD0 00007FFF696379E8 Microsoft.Diagnostics.Runtime.DataTarget.get_ClrVersions()
+00007FFFED0C4FF0 00007FFF6963036B Microsoft.Diagnostics.DebugServices.Implementation.RuntimeProvider+<EnumerateRuntimes>d__2.MoveNext() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeProvider.cs @ 40]
+00007FFFED0C5090 00007FFF68CB20FF System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]].AddRange(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C50E0 00007FFF6962FCD8 Microsoft.Diagnostics.DebugServices.Implementation.RuntimeService.EnumerateRuntimes(Microsoft.Diagnostics.DebugServices.RuntimeEnumerationFlags) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeService.cs @ 59]
+00007FFFED0C5190 00007FFF6962F67B Microsoft.Diagnostics.DebugServices.Implementation.ContextService.GetCurrentRuntime() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 161]
+00007FFFED0C5270 00007FFF69629061 Microsoft.Diagnostics.DebugServices.Implementation.ContextService+ContextServiceProvider.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 260]
+00007FFFED0C5400 00007FFF69624EAC Microsoft.Diagnostics.DebugServices.ServiceContainer.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceContainer.cs @ 97]
+00007FFFED0C54A0 00007FFF69624CA7 Microsoft.Diagnostics.DebugServices.ServiceProviderExtensions.GetService[[System.__Canon, System.Private.CoreLib]](System.IServiceProvider) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceProviderExtensions.cs @ 15]
+00007FFFED0C54F0 00007FFF6962F58F Microsoft.Diagnostics.DebugServices.ContextServiceExtensions.GetCurrentRuntime(Microsoft.Diagnostics.DebugServices.IContextService) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ContextServiceExtensions.cs @ 21]
+00007FFFED0C5520 00007FFF6962F406 SOS.Hosting.TargetWrapper.GetRuntime(IntPtr, IntPtr*) [/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.Hosting/TargetWrapper.cs @ 97]
+00007FFFED0C55B0 00007FFF6962F2EB ILStubClass.IL_STUB_ReversePInvoke(Int64, Int64)
+
+(lldb) c
+Process 65005 resuming
+Process 65005 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 2.1
+    frame #0: 0x00007fffec447f38 libsos.so`HandleCLRNotificationEvent() at strike.cpp:5885:19
+   5882      * real breakpoints be set.
+   5883      */
+   5884     DEBUG_LAST_EVENT_INFO_EXCEPTION dle;
+-> 5885     CNotification Notification;
+   5886
+   5887     if (!CheckCLRNotificationEvent(&dle))
+   5888     {
+(lldb) bt
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 2.1
+  * frame #0: 0x00007fffec447f38 libsos.so`HandleCLRNotificationEvent() at strike.cpp:5885:19
+    frame #1: 0x00007fffec44841f libsos.so`HandleExceptionNotification(client=0x000000000062bde0) at strike.cpp:5958:12
+    frame #2: 0x00007fffec89182f libsosplugin.so`ExceptionBreakpointCallback(baton=0x00007fffec448220, process=0x00007fffed0c5780, thread=0x00007fffed0c5740, location=0x00007fffed0c5770) at services.cpp:292:19
+    frame #3: 0x00007ffff72363e9 liblldb-11.so.1`::PrivateBreakpointHitCallback() at SBBreakpointOptionCommon.cpp:72:16
+    frame #4: 0x00007ffff76d85fc liblldb-11.so.1`::PerformAction() at StopInfo.cpp:501:45
+    frame #5: 0x00007ffff76b1d60 liblldb-11.so.1`::ShouldStop() at Process.cpp:4086:23
+    frame #6: 0x00007ffff76b20b3 liblldb-11.so.1`::DoOnRemoval() at Process.cpp:4150:28
+    frame #7: 0x00007ffff774fa6a liblldb-11.so.1`::FindNextEventInternal() at Listener.cpp:309:17
+    frame #8: 0x00007ffff774ffc5 liblldb-11.so.1`::GetEventInternal() at Listener.cpp:357:9
+    frame #9: 0x00007ffff77500c7 liblldb-11.so.1`lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) at Listener.cpp:399:10
+    frame #10: 0x00007ffff756427a liblldb-11.so.1`::DefaultEventHandler() at Debugger.cpp:1423:22
+    frame #11: 0x00007ffff7564676 liblldb-11.so.1`lldb_private::Debugger::EventHandlerThread(void*) at Debugger.cpp:1476:22
+    frame #12: 0x00007ffff760a489 liblldb-11.so.1`::ThreadCreateTrampoline() at HostNativeThreadBase.cpp:68:10
+    frame #13: 0x00007ffff7fa9ea7 libpthread.so.0`start_thread + 215
+    frame #14: 0x00007fffeee72adf libc.so.6`__clone + 63
+
+(lldb) c
+Process 65005 resuming
+Process 65005 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+    frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe80bda00, ContextRecord=0x00007fffe80bcde0) at seh-unwind.cpp:884:5
+(lldb) bt 
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+  * frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe80bda00, ContextRecord=0x00007fffe80bcde0) at seh-unwind.cpp:884:5
+    frame #1: 0x00007fffe79aa136 libcoreclr.so`::RaiseException(dwExceptionCode=<unavailable>, dwExceptionFlags=1, nNumberOfArguments=40, lpArguments=0x00007fffed0c42d8) at seh-unwind.cpp:951:5
+    frame #2: 0x00007fffe7a030c7 libcoreclr.so`RaiseTheExceptionInternalOnly(Object*, int, int) at excep.cpp:2795:9
+    frame #3: 0x00007fffe7a02f17 libcoreclr.so`RaiseTheExceptionInternalOnly(throwable=<unavailable>, rethrow=NO, fForStackOverflow=NO) at excep.cpp:2797
+    frame #4: 0x00007fffe7b3e323 libcoreclr.so`IL_Throw(obj=0x00007fbf5eaa4b80) at jithelpers.cpp:4251:5
+    frame #5: 0x00007fff696444ea
+    frame #6: 0x00007fff69644066
+    frame #7: 0x00007fff69643f48
+    frame #8: 0x00007fff69643931
+    frame #9: 0x00007fff696435fb
+    frame #10: 0x00007fff69643157
+    frame #11: 0x00007fff696430db
+    frame #12: 0x00007fff69640656
+    frame #13: 0x00007fff696402c1
+    frame #14: 0x00007fff696401ba
+    frame #15: 0x00007fff6963ff13
+    frame #16: 0x00007fff69c4d8f3
+    frame #17: 0x00007fff69c45f3f
+    frame #18: 0x00007fff69c53c3f
+    frame #19: 0x00007fff69c57dfa
+    frame #20: 0x00007fff69c4abe7
+    frame #21: 0x00007fff69c49e8b
+    frame #22: 0x00007fff69c4e103
+    frame #23: 0x00007fff68cb1b29
+    frame #24: 0x00007fff696385c0
+    frame #25: 0x00007fff696379e8
+    frame #26: 0x00007fff6963036b
+    frame #27: 0x00007fff68cb20ff
+    frame #28: 0x00007fff6962fcd8
+    frame #29: 0x00007fff6962f67b
+    frame #30: 0x00007fff69629061
+    frame #31: 0x00007fff69624eac
+    frame #32: 0x00007fff69624ca7
+    frame #33: 0x00007fff6962f58f
+    frame #34: 0x00007fff6962f406
+    frame #35: 0x00007fff6962f2eb
+    frame #36: 0x00007fffec477037 libsos.so`GetRuntime(ppRuntime=0x00007fffec6d7540) at sosextensions.cpp:108:20
+    frame #37: 0x00007fffec4482ec libsos.so`HandleExceptionNotification(client=0x000000000062bde0) at strike.cpp:5957:5
+    frame #38: 0x00007fffec89182f libsosplugin.so`ExceptionBreakpointCallback(baton=0x00007fffec448220, process=0x00007fffed0c5780, thread=0x00007fffed0c5740, location=0x00007fffed0c5770) at services.cpp:292:19
+    frame #39: 0x00007ffff72363e9 liblldb-11.so.1`::PrivateBreakpointHitCallback() at SBBreakpointOptionCommon.cpp:72:16
+    frame #40: 0x00007ffff76d85fc liblldb-11.so.1`::PerformAction() at StopInfo.cpp:501:45
+    frame #41: 0x00007ffff76b1d60 liblldb-11.so.1`::ShouldStop() at Process.cpp:4086:23
+    frame #42: 0x00007ffff76b20b3 liblldb-11.so.1`::DoOnRemoval() at Process.cpp:4150:28
+    frame #43: 0x00007ffff774fa6a liblldb-11.so.1`::FindNextEventInternal() at Listener.cpp:309:17
+    frame #44: 0x00007ffff774ffc5 liblldb-11.so.1`::GetEventInternal() at Listener.cpp:357:9
+    frame #45: 0x00007ffff77500c7 liblldb-11.so.1`lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) at Listener.cpp:399:10
+    frame #46: 0x00007ffff756427a liblldb-11.so.1`::DefaultEventHandler() at Debugger.cpp:1423:22
+    frame #47: 0x00007ffff7564676 liblldb-11.so.1`lldb_private::Debugger::EventHandlerThread(void*) at Debugger.cpp:1476:22
+    frame #48: 0x00007ffff760a489 liblldb-11.so.1`::ThreadCreateTrampoline() at HostNativeThreadBase.cpp:68:10
+    frame #49: 0x00007ffff7fa9ea7 libpthread.so.0`start_thread + 215
+    frame #50: 0x00007fffeee72adf libc.so.6`__clone + 63
+(lldb) clrstack
+OS Thread Id: 0xfe15 (2)
+        Child SP               IP Call Site
+00007FFFED0C43D0 00007fffe7de6601 [HelperMethodFrame: 00007fffed0c43d0] 
+00007FFFED0C44F0 00007FFF696444EA Microsoft.Diagnostics.Runtime.Utilities.Reader.Read[[System.Int32, System.Private.CoreLib]](UInt64 ByRef)
+00007FFFED0C4550 00007FFF69644066 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash..ctor(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C4660 00007FFF69643F48 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash.Create(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C46B0 00007FFF69643931 Microsoft.Diagnostics.Runtime.Utilities.ElfDynamicSection..ctor(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64, UInt64)
+00007FFFED0C4770 00007FFF696435FB Microsoft.Diagnostics.Runtime.Utilities.ElfFile.get_DynamicSection()
+00007FFFED0C48B0 00007FFF69643157 Microsoft.Diagnostics.Runtime.Utilities.ElfFile.TryGetExportSymbol(System.String, UInt64 ByRef)
+00007FFFED0C4930 00007FFF696430DB Microsoft.Diagnostics.Runtime.Implementation.ElfModuleInfo.GetExportSymbolAddress(System.String)
+00007FFFED0C4960 00007FFF69640656 Microsoft.Diagnostics.DebugServices.Implementation.Module.Microsoft.Diagnostics.DebugServices.IExportSymbols.TryGetSymbolAddress(System.String, UInt64 ByRef) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/Module.cs @ 240]
+00007FFFED0C4A70 00007FFF696402C1 Microsoft.Diagnostics.DebugServices.Implementation.DataReader+DataReaderModule.GetExportSymbolAddress(System.String) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/DataReader.cs @ 199]
+00007FFFED0C4AD0 00007FFF696401BA Microsoft.Diagnostics.Runtime.SingleFileClrInfoProvider.ProvideClrInfoForModule(Microsoft.Diagnostics.Runtime.DataTarget, Microsoft.Diagnostics.Runtime.ModuleInfo)
+00007FFFED0C4B30 00007FFF6963FF13 Microsoft.Diagnostics.Runtime.DataTarget+<>c__DisplayClass27_1.<GetOrCreateClrVersions>b__10(Microsoft.Diagnostics.Runtime.IClrInfoProvider)
+00007FFFED0C4B50 00007FFF69C4D8F3 System.Linq.Enumerable+SelectListIterator`2[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4B80 00007FFF69C45F3F System.Linq.Enumerable+WhereEnumerableIterator`1[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4BB0 00007FFF69C53C3F System.Linq.Enumerable+<SelectManyIterator>d__236`3[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4BE0 00007FFF69C57DFA System.Collections.Generic.EnumerableHelpers.ToArray[[System.__Canon, System.Private.CoreLib]](System.Collections.Generic.IEnumerable`1<System.__Canon>, Int32 ByRef)
+00007FFFED0C4C40 00007FFF69C4ABE7 System.Linq.Buffer`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4C80 00007FFF69C49E8B System.Linq.OrderedEnumerable`1+<GetEnumerator>d__19[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4CD0 00007FFF69C4E103 System.Linq.Enumerable+SelectIPartitionIterator`2[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4D00 00007FFF68CB1B29 System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4D50 00007FFF696385C0 Microsoft.Diagnostics.Runtime.DataTarget.GetOrCreateClrVersions()
+00007FFFED0C4FD0 00007FFF696379E8 Microsoft.Diagnostics.Runtime.DataTarget.get_ClrVersions()
+00007FFFED0C4FF0 00007FFF6963036B Microsoft.Diagnostics.DebugServices.Implementation.RuntimeProvider+<EnumerateRuntimes>d__2.MoveNext() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeProvider.cs @ 40]
+00007FFFED0C5090 00007FFF68CB20FF System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]].AddRange(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C50E0 00007FFF6962FCD8 Microsoft.Diagnostics.DebugServices.Implementation.RuntimeService.EnumerateRuntimes(Microsoft.Diagnostics.DebugServices.RuntimeEnumerationFlags) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeService.cs @ 59]
+00007FFFED0C5190 00007FFF6962F67B Microsoft.Diagnostics.DebugServices.Implementation.ContextService.GetCurrentRuntime() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 161]
+00007FFFED0C5270 00007FFF69629061 Microsoft.Diagnostics.DebugServices.Implementation.ContextService+ContextServiceProvider.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 260]
+00007FFFED0C5400 00007FFF69624EAC Microsoft.Diagnostics.DebugServices.ServiceContainer.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceContainer.cs @ 97]
+00007FFFED0C54A0 00007FFF69624CA7 Microsoft.Diagnostics.DebugServices.ServiceProviderExtensions.GetService[[System.__Canon, System.Private.CoreLib]](System.IServiceProvider) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceProviderExtensions.cs @ 15]
+00007FFFED0C54F0 00007FFF6962F58F Microsoft.Diagnostics.DebugServices.ContextServiceExtensions.GetCurrentRuntime(Microsoft.Diagnostics.DebugServices.IContextService) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ContextServiceExtensions.cs @ 21]
+00007FFFED0C5520 00007FFF6962F406 SOS.Hosting.TargetWrapper.GetRuntime(IntPtr, IntPtr*) [/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.Hosting/TargetWrapper.cs @ 97]
+00007FFFED0C55B0 00007FFF6962F2EB ILStubClass.IL_STUB_ReversePInvoke(Int64, Int64)
+
+(lldb) c
+Process 65005 resuming
+Process 65005 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 2.1
+    frame #0: 0x00007fffec447f38 libsos.so`HandleCLRNotificationEvent() at strike.cpp:5885:19
+   5882      * real breakpoints be set.
+   5883      */
+   5884     DEBUG_LAST_EVENT_INFO_EXCEPTION dle;
+-> 5885     CNotification Notification;
+   5886
+   5887     if (!CheckCLRNotificationEvent(&dle))
+   5888     {
+(lldb) bt 
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 2.1
+  * frame #0: 0x00007fffec447f38 libsos.so`HandleCLRNotificationEvent() at strike.cpp:5885:19
+    frame #1: 0x00007fffec44841f libsos.so`HandleExceptionNotification(client=0x000000000062bde0) at strike.cpp:5958:12
+    frame #2: 0x00007fffec89182f libsosplugin.so`ExceptionBreakpointCallback(baton=0x00007fffec448220, process=0x00007fffed0c5780, thread=0x00007fffed0c5740, location=0x00007fffed0c5770) at services.cpp:292:19
+    frame #3: 0x00007ffff72363e9 liblldb-11.so.1`::PrivateBreakpointHitCallback() at SBBreakpointOptionCommon.cpp:72:16
+    frame #4: 0x00007ffff76d85fc liblldb-11.so.1`::PerformAction() at StopInfo.cpp:501:45
+    frame #5: 0x00007ffff76b1d60 liblldb-11.so.1`::ShouldStop() at Process.cpp:4086:23
+    frame #6: 0x00007ffff76b20b3 liblldb-11.so.1`::DoOnRemoval() at Process.cpp:4150:28
+    frame #7: 0x00007ffff774fa6a liblldb-11.so.1`::FindNextEventInternal() at Listener.cpp:309:17
+    frame #8: 0x00007ffff774ffc5 liblldb-11.so.1`::GetEventInternal() at Listener.cpp:357:9
+    frame #9: 0x00007ffff77500c7 liblldb-11.so.1`lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) at Listener.cpp:399:10
+    frame #10: 0x00007ffff756427a liblldb-11.so.1`::DefaultEventHandler() at Debugger.cpp:1423:22
+    frame #11: 0x00007ffff7564676 liblldb-11.so.1`lldb_private::Debugger::EventHandlerThread(void*) at Debugger.cpp:1476:22
+    frame #12: 0x00007ffff760a489 liblldb-11.so.1`::ThreadCreateTrampoline() at HostNativeThreadBase.cpp:68:10
+    frame #13: 0x00007ffff7fa9ea7 libpthread.so.0`start_thread + 215
+    frame #14: 0x00007fffeee72adf libc.so.6`__clone + 63
+
+(lldb) c
+Process 65005 resuming
+Process 65005 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+    frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe81d3d20, ContextRecord=0x00007fffe81d3100) at seh-unwind.cpp:884:5
+(lldb) bt 
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+  * frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe81d3d20, ContextRecord=0x00007fffe81d3100) at seh-unwind.cpp:884:5
+    frame #1: 0x00007fffe79aa136 libcoreclr.so`::RaiseException(dwExceptionCode=<unavailable>, dwExceptionFlags=1, nNumberOfArguments=40, lpArguments=0x00007fffed0c42d8) at seh-unwind.cpp:951:5
+    frame #2: 0x00007fffe7a030c7 libcoreclr.so`RaiseTheExceptionInternalOnly(Object*, int, int) at excep.cpp:2795:9
+    frame #3: 0x00007fffe7a02f17 libcoreclr.so`RaiseTheExceptionInternalOnly(throwable=<unavailable>, rethrow=NO, fForStackOverflow=NO) at excep.cpp:2797
+    frame #4: 0x00007fffe7b3e323 libcoreclr.so`IL_Throw(obj=0x00007fbf5eae9390) at jithelpers.cpp:4251:5
+    frame #5: 0x00007fff696444ea
+    frame #6: 0x00007fff69644066
+    frame #7: 0x00007fff69643f48
+    frame #8: 0x00007fff69643931
+    frame #9: 0x00007fff696435fb
+    frame #10: 0x00007fff69643157
+    frame #11: 0x00007fff696430db
+    frame #12: 0x00007fff69640656
+    frame #13: 0x00007fff696402c1
+    frame #14: 0x00007fff696401ba
+    frame #15: 0x00007fff6963ff13
+    frame #16: 0x00007fff69c4d8f3
+    frame #17: 0x00007fff69c45f3f
+    frame #18: 0x00007fff69c53c3f
+    frame #19: 0x00007fff69c57dfa
+    frame #20: 0x00007fff69c4abe7
+    frame #21: 0x00007fff69c49e8b
+    frame #22: 0x00007fff69c4e103
+    frame #23: 0x00007fff68cb1b29
+    frame #24: 0x00007fff696385c0
+    frame #25: 0x00007fff696379e8
+    frame #26: 0x00007fff6963036b
+    frame #27: 0x00007fff68cb20ff
+    frame #28: 0x00007fff6962fcd8
+    frame #29: 0x00007fff6962f67b
+    frame #30: 0x00007fff69629061
+    frame #31: 0x00007fff69624eac
+    frame #32: 0x00007fff69624ca7
+    frame #33: 0x00007fff6962f58f
+    frame #34: 0x00007fff6962f406
+    frame #35: 0x00007fff6962f2eb
+    frame #36: 0x00007fffec477037 libsos.so`GetRuntime(ppRuntime=0x00007fffec6d7540) at sosextensions.cpp:108:20
+    frame #37: 0x00007fffec4482ec libsos.so`HandleExceptionNotification(client=0x000000000062bde0) at strike.cpp:5957:5
+    frame #38: 0x00007fffec89182f libsosplugin.so`ExceptionBreakpointCallback(baton=0x00007fffec448220, process=0x00007fffed0c5780, thread=0x00007fffed0c5740, location=0x00007fffed0c5770) at services.cpp:292:19
+    frame #39: 0x00007ffff72363e9 liblldb-11.so.1`::PrivateBreakpointHitCallback() at SBBreakpointOptionCommon.cpp:72:16
+    frame #40: 0x00007ffff76d85fc liblldb-11.so.1`::PerformAction() at StopInfo.cpp:501:45
+    frame #41: 0x00007ffff76b1d60 liblldb-11.so.1`::ShouldStop() at Process.cpp:4086:23
+    frame #42: 0x00007ffff76b20b3 liblldb-11.so.1`::DoOnRemoval() at Process.cpp:4150:28
+    frame #43: 0x00007ffff774fa6a liblldb-11.so.1`::FindNextEventInternal() at Listener.cpp:309:17
+    frame #44: 0x00007ffff774ffc5 liblldb-11.so.1`::GetEventInternal() at Listener.cpp:357:9
+    frame #45: 0x00007ffff77500c7 liblldb-11.so.1`lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) at Listener.cpp:399:10
+    frame #46: 0x00007ffff756427a liblldb-11.so.1`::DefaultEventHandler() at Debugger.cpp:1423:22
+    frame #47: 0x00007ffff7564676 liblldb-11.so.1`lldb_private::Debugger::EventHandlerThread(void*) at Debugger.cpp:1476:22
+    frame #48: 0x00007ffff760a489 liblldb-11.so.1`::ThreadCreateTrampoline() at HostNativeThreadBase.cpp:68:10
+    frame #49: 0x00007ffff7fa9ea7 libpthread.so.0`start_thread + 215
+    frame #50: 0x00007fffeee72adf libc.so.6`__clone + 63
+(lldb) clrstack
+OS Thread Id: 0xfe15 (2)
+        Child SP               IP Call Site
+00007FFFED0C43D0 00007fffe7de6601 [HelperMethodFrame: 00007fffed0c43d0] 
+00007FFFED0C44F0 00007FFF696444EA Microsoft.Diagnostics.Runtime.Utilities.Reader.Read[[System.Int32, System.Private.CoreLib]](UInt64 ByRef)
+00007FFFED0C4550 00007FFF69644066 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash..ctor(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C4660 00007FFF69643F48 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash.Create(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C46B0 00007FFF69643931 Microsoft.Diagnostics.Runtime.Utilities.ElfDynamicSection..ctor(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64, UInt64)
+00007FFFED0C4770 00007FFF696435FB Microsoft.Diagnostics.Runtime.Utilities.ElfFile.get_DynamicSection()
+00007FFFED0C48B0 00007FFF69643157 Microsoft.Diagnostics.Runtime.Utilities.ElfFile.TryGetExportSymbol(System.String, UInt64 ByRef)
+00007FFFED0C4930 00007FFF696430DB Microsoft.Diagnostics.Runtime.Implementation.ElfModuleInfo.GetExportSymbolAddress(System.String)
+00007FFFED0C4960 00007FFF69640656 Microsoft.Diagnostics.DebugServices.Implementation.Module.Microsoft.Diagnostics.DebugServices.IExportSymbols.TryGetSymbolAddress(System.String, UInt64 ByRef) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/Module.cs @ 240]
+00007FFFED0C4A70 00007FFF696402C1 Microsoft.Diagnostics.DebugServices.Implementation.DataReader+DataReaderModule.GetExportSymbolAddress(System.String) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/DataReader.cs @ 199]
+00007FFFED0C4AD0 00007FFF696401BA Microsoft.Diagnostics.Runtime.SingleFileClrInfoProvider.ProvideClrInfoForModule(Microsoft.Diagnostics.Runtime.DataTarget, Microsoft.Diagnostics.Runtime.ModuleInfo)
+00007FFFED0C4B30 00007FFF6963FF13 Microsoft.Diagnostics.Runtime.DataTarget+<>c__DisplayClass27_1.<GetOrCreateClrVersions>b__10(Microsoft.Diagnostics.Runtime.IClrInfoProvider)
+00007FFFED0C4B50 00007FFF69C4D8F3 System.Linq.Enumerable+SelectListIterator`2[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4B80 00007FFF69C45F3F System.Linq.Enumerable+WhereEnumerableIterator`1[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4BB0 00007FFF69C53C3F System.Linq.Enumerable+<SelectManyIterator>d__236`3[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4BE0 00007FFF69C57DFA System.Collections.Generic.EnumerableHelpers.ToArray[[System.__Canon, System.Private.CoreLib]](System.Collections.Generic.IEnumerable`1<System.__Canon>, Int32 ByRef)
+00007FFFED0C4C40 00007FFF69C4ABE7 System.Linq.Buffer`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4C80 00007FFF69C49E8B System.Linq.OrderedEnumerable`1+<GetEnumerator>d__19[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4CD0 00007FFF69C4E103 System.Linq.Enumerable+SelectIPartitionIterator`2[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4D00 00007FFF68CB1B29 System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4D50 00007FFF696385C0 Microsoft.Diagnostics.Runtime.DataTarget.GetOrCreateClrVersions()
+00007FFFED0C4FD0 00007FFF696379E8 Microsoft.Diagnostics.Runtime.DataTarget.get_ClrVersions()
+00007FFFED0C4FF0 00007FFF6963036B Microsoft.Diagnostics.DebugServices.Implementation.RuntimeProvider+<EnumerateRuntimes>d__2.MoveNext() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeProvider.cs @ 40]
+00007FFFED0C5090 00007FFF68CB20FF System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]].AddRange(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C50E0 00007FFF6962FCD8 Microsoft.Diagnostics.DebugServices.Implementation.RuntimeService.EnumerateRuntimes(Microsoft.Diagnostics.DebugServices.RuntimeEnumerationFlags) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeService.cs @ 59]
+00007FFFED0C5190 00007FFF6962F67B Microsoft.Diagnostics.DebugServices.Implementation.ContextService.GetCurrentRuntime() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 161]
+00007FFFED0C5270 00007FFF69629061 Microsoft.Diagnostics.DebugServices.Implementation.ContextService+ContextServiceProvider.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 260]
+00007FFFED0C5400 00007FFF69624EAC Microsoft.Diagnostics.DebugServices.ServiceContainer.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceContainer.cs @ 97]
+00007FFFED0C54A0 00007FFF69624CA7 Microsoft.Diagnostics.DebugServices.ServiceProviderExtensions.GetService[[System.__Canon, System.Private.CoreLib]](System.IServiceProvider) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceProviderExtensions.cs @ 15]
+00007FFFED0C54F0 00007FFF6962F58F Microsoft.Diagnostics.DebugServices.ContextServiceExtensions.GetCurrentRuntime(Microsoft.Diagnostics.DebugServices.IContextService) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ContextServiceExtensions.cs @ 21]
+00007FFFED0C5520 00007FFF6962F406 SOS.Hosting.TargetWrapper.GetRuntime(IntPtr, IntPtr*) [/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.Hosting/TargetWrapper.cs @ 97]
+00007FFFED0C55B0 00007FFF6962F2EB ILStubClass.IL_STUB_ReversePInvoke(Int64, Int64)
+
+(lldb) c
+Process 65005 resuming
+Process 65005 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 2.1
+    frame #0: 0x00007fffec447f38 libsos.so`HandleCLRNotificationEvent() at strike.cpp:5885:19
+   5882      * real breakpoints be set.
+   5883      */
+   5884     DEBUG_LAST_EVENT_INFO_EXCEPTION dle;
+-> 5885     CNotification Notification;
+   5886
+   5887     if (!CheckCLRNotificationEvent(&dle))
+   5888     {
+(lldb) bt
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 2.1
+  * frame #0: 0x00007fffec447f38 libsos.so`HandleCLRNotificationEvent() at strike.cpp:5885:19
+    frame #1: 0x00007fffec44841f libsos.so`HandleExceptionNotification(client=0x000000000062bde0) at strike.cpp:5958:12
+    frame #2: 0x00007fffec89182f libsosplugin.so`ExceptionBreakpointCallback(baton=0x00007fffec448220, process=0x00007fffed0c5780, thread=0x00007fffed0c5740, location=0x00007fffed0c5770) at services.cpp:292:19
+    frame #3: 0x00007ffff72363e9 liblldb-11.so.1`::PrivateBreakpointHitCallback() at SBBreakpointOptionCommon.cpp:72:16
+    frame #4: 0x00007ffff76d85fc liblldb-11.so.1`::PerformAction() at StopInfo.cpp:501:45
+    frame #5: 0x00007ffff76b1d60 liblldb-11.so.1`::ShouldStop() at Process.cpp:4086:23
+    frame #6: 0x00007ffff76b20b3 liblldb-11.so.1`::DoOnRemoval() at Process.cpp:4150:28
+    frame #7: 0x00007ffff774fa6a liblldb-11.so.1`::FindNextEventInternal() at Listener.cpp:309:17
+    frame #8: 0x00007ffff774ffc5 liblldb-11.so.1`::GetEventInternal() at Listener.cpp:357:9
+    frame #9: 0x00007ffff77500c7 liblldb-11.so.1`lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) at Listener.cpp:399:10
+    frame #10: 0x00007ffff756427a liblldb-11.so.1`::DefaultEventHandler() at Debugger.cpp:1423:22
+    frame #11: 0x00007ffff7564676 liblldb-11.so.1`lldb_private::Debugger::EventHandlerThread(void*) at Debugger.cpp:1476:22
+    frame #12: 0x00007ffff760a489 liblldb-11.so.1`::ThreadCreateTrampoline() at HostNativeThreadBase.cpp:68:10
+    frame #13: 0x00007ffff7fa9ea7 libpthread.so.0`start_thread + 215
+    frame #14: 0x00007fffeee72adf libc.so.6`__clone + 63
+
+(lldb) c
+Process 65005 resuming
+Process 65005 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+    frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe81d3cf0, ContextRecord=0x00007fffe81d30d0) at seh-unwind.cpp:884:5
+(lldb) bt 
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+  * frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe81d3cf0, ContextRecord=0x00007fffe81d30d0) at seh-unwind.cpp:884:5
+    frame #1: 0x00007fffe79aa136 libcoreclr.so`::RaiseException(dwExceptionCode=<unavailable>, dwExceptionFlags=1, nNumberOfArguments=40, lpArguments=0x00007fffed0c4278) at seh-unwind.cpp:951:5
+    frame #2: 0x00007fffe7a030c7 libcoreclr.so`RaiseTheExceptionInternalOnly(Object*, int, int) at excep.cpp:2795:9
+    frame #3: 0x00007fffe7a02f17 libcoreclr.so`RaiseTheExceptionInternalOnly(throwable=<unavailable>, rethrow=NO, fForStackOverflow=NO) at excep.cpp:2797
+    frame #4: 0x00007fffe7b3e323 libcoreclr.so`IL_Throw(obj=0x00007fbf5eb2dba8) at jithelpers.cpp:4251:5
+    frame #5: 0x00007fff6abc8402
+    frame #6: 0x00007fff6abd5ef6
+    frame #7: 0x00007fff6abd5db8
+    frame #8: 0x00007fff6abd5801
+    frame #9: 0x00007fff6abc933b
+    frame #10: 0x00007fff6abd5387
+    frame #11: 0x00007fff6abd52db
+    frame #12: 0x00007fff69640656
+    frame #13: 0x00007fff696402c1
+    frame #14: 0x00007fff6abd737d
+    frame #15: 0x00007fff6abc94a0
+    frame #16: 0x00007fff6abc86e8
+    frame #17: 0x00007fff6abd379a
+    frame #18: 0x00007fff69c53c3f
+    frame #19: 0x00007fff69c57dfa
+    frame #20: 0x00007fff69c4abe7
+    frame #21: 0x00007fff69c49e8b
+    frame #22: 0x00007fff69c4e103
+    frame #23: 0x00007fff68cb1b29
+    frame #24: 0x00007fff696385c0
+    frame #25: 0x00007fff696379e8
+    frame #26: 0x00007fff6963036b
+    frame #27: 0x00007fff6abd7be5
+    frame #28: 0x00007fff6962fcd8
+    frame #29: 0x00007fff6962f67b
+    frame #30: 0x00007fff69629061
+    frame #31: 0x00007fff69624eac
+    frame #32: 0x00007fff69624ca7
+    frame #33: 0x00007fff6962f58f
+    frame #34: 0x00007fff6962f406
+    frame #35: 0x00007fff6962f2eb
+    frame #36: 0x00007fffec477037 libsos.so`GetRuntime(ppRuntime=0x00007fffec6d7540) at sosextensions.cpp:108:20
+    frame #37: 0x00007fffec4482ec libsos.so`HandleExceptionNotification(client=0x000000000062bde0) at strike.cpp:5957:5
+    frame #38: 0x00007fffec89182f libsosplugin.so`ExceptionBreakpointCallback(baton=0x00007fffec448220, process=0x00007fffed0c5780, thread=0x00007fffed0c5740, location=0x00007fffed0c5770) at services.cpp:292:19
+    frame #39: 0x00007ffff72363e9 liblldb-11.so.1`::PrivateBreakpointHitCallback() at SBBreakpointOptionCommon.cpp:72:16
+    frame #40: 0x00007ffff76d85fc liblldb-11.so.1`::PerformAction() at StopInfo.cpp:501:45
+    frame #41: 0x00007ffff76b1d60 liblldb-11.so.1`::ShouldStop() at Process.cpp:4086:23
+    frame #42: 0x00007ffff76b20b3 liblldb-11.so.1`::DoOnRemoval() at Process.cpp:4150:28
+    frame #43: 0x00007ffff774fa6a liblldb-11.so.1`::FindNextEventInternal() at Listener.cpp:309:17
+    frame #44: 0x00007ffff774ffc5 liblldb-11.so.1`::GetEventInternal() at Listener.cpp:357:9
+    frame #45: 0x00007ffff77500c7 liblldb-11.so.1`lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) at Listener.cpp:399:10
+    frame #46: 0x00007ffff756427a liblldb-11.so.1`::DefaultEventHandler() at Debugger.cpp:1423:22
+    frame #47: 0x00007ffff7564676 liblldb-11.so.1`lldb_private::Debugger::EventHandlerThread(void*) at Debugger.cpp:1476:22
+    frame #48: 0x00007ffff760a489 liblldb-11.so.1`::ThreadCreateTrampoline() at HostNativeThreadBase.cpp:68:10
+    frame #49: 0x00007ffff7fa9ea7 libpthread.so.0`start_thread + 215
+    frame #50: 0x00007fffeee72adf libc.so.6`__clone + 63
+(lldb) clrstack
+OS Thread Id: 0xfe15 (2)
+        Child SP               IP Call Site
+00007FFFED0C4370 00007fffe7de6601 [HelperMethodFrame: 00007fffed0c4370] 
+00007FFFED0C4490 00007FFF6ABC8402 Microsoft.Diagnostics.Runtime.Utilities.Reader.Read[[System.Int32, System.Private.CoreLib]](UInt64 ByRef)
+00007FFFED0C4500 00007FFF6ABD5EF6 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash..ctor(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C4610 00007FFF6ABD5DB8 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash.Create(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C4660 00007FFF6ABD5801 Microsoft.Diagnostics.Runtime.Utilities.ElfDynamicSection..ctor(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64, UInt64)
+00007FFFED0C4720 00007FFF6ABC933B Microsoft.Diagnostics.Runtime.Utilities.ElfFile.get_DynamicSection()
+00007FFFED0C4860 00007FFF6ABD5387 Microsoft.Diagnostics.Runtime.Utilities.ElfFile.TryGetExportSymbol(System.String, UInt64 ByRef)
+00007FFFED0C48E0 00007FFF6ABD52DB Microsoft.Diagnostics.Runtime.Implementation.ElfModuleInfo.GetExportSymbolAddress(System.String)
+00007FFFED0C4910 00007FFF69640656 Microsoft.Diagnostics.DebugServices.Implementation.Module.Microsoft.Diagnostics.DebugServices.IExportSymbols.TryGetSymbolAddress(System.String, UInt64 ByRef) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/Module.cs @ 240]
+00007FFFED0C4A20 00007FFF696402C1 Microsoft.Diagnostics.DebugServices.Implementation.DataReader+DataReaderModule.GetExportSymbolAddress(System.String) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/DataReader.cs @ 199]
+00007FFFED0C4A80 00007FFF6ABD737D Microsoft.Diagnostics.Runtime.SingleFileClrInfoProvider.ProvideClrInfoForModule(Microsoft.Diagnostics.Runtime.DataTarget, Microsoft.Diagnostics.Runtime.ModuleInfo)
+00007FFFED0C4AF0 00007FFF6ABC94A0 Microsoft.Diagnostics.Runtime.DataTarget+<>c__DisplayClass27_1.<GetOrCreateClrVersions>b__10(Microsoft.Diagnostics.Runtime.IClrInfoProvider)
+00007FFFED0C4B20 00007FFF6ABC86E8 System.Linq.Enumerable+SelectListIterator`2[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4B60 00007FFF6ABD379A System.Linq.Enumerable+WhereEnumerableIterator`1[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4BA0 00007FFF69C53C3F System.Linq.Enumerable+<SelectManyIterator>d__236`3[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4BD0 00007FFF69C57DFA System.Collections.Generic.EnumerableHelpers.ToArray[[System.__Canon, System.Private.CoreLib]](System.Collections.Generic.IEnumerable`1<System.__Canon>, Int32 ByRef)
+00007FFFED0C4C30 00007FFF69C4ABE7 System.Linq.Buffer`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4C70 00007FFF69C49E8B System.Linq.OrderedEnumerable`1+<GetEnumerator>d__19[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4CC0 00007FFF69C4E103 System.Linq.Enumerable+SelectIPartitionIterator`2[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4CF0 00007FFF68CB1B29 System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4D40 00007FFF696385C0 Microsoft.Diagnostics.Runtime.DataTarget.GetOrCreateClrVersions()
+00007FFFED0C4FC0 00007FFF696379E8 Microsoft.Diagnostics.Runtime.DataTarget.get_ClrVersions()
+00007FFFED0C4FE0 00007FFF6963036B Microsoft.Diagnostics.DebugServices.Implementation.RuntimeProvider+<EnumerateRuntimes>d__2.MoveNext() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeProvider.cs @ 40]
+00007FFFED0C5080 00007FFF6ABD7BE5 System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]].AddRange(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C50E0 00007FFF6962FCD8 Microsoft.Diagnostics.DebugServices.Implementation.RuntimeService.EnumerateRuntimes(Microsoft.Diagnostics.DebugServices.RuntimeEnumerationFlags) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeService.cs @ 59]
+00007FFFED0C5190 00007FFF6962F67B Microsoft.Diagnostics.DebugServices.Implementation.ContextService.GetCurrentRuntime() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 161]
+00007FFFED0C5270 00007FFF69629061 Microsoft.Diagnostics.DebugServices.Implementation.ContextService+ContextServiceProvider.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 260]
+00007FFFED0C5400 00007FFF69624EAC Microsoft.Diagnostics.DebugServices.ServiceContainer.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceContainer.cs @ 97]
+00007FFFED0C54A0 00007FFF69624CA7 Microsoft.Diagnostics.DebugServices.ServiceProviderExtensions.GetService[[System.__Canon, System.Private.CoreLib]](System.IServiceProvider) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceProviderExtensions.cs @ 15]
+00007FFFED0C54F0 00007FFF6962F58F Microsoft.Diagnostics.DebugServices.ContextServiceExtensions.GetCurrentRuntime(Microsoft.Diagnostics.DebugServices.IContextService) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ContextServiceExtensions.cs @ 21]
+00007FFFED0C5520 00007FFF6962F406 SOS.Hosting.TargetWrapper.GetRuntime(IntPtr, IntPtr*) [/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.Hosting/TargetWrapper.cs @ 97]
+00007FFFED0C55B0 00007FFF6962F2EB ILStubClass.IL_STUB_ReversePInvoke(Int64, Int64)
+
+(lldb) c
+Process 65005 resuming
+Process 65005 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 2.1
+    frame #0: 0x00007fffec447f38 libsos.so`HandleCLRNotificationEvent() at strike.cpp:5885:19
+   5882      * real breakpoints be set.
+   5883      */
+   5884     DEBUG_LAST_EVENT_INFO_EXCEPTION dle;
+-> 5885     CNotification Notification;
+   5886
+   5887     if (!CheckCLRNotificationEvent(&dle))
+   5888     {
+(lldb) bt 
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 2.1
+  * frame #0: 0x00007fffec447f38 libsos.so`HandleCLRNotificationEvent() at strike.cpp:5885:19
+    frame #1: 0x00007fffec44841f libsos.so`HandleExceptionNotification(client=0x000000000062bde0) at strike.cpp:5958:12
+    frame #2: 0x00007fffec89182f libsosplugin.so`ExceptionBreakpointCallback(baton=0x00007fffec448220, process=0x00007fffed0c5780, thread=0x00007fffed0c5740, location=0x00007fffed0c5770) at services.cpp:292:19
+    frame #3: 0x00007ffff72363e9 liblldb-11.so.1`::PrivateBreakpointHitCallback() at SBBreakpointOptionCommon.cpp:72:16
+    frame #4: 0x00007ffff76d85fc liblldb-11.so.1`::PerformAction() at StopInfo.cpp:501:45
+    frame #5: 0x00007ffff76b1d60 liblldb-11.so.1`::ShouldStop() at Process.cpp:4086:23
+    frame #6: 0x00007ffff76b20b3 liblldb-11.so.1`::DoOnRemoval() at Process.cpp:4150:28
+    frame #7: 0x00007ffff774fa6a liblldb-11.so.1`::FindNextEventInternal() at Listener.cpp:309:17
+    frame #8: 0x00007ffff774ffc5 liblldb-11.so.1`::GetEventInternal() at Listener.cpp:357:9
+    frame #9: 0x00007ffff77500c7 liblldb-11.so.1`lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) at Listener.cpp:399:10
+    frame #10: 0x00007ffff756427a liblldb-11.so.1`::DefaultEventHandler() at Debugger.cpp:1423:22
+    frame #11: 0x00007ffff7564676 liblldb-11.so.1`lldb_private::Debugger::EventHandlerThread(void*) at Debugger.cpp:1476:22
+    frame #12: 0x00007ffff760a489 liblldb-11.so.1`::ThreadCreateTrampoline() at HostNativeThreadBase.cpp:68:10
+    frame #13: 0x00007ffff7fa9ea7 libpthread.so.0`start_thread + 215
+    frame #14: 0x00007fffeee72adf libc.so.6`__clone + 63
+
+(lldb) c
+Process 65005 resuming
+JITTED SimpleThrow!Simple.Main()
+Setting breakpoint: breakpoint set --address 0x00007FFF792A1860 [Simple.Main()]
+warning: failed to set breakpoint site at 0x7fff792a1860 for breakpoint 3.1: error: 9 sending the breakpoint request
+Process 65005 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+    frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe81d3cf0, ContextRecord=0x00007fffe81d30d0) at seh-unwind.cpp:884:5
+(lldb) bt 
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+  * frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe81d3cf0, ContextRecord=0x00007fffe81d30d0) at seh-unwind.cpp:884:5
+    frame #1: 0x00007fffe79aa136 libcoreclr.so`::RaiseException(dwExceptionCode=<unavailable>, dwExceptionFlags=1, nNumberOfArguments=40, lpArguments=0x00007fffed0c4278) at seh-unwind.cpp:951:5
+    frame #2: 0x00007fffe7a030c7 libcoreclr.so`RaiseTheExceptionInternalOnly(Object*, int, int) at excep.cpp:2795:9
+    frame #3: 0x00007fffe7a02f17 libcoreclr.so`RaiseTheExceptionInternalOnly(throwable=<unavailable>, rethrow=NO, fForStackOverflow=NO) at excep.cpp:2797
+    frame #4: 0x00007fffe7b3e323 libcoreclr.so`IL_Throw(obj=0x00007fbf5eb71a88) at jithelpers.cpp:4251:5
+    frame #5: 0x00007fff6abc8402
+    frame #6: 0x00007fff6abd5ef6
+    frame #7: 0x00007fff6abd5db8
+    frame #8: 0x00007fff6abd5801
+    frame #9: 0x00007fff6abc933b
+    frame #10: 0x00007fff6abd5387
+    frame #11: 0x00007fff6abd52db
+    frame #12: 0x00007fff69640656
+    frame #13: 0x00007fff696402c1
+    frame #14: 0x00007fff6abd737d
+    frame #15: 0x00007fff6abc94a0
+    frame #16: 0x00007fff6abc86e8
+    frame #17: 0x00007fff6abd379a
+    frame #18: 0x00007fff69c53c3f
+    frame #19: 0x00007fff69c57dfa
+    frame #20: 0x00007fff69c4abe7
+    frame #21: 0x00007fff69c49e8b
+    frame #22: 0x00007fff69c4e103
+    frame #23: 0x00007fff68cb1b29
+    frame #24: 0x00007fff696385c0
+    frame #25: 0x00007fff696379e8
+    frame #26: 0x00007fff6963036b
+    frame #27: 0x00007fff6abd7be5
+    frame #28: 0x00007fff6962fcd8
+    frame #29: 0x00007fff6962f67b
+    frame #30: 0x00007fff69629061
+    frame #31: 0x00007fff69624eac
+    frame #32: 0x00007fff69624ca7
+    frame #33: 0x00007fff6962f58f
+    frame #34: 0x00007fff6962f406
+    frame #35: 0x00007fff6962f2eb
+    frame #36: 0x00007fffec477037 libsos.so`GetRuntime(ppRuntime=0x00007fffec6d7540) at sosextensions.cpp:108:20
+    frame #37: 0x00007fffec4482ec libsos.so`HandleExceptionNotification(client=0x000000000062bde0) at strike.cpp:5957:5
+    frame #38: 0x00007fffec89182f libsosplugin.so`ExceptionBreakpointCallback(baton=0x00007fffec448220, process=0x00007fffed0c5780, thread=0x00007fffed0c5740, location=0x00007fffed0c5770) at services.cpp:292:19
+    frame #39: 0x00007ffff72363e9 liblldb-11.so.1`::PrivateBreakpointHitCallback() at SBBreakpointOptionCommon.cpp:72:16
+    frame #40: 0x00007ffff76d85fc liblldb-11.so.1`::PerformAction() at StopInfo.cpp:501:45
+    frame #41: 0x00007ffff76b1d60 liblldb-11.so.1`::ShouldStop() at Process.cpp:4086:23
+    frame #42: 0x00007ffff76b20b3 liblldb-11.so.1`::DoOnRemoval() at Process.cpp:4150:28
+    frame #43: 0x00007ffff774fa6a liblldb-11.so.1`::FindNextEventInternal() at Listener.cpp:309:17
+    frame #44: 0x00007ffff774ffc5 liblldb-11.so.1`::GetEventInternal() at Listener.cpp:357:9
+    frame #45: 0x00007ffff77500c7 liblldb-11.so.1`lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) at Listener.cpp:399:10
+    frame #46: 0x00007ffff756427a liblldb-11.so.1`::DefaultEventHandler() at Debugger.cpp:1423:22
+    frame #47: 0x00007ffff7564676 liblldb-11.so.1`lldb_private::Debugger::EventHandlerThread(void*) at Debugger.cpp:1476:22
+    frame #48: 0x00007ffff760a489 liblldb-11.so.1`::ThreadCreateTrampoline() at HostNativeThreadBase.cpp:68:10
+    frame #49: 0x00007ffff7fa9ea7 libpthread.so.0`start_thread + 215
+    frame #50: 0x00007fffeee72adf libc.so.6`__clone + 63
+(lldb) clrstack
+OS Thread Id: 0xfe15 (2)
+        Child SP               IP Call Site
+00007FFFED0C4370 00007fffe7de6601 [HelperMethodFrame: 00007fffed0c4370] 
+00007FFFED0C4490 00007FFF6ABC8402 Microsoft.Diagnostics.Runtime.Utilities.Reader.Read[[System.Int32, System.Private.CoreLib]](UInt64 ByRef)
+00007FFFED0C4500 00007FFF6ABD5EF6 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash..ctor(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C4610 00007FFF6ABD5DB8 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash.Create(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C4660 00007FFF6ABD5801 Microsoft.Diagnostics.Runtime.Utilities.ElfDynamicSection..ctor(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64, UInt64)
+00007FFFED0C4720 00007FFF6ABC933B Microsoft.Diagnostics.Runtime.Utilities.ElfFile.get_DynamicSection()
+00007FFFED0C4860 00007FFF6ABD5387 Microsoft.Diagnostics.Runtime.Utilities.ElfFile.TryGetExportSymbol(System.String, UInt64 ByRef)
+00007FFFED0C48E0 00007FFF6ABD52DB Microsoft.Diagnostics.Runtime.Implementation.ElfModuleInfo.GetExportSymbolAddress(System.String)
+00007FFFED0C4910 00007FFF69640656 Microsoft.Diagnostics.DebugServices.Implementation.Module.Microsoft.Diagnostics.DebugServices.IExportSymbols.TryGetSymbolAddress(System.String, UInt64 ByRef) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/Module.cs @ 240]
+00007FFFED0C4A20 00007FFF696402C1 Microsoft.Diagnostics.DebugServices.Implementation.DataReader+DataReaderModule.GetExportSymbolAddress(System.String) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/DataReader.cs @ 199]
+00007FFFED0C4A80 00007FFF6ABD737D Microsoft.Diagnostics.Runtime.SingleFileClrInfoProvider.ProvideClrInfoForModule(Microsoft.Diagnostics.Runtime.DataTarget, Microsoft.Diagnostics.Runtime.ModuleInfo)
+00007FFFED0C4AF0 00007FFF6ABC94A0 Microsoft.Diagnostics.Runtime.DataTarget+<>c__DisplayClass27_1.<GetOrCreateClrVersions>b__10(Microsoft.Diagnostics.Runtime.IClrInfoProvider)
+00007FFFED0C4B20 00007FFF6ABC86E8 System.Linq.Enumerable+SelectListIterator`2[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4B60 00007FFF6ABD379A System.Linq.Enumerable+WhereEnumerableIterator`1[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4BA0 00007FFF69C53C3F System.Linq.Enumerable+<SelectManyIterator>d__236`3[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4BD0 00007FFF69C57DFA System.Collections.Generic.EnumerableHelpers.ToArray[[System.__Canon, System.Private.CoreLib]](System.Collections.Generic.IEnumerable`1<System.__Canon>, Int32 ByRef)
+00007FFFED0C4C30 00007FFF69C4ABE7 System.Linq.Buffer`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4C70 00007FFF69C49E8B System.Linq.OrderedEnumerable`1+<GetEnumerator>d__19[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4CC0 00007FFF69C4E103 System.Linq.Enumerable+SelectIPartitionIterator`2[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4CF0 00007FFF68CB1B29 System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4D40 00007FFF696385C0 Microsoft.Diagnostics.Runtime.DataTarget.GetOrCreateClrVersions()
+00007FFFED0C4FC0 00007FFF696379E8 Microsoft.Diagnostics.Runtime.DataTarget.get_ClrVersions()
+00007FFFED0C4FE0 00007FFF6963036B Microsoft.Diagnostics.DebugServices.Implementation.RuntimeProvider+<EnumerateRuntimes>d__2.MoveNext() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeProvider.cs @ 40]
+00007FFFED0C5080 00007FFF6ABD7BE5 System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]].AddRange(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C50E0 00007FFF6962FCD8 Microsoft.Diagnostics.DebugServices.Implementation.RuntimeService.EnumerateRuntimes(Microsoft.Diagnostics.DebugServices.RuntimeEnumerationFlags) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeService.cs @ 59]
+00007FFFED0C5190 00007FFF6962F67B Microsoft.Diagnostics.DebugServices.Implementation.ContextService.GetCurrentRuntime() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 161]
+00007FFFED0C5270 00007FFF69629061 Microsoft.Diagnostics.DebugServices.Implementation.ContextService+ContextServiceProvider.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 260]
+00007FFFED0C5400 00007FFF69624EAC Microsoft.Diagnostics.DebugServices.ServiceContainer.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceContainer.cs @ 97]
+00007FFFED0C54A0 00007FFF69624CA7 Microsoft.Diagnostics.DebugServices.ServiceProviderExtensions.GetService[[System.__Canon, System.Private.CoreLib]](System.IServiceProvider) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceProviderExtensions.cs @ 15]
+00007FFFED0C54F0 00007FFF6962F58F Microsoft.Diagnostics.DebugServices.ContextServiceExtensions.GetCurrentRuntime(Microsoft.Diagnostics.DebugServices.IContextService) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ContextServiceExtensions.cs @ 21]
+00007FFFED0C5520 00007FFF6962F406 SOS.Hosting.TargetWrapper.GetRuntime(IntPtr, IntPtr*) [/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.Hosting/TargetWrapper.cs @ 97]
+00007FFFED0C55B0 00007FFF6962F2EB ILStubClass.IL_STUB_ReversePInvoke(Int64, Int64)
+
+(lldb) c
+Process 65005 resuming
+Process 65005 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 2.1
+    frame #0: 0x00007fffec447f38 libsos.so`HandleCLRNotificationEvent() at strike.cpp:5885:19
+   5882      * real breakpoints be set.
+   5883      */
+   5884     DEBUG_LAST_EVENT_INFO_EXCEPTION dle;
+-> 5885     CNotification Notification;
+   5886
+   5887     if (!CheckCLRNotificationEvent(&dle))
+   5888     {
+(lldb) bt
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 2.1
+  * frame #0: 0x00007fffec447f38 libsos.so`HandleCLRNotificationEvent() at strike.cpp:5885:19
+    frame #1: 0x00007fffec44841f libsos.so`HandleExceptionNotification(client=0x000000000062bde0) at strike.cpp:5958:12
+    frame #2: 0x00007fffec89182f libsosplugin.so`ExceptionBreakpointCallback(baton=0x00007fffec448220, process=0x00007fffed0c5780, thread=0x00007fffed0c5740, location=0x00007fffed0c5770) at services.cpp:292:19
+    frame #3: 0x00007ffff72363e9 liblldb-11.so.1`::PrivateBreakpointHitCallback() at SBBreakpointOptionCommon.cpp:72:16
+    frame #4: 0x00007ffff76d85fc liblldb-11.so.1`::PerformAction() at StopInfo.cpp:501:45
+    frame #5: 0x00007ffff76b1d60 liblldb-11.so.1`::ShouldStop() at Process.cpp:4086:23
+    frame #6: 0x00007ffff76b20b3 liblldb-11.so.1`::DoOnRemoval() at Process.cpp:4150:28
+    frame #7: 0x00007ffff774fa6a liblldb-11.so.1`::FindNextEventInternal() at Listener.cpp:309:17
+    frame #8: 0x00007ffff774ffc5 liblldb-11.so.1`::GetEventInternal() at Listener.cpp:357:9
+    frame #9: 0x00007ffff77500c7 liblldb-11.so.1`lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) at Listener.cpp:399:10
+    frame #10: 0x00007ffff756427a liblldb-11.so.1`::DefaultEventHandler() at Debugger.cpp:1423:22
+    frame #11: 0x00007ffff7564676 liblldb-11.so.1`lldb_private::Debugger::EventHandlerThread(void*) at Debugger.cpp:1476:22
+    frame #12: 0x00007ffff760a489 liblldb-11.so.1`::ThreadCreateTrampoline() at HostNativeThreadBase.cpp:68:10
+    frame #13: 0x00007ffff7fa9ea7 libpthread.so.0`start_thread + 215
+    frame #14: 0x00007fffeee72adf libc.so.6`__clone + 63
+
+(lldb) c
+Process 65005 resuming
+Process 65005 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+    frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe82bdfc0, ContextRecord=0x00007fffe82bd3a0) at seh-unwind.cpp:884:5
+(lldb) bt
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+  * frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe82bdfc0, ContextRecord=0x00007fffe82bd3a0) at seh-unwind.cpp:884:5
+    frame #1: 0x00007fffe79aa136 libcoreclr.so`::RaiseException(dwExceptionCode=<unavailable>, dwExceptionFlags=1, nNumberOfArguments=40, lpArguments=0x00007fffed0c45f8) at seh-unwind.cpp:951:5
+    frame #2: 0x00007fffe7a030c7 libcoreclr.so`RaiseTheExceptionInternalOnly(Object*, int, int) at excep.cpp:2795:9
+    frame #3: 0x00007fffe7a02f17 libcoreclr.so`RaiseTheExceptionInternalOnly(throwable=<unavailable>, rethrow=NO, fForStackOverflow=NO) at excep.cpp:2797
+    frame #4: 0x00007fffe7b3e323 libcoreclr.so`IL_Throw(obj=0x00007fbf5ebb6358) at jithelpers.cpp:4251:5
+    frame #5: 0x00007fff6abe6835
+    frame #6: 0x00007fff6abe63a3
+    frame #7: 0x00007fff6abdf011
+    frame #8: 0x00007fff6abe5bba
+    frame #9: 0x00007fff6abe5b56
+    frame #10: 0x00007fff69640656
+    frame #11: 0x00007fff696402c1
+    frame #12: 0x00007fff6abe7bdd
+    frame #13: 0x00007fff6abe43db
+    frame #14: 0x00007fff69c53c3f
+    frame #15: 0x00007fff6abdd7cf
+    frame #16: 0x00007fff6abdd4ff
+    frame #17: 0x00007fff69c49e8b
+    frame #18: 0x00007fff69c4e103
+    frame #19: 0x00007fff68cb1b29
+    frame #20: 0x00007fff696385c0
+    frame #21: 0x00007fff696379e8
+    frame #22: 0x00007fff6963036b
+    frame #23: 0x00007fff6abd7be5
+    frame #24: 0x00007fff6962fcd8
+    frame #25: 0x00007fff6962f67b
+    frame #26: 0x00007fff69629061
+    frame #27: 0x00007fff69624eac
+    frame #28: 0x00007fff69624ca7
+    frame #29: 0x00007fff6962f58f
+    frame #30: 0x00007fff6962f406
+    frame #31: 0x00007fff6962f2eb
+    frame #32: 0x00007fffec477037 libsos.so`GetRuntime(ppRuntime=0x00007fffec6d7540) at sosextensions.cpp:108:20
+    frame #33: 0x00007fffec4482ec libsos.so`HandleExceptionNotification(client=0x000000000062bde0) at strike.cpp:5957:5
+    frame #34: 0x00007fffec89182f libsosplugin.so`ExceptionBreakpointCallback(baton=0x00007fffec448220, process=0x00007fffed0c5780, thread=0x00007fffed0c5740, location=0x00007fffed0c5770) at services.cpp:292:19
+    frame #35: 0x00007ffff72363e9 liblldb-11.so.1`::PrivateBreakpointHitCallback() at SBBreakpointOptionCommon.cpp:72:16
+    frame #36: 0x00007ffff76d85fc liblldb-11.so.1`::PerformAction() at StopInfo.cpp:501:45
+    frame #37: 0x00007ffff76b1d60 liblldb-11.so.1`::ShouldStop() at Process.cpp:4086:23
+    frame #38: 0x00007ffff76b20b3 liblldb-11.so.1`::DoOnRemoval() at Process.cpp:4150:28
+    frame #39: 0x00007ffff774fa6a liblldb-11.so.1`::FindNextEventInternal() at Listener.cpp:309:17
+    frame #40: 0x00007ffff774ffc5 liblldb-11.so.1`::GetEventInternal() at Listener.cpp:357:9
+    frame #41: 0x00007ffff77500c7 liblldb-11.so.1`lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) at Listener.cpp:399:10
+    frame #42: 0x00007ffff756427a liblldb-11.so.1`::DefaultEventHandler() at Debugger.cpp:1423:22
+    frame #43: 0x00007ffff7564676 liblldb-11.so.1`lldb_private::Debugger::EventHandlerThread(void*) at Debugger.cpp:1476:22
+    frame #44: 0x00007ffff760a489 liblldb-11.so.1`::ThreadCreateTrampoline() at HostNativeThreadBase.cpp:68:10
+    frame #45: 0x00007ffff7fa9ea7 libpthread.so.0`start_thread + 215
+    frame #46: 0x00007fffeee72adf libc.so.6`__clone + 63
+(lldb) clrstack
+OS Thread Id: 0xfe15 (2)
+        Child SP               IP Call Site
+00007FFFED0C46F0 00007fffe7de6601 [HelperMethodFrame: 00007fffed0c46f0] 
+00007FFFED0C4810 00007FFF6ABE6835 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash..ctor(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C4870 00007FFF6ABE63A3 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash.Create(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C48B0 00007FFF6ABDF011 Microsoft.Diagnostics.Runtime.Utilities.ElfFile.get_DynamicSection()
+00007FFFED0C4910 00007FFF6ABE5BBA Microsoft.Diagnostics.Runtime.Utilities.ElfFile.TryGetExportSymbol(System.String, UInt64 ByRef)
+00007FFFED0C4950 00007FFF6ABE5B56 Microsoft.Diagnostics.Runtime.Implementation.ElfModuleInfo.GetExportSymbolAddress(System.String)
+00007FFFED0C4970 00007FFF69640656 Microsoft.Diagnostics.DebugServices.Implementation.Module.Microsoft.Diagnostics.DebugServices.IExportSymbols.TryGetSymbolAddress(System.String, UInt64 ByRef) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/Module.cs @ 240]
+00007FFFED0C4A80 00007FFF696402C1 Microsoft.Diagnostics.DebugServices.Implementation.DataReader+DataReaderModule.GetExportSymbolAddress(System.String) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/DataReader.cs @ 199]
+00007FFFED0C4AE0 00007FFF6ABE7BDD Microsoft.Diagnostics.Runtime.SingleFileClrInfoProvider.ProvideClrInfoForModule(Microsoft.Diagnostics.Runtime.DataTarget, Microsoft.Diagnostics.Runtime.ModuleInfo)
+00007FFFED0C4B10 00007FFF6ABE43DB System.Linq.Enumerable+WhereEnumerableIterator`1[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4B90 00007FFF69C53C3F System.Linq.Enumerable+<SelectManyIterator>d__236`3[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4BC0 00007FFF6ABDD7CF System.Collections.Generic.EnumerableHelpers.ToArray[[System.__Canon, System.Private.CoreLib]](System.Collections.Generic.IEnumerable`1<System.__Canon>, Int32 ByRef)
+00007FFFED0C4C30 00007FFF6ABDD4FF System.Linq.Buffer`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4C70 00007FFF69C49E8B System.Linq.OrderedEnumerable`1+<GetEnumerator>d__19[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4CC0 00007FFF69C4E103 System.Linq.Enumerable+SelectIPartitionIterator`2[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4CF0 00007FFF68CB1B29 System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4D40 00007FFF696385C0 Microsoft.Diagnostics.Runtime.DataTarget.GetOrCreateClrVersions()
+00007FFFED0C4FC0 00007FFF696379E8 Microsoft.Diagnostics.Runtime.DataTarget.get_ClrVersions()
+00007FFFED0C4FE0 00007FFF6963036B Microsoft.Diagnostics.DebugServices.Implementation.RuntimeProvider+<EnumerateRuntimes>d__2.MoveNext() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeProvider.cs @ 40]
+00007FFFED0C5080 00007FFF6ABD7BE5 System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]].AddRange(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C50E0 00007FFF6962FCD8 Microsoft.Diagnostics.DebugServices.Implementation.RuntimeService.EnumerateRuntimes(Microsoft.Diagnostics.DebugServices.RuntimeEnumerationFlags) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeService.cs @ 59]
+00007FFFED0C5190 00007FFF6962F67B Microsoft.Diagnostics.DebugServices.Implementation.ContextService.GetCurrentRuntime() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 161]
+00007FFFED0C5270 00007FFF69629061 Microsoft.Diagnostics.DebugServices.Implementation.ContextService+ContextServiceProvider.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 260]
+00007FFFED0C5400 00007FFF69624EAC Microsoft.Diagnostics.DebugServices.ServiceContainer.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceContainer.cs @ 97]
+00007FFFED0C54A0 00007FFF69624CA7 Microsoft.Diagnostics.DebugServices.ServiceProviderExtensions.GetService[[System.__Canon, System.Private.CoreLib]](System.IServiceProvider) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceProviderExtensions.cs @ 15]
+00007FFFED0C54F0 00007FFF6962F58F Microsoft.Diagnostics.DebugServices.ContextServiceExtensions.GetCurrentRuntime(Microsoft.Diagnostics.DebugServices.IContextService) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ContextServiceExtensions.cs @ 21]
+00007FFFED0C5520 00007FFF6962F406 SOS.Hosting.TargetWrapper.GetRuntime(IntPtr, IntPtr*) [/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.Hosting/TargetWrapper.cs @ 97]
+00007FFFED0C55B0 00007FFF6962F2EB ILStubClass.IL_STUB_ReversePInvoke(Int64, Int64)
+
+(lldb) c
+Process 65005 resuming
+Process 65005 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 2.1
+    frame #0: 0x00007fffec447f38 libsos.so`HandleCLRNotificationEvent() at strike.cpp:5885:19
+   5882      * real breakpoints be set.
+   5883      */
+   5884     DEBUG_LAST_EVENT_INFO_EXCEPTION dle;
+-> 5885     CNotification Notification;
+   5886
+   5887     if (!CheckCLRNotificationEvent(&dle))
+   5888     {
+(lldb) bt
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 2.1
+  * frame #0: 0x00007fffec447f38 libsos.so`HandleCLRNotificationEvent() at strike.cpp:5885:19
+    frame #1: 0x00007fffec44841f libsos.so`HandleExceptionNotification(client=0x000000000062bde0) at strike.cpp:5958:12
+    frame #2: 0x00007fffec89182f libsosplugin.so`ExceptionBreakpointCallback(baton=0x00007fffec448220, process=0x00007fffed0c5780, thread=0x00007fffed0c5740, location=0x00007fffed0c5770) at services.cpp:292:19
+    frame #3: 0x00007ffff72363e9 liblldb-11.so.1`::PrivateBreakpointHitCallback() at SBBreakpointOptionCommon.cpp:72:16
+    frame #4: 0x00007ffff76d85fc liblldb-11.so.1`::PerformAction() at StopInfo.cpp:501:45
+    frame #5: 0x00007ffff76b1d60 liblldb-11.so.1`::ShouldStop() at Process.cpp:4086:23
+    frame #6: 0x00007ffff76b20b3 liblldb-11.so.1`::DoOnRemoval() at Process.cpp:4150:28
+    frame #7: 0x00007ffff774fa6a liblldb-11.so.1`::FindNextEventInternal() at Listener.cpp:309:17
+    frame #8: 0x00007ffff774ffc5 liblldb-11.so.1`::GetEventInternal() at Listener.cpp:357:9
+    frame #9: 0x00007ffff77500c7 liblldb-11.so.1`lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) at Listener.cpp:399:10
+    frame #10: 0x00007ffff756427a liblldb-11.so.1`::DefaultEventHandler() at Debugger.cpp:1423:22
+    frame #11: 0x00007ffff7564676 liblldb-11.so.1`lldb_private::Debugger::EventHandlerThread(void*) at Debugger.cpp:1476:22
+    frame #12: 0x00007ffff760a489 liblldb-11.so.1`::ThreadCreateTrampoline() at HostNativeThreadBase.cpp:68:10
+    frame #13: 0x00007ffff7fa9ea7 libpthread.so.0`start_thread + 215
+    frame #14: 0x00007fffeee72adf libc.so.6`__clone + 63
+
+(lldb) c
+Process 65005 resuming
+Process 65005 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+    frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe81d3020, ContextRecord=0x00007fffe81d2400) at seh-unwind.cpp:884:5
+(lldb) bt 
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+  * frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe81d3020, ContextRecord=0x00007fffe81d2400) at seh-unwind.cpp:884:5
+    frame #1: 0x00007fffe79aa136 libcoreclr.so`::RaiseException(dwExceptionCode=<unavailable>, dwExceptionFlags=1, nNumberOfArguments=40, lpArguments=0x00007fffed0c45f8) at seh-unwind.cpp:951:5
+    frame #2: 0x00007fffe7a030c7 libcoreclr.so`RaiseTheExceptionInternalOnly(Object*, int, int) at excep.cpp:2795:9
+    frame #3: 0x00007fffe7a02f17 libcoreclr.so`RaiseTheExceptionInternalOnly(throwable=<unavailable>, rethrow=NO, fForStackOverflow=NO) at excep.cpp:2797
+    frame #4: 0x00007fffe7b3e323 libcoreclr.so`IL_Throw(obj=0x00007fbf60c12dd0) at jithelpers.cpp:4251:5
+    frame #5: 0x00007fff6abe6835
+    frame #6: 0x00007fff6abe63a3
+    frame #7: 0x00007fff6abdf011
+    frame #8: 0x00007fff6abe5bba
+    frame #9: 0x00007fff6abe5b56
+    frame #10: 0x00007fff69640656
+    frame #11: 0x00007fff696402c1
+    frame #12: 0x00007fff6abe7bdd
+    frame #13: 0x00007fff6abe43db
+    frame #14: 0x00007fff69c53c3f
+    frame #15: 0x00007fff6abdd7cf
+    frame #16: 0x00007fff6abdd4ff
+    frame #17: 0x00007fff69c49e8b
+    frame #18: 0x00007fff69c4e103
+    frame #19: 0x00007fff68cb1b29
+    frame #20: 0x00007fff696385c0
+    frame #21: 0x00007fff696379e8
+    frame #22: 0x00007fff6963036b
+    frame #23: 0x00007fff6abd7be5
+    frame #24: 0x00007fff6962fcd8
+    frame #25: 0x00007fff6962f67b
+    frame #26: 0x00007fff69629061
+    frame #27: 0x00007fff69624eac
+    frame #28: 0x00007fff69624ca7
+    frame #29: 0x00007fff6962f58f
+    frame #30: 0x00007fff6962f406
+    frame #31: 0x00007fff6962f2eb
+    frame #32: 0x00007fffec477037 libsos.so`GetRuntime(ppRuntime=0x00007fffec6d7540) at sosextensions.cpp:108:20
+    frame #33: 0x00007fffec4482ec libsos.so`HandleExceptionNotification(client=0x000000000062bde0) at strike.cpp:5957:5
+    frame #34: 0x00007fffec89182f libsosplugin.so`ExceptionBreakpointCallback(baton=0x00007fffec448220, process=0x00007fffed0c5780, thread=0x00007fffed0c5740, location=0x00007fffed0c5770) at services.cpp:292:19
+    frame #35: 0x00007ffff72363e9 liblldb-11.so.1`::PrivateBreakpointHitCallback() at SBBreakpointOptionCommon.cpp:72:16
+    frame #36: 0x00007ffff76d85fc liblldb-11.so.1`::PerformAction() at StopInfo.cpp:501:45
+    frame #37: 0x00007ffff76b1d60 liblldb-11.so.1`::ShouldStop() at Process.cpp:4086:23
+    frame #38: 0x00007ffff76b20b3 liblldb-11.so.1`::DoOnRemoval() at Process.cpp:4150:28
+    frame #39: 0x00007ffff774fa6a liblldb-11.so.1`::FindNextEventInternal() at Listener.cpp:309:17
+    frame #40: 0x00007ffff774ffc5 liblldb-11.so.1`::GetEventInternal() at Listener.cpp:357:9
+    frame #41: 0x00007ffff77500c7 liblldb-11.so.1`lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) at Listener.cpp:399:10
+    frame #42: 0x00007ffff756427a liblldb-11.so.1`::DefaultEventHandler() at Debugger.cpp:1423:22
+    frame #43: 0x00007ffff7564676 liblldb-11.so.1`lldb_private::Debugger::EventHandlerThread(void*) at Debugger.cpp:1476:22
+    frame #44: 0x00007ffff760a489 liblldb-11.so.1`::ThreadCreateTrampoline() at HostNativeThreadBase.cpp:68:10
+    frame #45: 0x00007ffff7fa9ea7 libpthread.so.0`start_thread + 215
+    frame #46: 0x00007fffeee72adf libc.so.6`__clone + 63
+(lldb) clrstack
+OS Thread Id: 0xfe15 (2)
+        Child SP               IP Call Site
+00007FFFED0C46F0 00007fffe7de6601 [HelperMethodFrame: 00007fffed0c46f0] 
+00007FFFED0C4810 00007FFF6ABE6835 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash..ctor(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C4870 00007FFF6ABE63A3 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash.Create(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C48B0 00007FFF6ABDF011 Microsoft.Diagnostics.Runtime.Utilities.ElfFile.get_DynamicSection()
+00007FFFED0C4910 00007FFF6ABE5BBA Microsoft.Diagnostics.Runtime.Utilities.ElfFile.TryGetExportSymbol(System.String, UInt64 ByRef)
+00007FFFED0C4950 00007FFF6ABE5B56 Microsoft.Diagnostics.Runtime.Implementation.ElfModuleInfo.GetExportSymbolAddress(System.String)
+00007FFFED0C4970 00007FFF69640656 Microsoft.Diagnostics.DebugServices.Implementation.Module.Microsoft.Diagnostics.DebugServices.IExportSymbols.TryGetSymbolAddress(System.String, UInt64 ByRef) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/Module.cs @ 240]
+00007FFFED0C4A80 00007FFF696402C1 Microsoft.Diagnostics.DebugServices.Implementation.DataReader+DataReaderModule.GetExportSymbolAddress(System.String) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/DataReader.cs @ 199]
+00007FFFED0C4AE0 00007FFF6ABE7BDD Microsoft.Diagnostics.Runtime.SingleFileClrInfoProvider.ProvideClrInfoForModule(Microsoft.Diagnostics.Runtime.DataTarget, Microsoft.Diagnostics.Runtime.ModuleInfo)
+00007FFFED0C4B10 00007FFF6ABE43DB System.Linq.Enumerable+WhereEnumerableIterator`1[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4B90 00007FFF69C53C3F System.Linq.Enumerable+<SelectManyIterator>d__236`3[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4BC0 00007FFF6ABDD7CF System.Collections.Generic.EnumerableHelpers.ToArray[[System.__Canon, System.Private.CoreLib]](System.Collections.Generic.IEnumerable`1<System.__Canon>, Int32 ByRef)
+00007FFFED0C4C30 00007FFF6ABDD4FF System.Linq.Buffer`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4C70 00007FFF69C49E8B System.Linq.OrderedEnumerable`1+<GetEnumerator>d__19[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4CC0 00007FFF69C4E103 System.Linq.Enumerable+SelectIPartitionIterator`2[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4CF0 00007FFF68CB1B29 System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4D40 00007FFF696385C0 Microsoft.Diagnostics.Runtime.DataTarget.GetOrCreateClrVersions()
+00007FFFED0C4FC0 00007FFF696379E8 Microsoft.Diagnostics.Runtime.DataTarget.get_ClrVersions()
+00007FFFED0C4FE0 00007FFF6963036B Microsoft.Diagnostics.DebugServices.Implementation.RuntimeProvider+<EnumerateRuntimes>d__2.MoveNext() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeProvider.cs @ 40]
+00007FFFED0C5080 00007FFF6ABD7BE5 System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]].AddRange(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C50E0 00007FFF6962FCD8 Microsoft.Diagnostics.DebugServices.Implementation.RuntimeService.EnumerateRuntimes(Microsoft.Diagnostics.DebugServices.RuntimeEnumerationFlags) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeService.cs @ 59]
+00007FFFED0C5190 00007FFF6962F67B Microsoft.Diagnostics.DebugServices.Implementation.ContextService.GetCurrentRuntime() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 161]
+00007FFFED0C5270 00007FFF69629061 Microsoft.Diagnostics.DebugServices.Implementation.ContextService+ContextServiceProvider.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 260]
+00007FFFED0C5400 00007FFF69624EAC Microsoft.Diagnostics.DebugServices.ServiceContainer.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceContainer.cs @ 97]
+00007FFFED0C54A0 00007FFF69624CA7 Microsoft.Diagnostics.DebugServices.ServiceProviderExtensions.GetService[[System.__Canon, System.Private.CoreLib]](System.IServiceProvider) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceProviderExtensions.cs @ 15]
+00007FFFED0C54F0 00007FFF6962F58F Microsoft.Diagnostics.DebugServices.ContextServiceExtensions.GetCurrentRuntime(Microsoft.Diagnostics.DebugServices.IContextService) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ContextServiceExtensions.cs @ 21]
+00007FFFED0C5520 00007FFF6962F406 SOS.Hosting.TargetWrapper.GetRuntime(IntPtr, IntPtr*) [/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.Hosting/TargetWrapper.cs @ 97]
+00007FFFED0C55B0 00007FFF6962F2EB ILStubClass.IL_STUB_ReversePInvoke(Int64, Int64)
+
+(lldb) c
+Process 65005 resuming
+Process 65005 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 2.1
+    frame #0: 0x00007fffec447f38 libsos.so`HandleCLRNotificationEvent() at strike.cpp:5885:19
+   5882      * real breakpoints be set.
+   5883      */
+   5884     DEBUG_LAST_EVENT_INFO_EXCEPTION dle;
+-> 5885     CNotification Notification;
+   5886
+   5887     if (!CheckCLRNotificationEvent(&dle))
+   5888     {
+(lldb) bt
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 2.1
+  * frame #0: 0x00007fffec447f38 libsos.so`HandleCLRNotificationEvent() at strike.cpp:5885:19
+    frame #1: 0x00007fffec44841f libsos.so`HandleExceptionNotification(client=0x000000000062bde0) at strike.cpp:5958:12
+    frame #2: 0x00007fffec89182f libsosplugin.so`ExceptionBreakpointCallback(baton=0x00007fffec448220, process=0x00007fffed0c5780, thread=0x00007fffed0c5740, location=0x00007fffed0c5770) at services.cpp:292:19
+    frame #3: 0x00007ffff72363e9 liblldb-11.so.1`::PrivateBreakpointHitCallback() at SBBreakpointOptionCommon.cpp:72:16
+    frame #4: 0x00007ffff76d85fc liblldb-11.so.1`::PerformAction() at StopInfo.cpp:501:45
+    frame #5: 0x00007ffff76b1d60 liblldb-11.so.1`::ShouldStop() at Process.cpp:4086:23
+    frame #6: 0x00007ffff76b20b3 liblldb-11.so.1`::DoOnRemoval() at Process.cpp:4150:28
+    frame #7: 0x00007ffff774fa6a liblldb-11.so.1`::FindNextEventInternal() at Listener.cpp:309:17
+    frame #8: 0x00007ffff774ffc5 liblldb-11.so.1`::GetEventInternal() at Listener.cpp:357:9
+    frame #9: 0x00007ffff77500c7 liblldb-11.so.1`lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) at Listener.cpp:399:10
+    frame #10: 0x00007ffff756427a liblldb-11.so.1`::DefaultEventHandler() at Debugger.cpp:1423:22
+    frame #11: 0x00007ffff7564676 liblldb-11.so.1`lldb_private::Debugger::EventHandlerThread(void*) at Debugger.cpp:1476:22
+    frame #12: 0x00007ffff760a489 liblldb-11.so.1`::ThreadCreateTrampoline() at HostNativeThreadBase.cpp:68:10
+    frame #13: 0x00007ffff7fa9ea7 libpthread.so.0`start_thread + 215
+    frame #14: 0x00007fffeee72adf libc.so.6`__clone + 63
+
+(lldb) c
+Process 65005 resuming
+Process 65005 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+    frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe8242740, ContextRecord=0x00007fffe8241b20) at seh-unwind.cpp:884:5
+(lldb) bt
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+  * frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe8242740, ContextRecord=0x00007fffe8241b20) at seh-unwind.cpp:884:5
+    frame #1: 0x00007fffe79aa136 libcoreclr.so`::RaiseException(dwExceptionCode=<unavailable>, dwExceptionFlags=1, nNumberOfArguments=40, lpArguments=0x00007fffed0c45f8) at seh-unwind.cpp:951:5
+    frame #2: 0x00007fffe7a030c7 libcoreclr.so`RaiseTheExceptionInternalOnly(Object*, int, int) at excep.cpp:2795:9
+    frame #3: 0x00007fffe7a02f17 libcoreclr.so`RaiseTheExceptionInternalOnly(throwable=<unavailable>, rethrow=NO, fForStackOverflow=NO) at excep.cpp:2797
+    frame #4: 0x00007fffe7b3e323 libcoreclr.so`IL_Throw(obj=0x00007fbf60c6f6b0) at jithelpers.cpp:4251:5
+    frame #5: 0x00007fff6abe6835
+    frame #6: 0x00007fff6abe63a3
+    frame #7: 0x00007fff6abdf011
+    frame #8: 0x00007fff6abe5bba
+    frame #9: 0x00007fff6abe5b56
+    frame #10: 0x00007fff69640656
+    frame #11: 0x00007fff696402c1
+    frame #12: 0x00007fff6abe7bdd
+    frame #13: 0x00007fff6abe43db
+    frame #14: 0x00007fff69c53c3f
+    frame #15: 0x00007fff6abdd7cf
+    frame #16: 0x00007fff6abdd4ff
+    frame #17: 0x00007fff69c49e8b
+    frame #18: 0x00007fff69c4e103
+    frame #19: 0x00007fff68cb1b29
+    frame #20: 0x00007fff696385c0
+    frame #21: 0x00007fff696379e8
+    frame #22: 0x00007fff6963036b
+    frame #23: 0x00007fff6abed5d0
+    frame #24: 0x00007fff6962fcd8
+    frame #25: 0x00007fff6962f67b
+    frame #26: 0x00007fff69629061
+    frame #27: 0x00007fff69624eac
+    frame #28: 0x00007fff69624ca7
+    frame #29: 0x00007fff6962f58f
+    frame #30: 0x00007fff6962f406
+    frame #31: 0x00007fff6962f2eb
+    frame #32: 0x00007fffec477037 libsos.so`GetRuntime(ppRuntime=0x00007fffec6d7540) at sosextensions.cpp:108:20
+    frame #33: 0x00007fffec4482ec libsos.so`HandleExceptionNotification(client=0x000000000062bde0) at strike.cpp:5957:5
+    frame #34: 0x00007fffec89182f libsosplugin.so`ExceptionBreakpointCallback(baton=0x00007fffec448220, process=0x00007fffed0c5780, thread=0x00007fffed0c5740, location=0x00007fffed0c5770) at services.cpp:292:19
+    frame #35: 0x00007ffff72363e9 liblldb-11.so.1`::PrivateBreakpointHitCallback() at SBBreakpointOptionCommon.cpp:72:16
+    frame #36: 0x00007ffff76d85fc liblldb-11.so.1`::PerformAction() at StopInfo.cpp:501:45
+    frame #37: 0x00007ffff76b1d60 liblldb-11.so.1`::ShouldStop() at Process.cpp:4086:23
+    frame #38: 0x00007ffff76b20b3 liblldb-11.so.1`::DoOnRemoval() at Process.cpp:4150:28
+    frame #39: 0x00007ffff774fa6a liblldb-11.so.1`::FindNextEventInternal() at Listener.cpp:309:17
+    frame #40: 0x00007ffff774ffc5 liblldb-11.so.1`::GetEventInternal() at Listener.cpp:357:9
+    frame #41: 0x00007ffff77500c7 liblldb-11.so.1`lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) at Listener.cpp:399:10
+    frame #42: 0x00007ffff756427a liblldb-11.so.1`::DefaultEventHandler() at Debugger.cpp:1423:22
+    frame #43: 0x00007ffff7564676 liblldb-11.so.1`lldb_private::Debugger::EventHandlerThread(void*) at Debugger.cpp:1476:22
+    frame #44: 0x00007ffff760a489 liblldb-11.so.1`::ThreadCreateTrampoline() at HostNativeThreadBase.cpp:68:10
+    frame #45: 0x00007ffff7fa9ea7 libpthread.so.0`start_thread + 215
+    frame #46: 0x00007fffeee72adf libc.so.6`__clone + 63
+(lldb) clrstack
+OS Thread Id: 0xfe15 (2)
+        Child SP               IP Call Site
+00007FFFED0C46F0 00007fffe7de6601 [HelperMethodFrame: 00007fffed0c46f0] 
+00007FFFED0C4810 00007FFF6ABE6835 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash..ctor(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C4870 00007FFF6ABE63A3 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash.Create(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C48B0 00007FFF6ABDF011 Microsoft.Diagnostics.Runtime.Utilities.ElfFile.get_DynamicSection()
+00007FFFED0C4910 00007FFF6ABE5BBA Microsoft.Diagnostics.Runtime.Utilities.ElfFile.TryGetExportSymbol(System.String, UInt64 ByRef)
+00007FFFED0C4950 00007FFF6ABE5B56 Microsoft.Diagnostics.Runtime.Implementation.ElfModuleInfo.GetExportSymbolAddress(System.String)
+00007FFFED0C4970 00007FFF69640656 Microsoft.Diagnostics.DebugServices.Implementation.Module.Microsoft.Diagnostics.DebugServices.IExportSymbols.TryGetSymbolAddress(System.String, UInt64 ByRef) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/Module.cs @ 240]
+00007FFFED0C4A80 00007FFF696402C1 Microsoft.Diagnostics.DebugServices.Implementation.DataReader+DataReaderModule.GetExportSymbolAddress(System.String) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/DataReader.cs @ 199]
+00007FFFED0C4AE0 00007FFF6ABE7BDD Microsoft.Diagnostics.Runtime.SingleFileClrInfoProvider.ProvideClrInfoForModule(Microsoft.Diagnostics.Runtime.DataTarget, Microsoft.Diagnostics.Runtime.ModuleInfo)
+00007FFFED0C4B10 00007FFF6ABE43DB System.Linq.Enumerable+WhereEnumerableIterator`1[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4B90 00007FFF69C53C3F System.Linq.Enumerable+<SelectManyIterator>d__236`3[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4BC0 00007FFF6ABDD7CF System.Collections.Generic.EnumerableHelpers.ToArray[[System.__Canon, System.Private.CoreLib]](System.Collections.Generic.IEnumerable`1<System.__Canon>, Int32 ByRef)
+00007FFFED0C4C30 00007FFF6ABDD4FF System.Linq.Buffer`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4C70 00007FFF69C49E8B System.Linq.OrderedEnumerable`1+<GetEnumerator>d__19[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4CC0 00007FFF69C4E103 System.Linq.Enumerable+SelectIPartitionIterator`2[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4CF0 00007FFF68CB1B29 System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4D40 00007FFF696385C0 Microsoft.Diagnostics.Runtime.DataTarget.GetOrCreateClrVersions()
+00007FFFED0C4FC0 00007FFF696379E8 Microsoft.Diagnostics.Runtime.DataTarget.get_ClrVersions()
+00007FFFED0C4FE0 00007FFF6963036B Microsoft.Diagnostics.DebugServices.Implementation.RuntimeProvider+<EnumerateRuntimes>d__2.MoveNext() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeProvider.cs @ 40]
+00007FFFED0C5080 00007FFF6ABED5D0 System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]].AddRange(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C50E0 00007FFF6962FCD8 Microsoft.Diagnostics.DebugServices.Implementation.RuntimeService.EnumerateRuntimes(Microsoft.Diagnostics.DebugServices.RuntimeEnumerationFlags) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeService.cs @ 59]
+00007FFFED0C5190 00007FFF6962F67B Microsoft.Diagnostics.DebugServices.Implementation.ContextService.GetCurrentRuntime() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 161]
+00007FFFED0C5270 00007FFF69629061 Microsoft.Diagnostics.DebugServices.Implementation.ContextService+ContextServiceProvider.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 260]
+00007FFFED0C5400 00007FFF69624EAC Microsoft.Diagnostics.DebugServices.ServiceContainer.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceContainer.cs @ 97]
+00007FFFED0C54A0 00007FFF69624CA7 Microsoft.Diagnostics.DebugServices.ServiceProviderExtensions.GetService[[System.__Canon, System.Private.CoreLib]](System.IServiceProvider) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceProviderExtensions.cs @ 15]
+00007FFFED0C54F0 00007FFF6962F58F Microsoft.Diagnostics.DebugServices.ContextServiceExtensions.GetCurrentRuntime(Microsoft.Diagnostics.DebugServices.IContextService) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ContextServiceExtensions.cs @ 21]
+00007FFFED0C5520 00007FFF6962F406 SOS.Hosting.TargetWrapper.GetRuntime(IntPtr, IntPtr*) [/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.Hosting/TargetWrapper.cs @ 97]
+00007FFFED0C55B0 00007FFF6962F2EB ILStubClass.IL_STUB_ReversePInvoke(Int64, Int64)
+
+(lldb) c
+Process 65005 resuming
+Process 65005 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 2.1
+    frame #0: 0x00007fffec447f38 libsos.so`HandleCLRNotificationEvent() at strike.cpp:5885:19
+   5882      * real breakpoints be set.
+   5883      */
+   5884     DEBUG_LAST_EVENT_INFO_EXCEPTION dle;
+-> 5885     CNotification Notification;
+   5886
+   5887     if (!CheckCLRNotificationEvent(&dle))
+   5888     {
+(lldb) bt
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 2.1
+  * frame #0: 0x00007fffec447f38 libsos.so`HandleCLRNotificationEvent() at strike.cpp:5885:19
+    frame #1: 0x00007fffec44841f libsos.so`HandleExceptionNotification(client=0x000000000062bde0) at strike.cpp:5958:12
+    frame #2: 0x00007fffec89182f libsosplugin.so`ExceptionBreakpointCallback(baton=0x00007fffec448220, process=0x00007fffed0c5780, thread=0x00007fffed0c5740, location=0x00007fffed0c5770) at services.cpp:292:19
+    frame #3: 0x00007ffff72363e9 liblldb-11.so.1`::PrivateBreakpointHitCallback() at SBBreakpointOptionCommon.cpp:72:16
+    frame #4: 0x00007ffff76d85fc liblldb-11.so.1`::PerformAction() at StopInfo.cpp:501:45
+    frame #5: 0x00007ffff76b1d60 liblldb-11.so.1`::ShouldStop() at Process.cpp:4086:23
+    frame #6: 0x00007ffff76b20b3 liblldb-11.so.1`::DoOnRemoval() at Process.cpp:4150:28
+    frame #7: 0x00007ffff774fa6a liblldb-11.so.1`::FindNextEventInternal() at Listener.cpp:309:17
+    frame #8: 0x00007ffff774ffc5 liblldb-11.so.1`::GetEventInternal() at Listener.cpp:357:9
+    frame #9: 0x00007ffff77500c7 liblldb-11.so.1`lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) at Listener.cpp:399:10
+    frame #10: 0x00007ffff756427a liblldb-11.so.1`::DefaultEventHandler() at Debugger.cpp:1423:22
+    frame #11: 0x00007ffff7564676 liblldb-11.so.1`lldb_private::Debugger::EventHandlerThread(void*) at Debugger.cpp:1476:22
+    frame #12: 0x00007ffff760a489 liblldb-11.so.1`::ThreadCreateTrampoline() at HostNativeThreadBase.cpp:68:10
+    frame #13: 0x00007ffff7fa9ea7 libpthread.so.0`start_thread + 215
+    frame #14: 0x00007fffeee72adf libc.so.6`__clone + 63
+...
+(lldb) c
+Process 65005 resuming
+Process 65005 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+    frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe81c14a0, ContextRecord=0x00007fffe81c0880) at seh-unwind.cpp:884:5
+(lldb) bt
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+  * frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe81c14a0, ContextRecord=0x00007fffe81c0880) at seh-unwind.cpp:884:5
+    frame #1: 0x00007fffe79aa136 libcoreclr.so`::RaiseException(dwExceptionCode=<unavailable>, dwExceptionFlags=1, nNumberOfArguments=40, lpArguments=0x00007fffed0c4608) at seh-unwind.cpp:951:5
+    frame #2: 0x00007fffe7a030c7 libcoreclr.so`RaiseTheExceptionInternalOnly(Object*, int, int) at excep.cpp:2795:9
+    frame #3: 0x00007fffe7a02f17 libcoreclr.so`RaiseTheExceptionInternalOnly(throwable=<unavailable>, rethrow=NO, fForStackOverflow=NO) at excep.cpp:2797
+    frame #4: 0x00007fffe7b3e323 libcoreclr.so`IL_Throw(obj=0x00007fbf60ccbf28) at jithelpers.cpp:4251:5
+    frame #5: 0x00007fff6abe6835
+    frame #6: 0x00007fff6abe63a3
+    frame #7: 0x00007fff6abdf011
+    frame #8: 0x00007fff6abe5bba
+    frame #9: 0x00007fff6abe5b56
+    frame #10: 0x00007fff69640656
+    frame #11: 0x00007fff696402c1
+    frame #12: 0x00007fff6abe7bdd
+    frame #13: 0x00007fff6abe43db
+    frame #14: 0x00007fff69c53c3f
+    frame #15: 0x00007fff6abeea0a
+    frame #16: 0x00007fff6abee6fb
+    frame #17: 0x00007fff69c49e8b
+    frame #18: 0x00007fff69c4e103
+    frame #19: 0x00007fff68cb1b29
+    frame #20: 0x00007fff696385c0
+    frame #21: 0x00007fff696379e8
+    frame #22: 0x00007fff6963036b
+    frame #23: 0x00007fff6abed5d0
+    frame #24: 0x00007fff6962fcd8
+    frame #25: 0x00007fff6962f67b
+    frame #26: 0x00007fff69629061
+    frame #27: 0x00007fff69624eac
+    frame #28: 0x00007fff69624ca7
+    frame #29: 0x00007fff6962f58f
+    frame #30: 0x00007fff6962f406
+    frame #31: 0x00007fff6962f2eb
+    frame #32: 0x00007fffec477037 libsos.so`GetRuntime(ppRuntime=0x00007fffec6d7540) at sosextensions.cpp:108:20
+    frame #33: 0x00007fffec4482ec libsos.so`HandleExceptionNotification(client=0x000000000062bde0) at strike.cpp:5957:5
+    frame #34: 0x00007fffec89182f libsosplugin.so`ExceptionBreakpointCallback(baton=0x00007fffec448220, process=0x00007fffed0c5780, thread=0x00007fffed0c5740, location=0x00007fffed0c5770) at services.cpp:292:19
+    frame #35: 0x00007ffff72363e9 liblldb-11.so.1`::PrivateBreakpointHitCallback() at SBBreakpointOptionCommon.cpp:72:16
+    frame #36: 0x00007ffff76d85fc liblldb-11.so.1`::PerformAction() at StopInfo.cpp:501:45
+    frame #37: 0x00007ffff76b1d60 liblldb-11.so.1`::ShouldStop() at Process.cpp:4086:23
+    frame #38: 0x00007ffff76b20b3 liblldb-11.so.1`::DoOnRemoval() at Process.cpp:4150:28
+    frame #39: 0x00007ffff774fa6a liblldb-11.so.1`::FindNextEventInternal() at Listener.cpp:309:17
+    frame #40: 0x00007ffff774ffc5 liblldb-11.so.1`::GetEventInternal() at Listener.cpp:357:9
+    frame #41: 0x00007ffff77500c7 liblldb-11.so.1`lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) at Listener.cpp:399:10
+    frame #42: 0x00007ffff756427a liblldb-11.so.1`::DefaultEventHandler() at Debugger.cpp:1423:22
+    frame #43: 0x00007ffff7564676 liblldb-11.so.1`lldb_private::Debugger::EventHandlerThread(void*) at Debugger.cpp:1476:22
+    frame #44: 0x00007ffff760a489 liblldb-11.so.1`::ThreadCreateTrampoline() at HostNativeThreadBase.cpp:68:10
+    frame #45: 0x00007ffff7fa9ea7 libpthread.so.0`start_thread + 215
+    frame #46: 0x00007fffeee72adf libc.so.6`__clone + 63
+(lldb) clrstack
+OS Thread Id: 0xfe15 (2)
+        Child SP               IP Call Site
+00007FFFED0C4700 00007fffe7de6601 [HelperMethodFrame: 00007fffed0c4700] 
+00007FFFED0C4820 00007FFF6ABE6835 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash..ctor(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C4880 00007FFF6ABE63A3 Microsoft.Diagnostics.Runtime.Utilities.ElfSymbolGnuHash.Create(Microsoft.Diagnostics.Runtime.Utilities.Reader, Boolean, UInt64)
+00007FFFED0C48C0 00007FFF6ABDF011 Microsoft.Diagnostics.Runtime.Utilities.ElfFile.get_DynamicSection()
+00007FFFED0C4920 00007FFF6ABE5BBA Microsoft.Diagnostics.Runtime.Utilities.ElfFile.TryGetExportSymbol(System.String, UInt64 ByRef)
+00007FFFED0C4960 00007FFF6ABE5B56 Microsoft.Diagnostics.Runtime.Implementation.ElfModuleInfo.GetExportSymbolAddress(System.String)
+00007FFFED0C4980 00007FFF69640656 Microsoft.Diagnostics.DebugServices.Implementation.Module.Microsoft.Diagnostics.DebugServices.IExportSymbols.TryGetSymbolAddress(System.String, UInt64 ByRef) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/Module.cs @ 240]
+00007FFFED0C4A90 00007FFF696402C1 Microsoft.Diagnostics.DebugServices.Implementation.DataReader+DataReaderModule.GetExportSymbolAddress(System.String) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/DataReader.cs @ 199]
+00007FFFED0C4AF0 00007FFF6ABE7BDD Microsoft.Diagnostics.Runtime.SingleFileClrInfoProvider.ProvideClrInfoForModule(Microsoft.Diagnostics.Runtime.DataTarget, Microsoft.Diagnostics.Runtime.ModuleInfo)
+00007FFFED0C4B20 00007FFF6ABE43DB System.Linq.Enumerable+WhereEnumerableIterator`1[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4BA0 00007FFF69C53C3F System.Linq.Enumerable+<SelectManyIterator>d__236`3[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4BD0 00007FFF6ABEEA0A System.Collections.Generic.EnumerableHelpers.ToArray[[System.__Canon, System.Private.CoreLib]](System.Collections.Generic.IEnumerable`1<System.__Canon>, Int32 ByRef)
+00007FFFED0C4C30 00007FFF6ABEE6FB System.Linq.Buffer`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4C70 00007FFF69C49E8B System.Linq.OrderedEnumerable`1+<GetEnumerator>d__19[[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4CC0 00007FFF69C4E103 System.Linq.Enumerable+SelectIPartitionIterator`2[[System.__Canon, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib]].MoveNext()
+00007FFFED0C4CF0 00007FFF68CB1B29 System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]]..ctor(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C4D40 00007FFF696385C0 Microsoft.Diagnostics.Runtime.DataTarget.GetOrCreateClrVersions()
+00007FFFED0C4FC0 00007FFF696379E8 Microsoft.Diagnostics.Runtime.DataTarget.get_ClrVersions()
+00007FFFED0C4FE0 00007FFF6963036B Microsoft.Diagnostics.DebugServices.Implementation.RuntimeProvider+<EnumerateRuntimes>d__2.MoveNext() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeProvider.cs @ 40]
+00007FFFED0C5080 00007FFF6ABED5D0 System.Collections.Generic.List`1[[System.__Canon, System.Private.CoreLib]].AddRange(System.Collections.Generic.IEnumerable`1<System.__Canon>)
+00007FFFED0C50E0 00007FFF6962FCD8 Microsoft.Diagnostics.DebugServices.Implementation.RuntimeService.EnumerateRuntimes(Microsoft.Diagnostics.DebugServices.RuntimeEnumerationFlags) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/RuntimeService.cs @ 59]
+00007FFFED0C5190 00007FFF6962F67B Microsoft.Diagnostics.DebugServices.Implementation.ContextService.GetCurrentRuntime() [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 161]
+00007FFFED0C5270 00007FFF69629061 Microsoft.Diagnostics.DebugServices.Implementation.ContextService+ContextServiceProvider.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices.Implementation/ContextService.cs @ 260]
+00007FFFED0C5400 00007FFF69624EAC Microsoft.Diagnostics.DebugServices.ServiceContainer.GetService(System.Type) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceContainer.cs @ 97]
+00007FFFED0C54A0 00007FFF69624CA7 Microsoft.Diagnostics.DebugServices.ServiceProviderExtensions.GetService[[System.__Canon, System.Private.CoreLib]](System.IServiceProvider) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ServiceProviderExtensions.cs @ 15]
+00007FFFED0C54F0 00007FFF6962F58F Microsoft.Diagnostics.DebugServices.ContextServiceExtensions.GetCurrentRuntime(Microsoft.Diagnostics.DebugServices.IContextService) [/workspaces/gdbsos/src/diagnostics/src/Microsoft.Diagnostics.DebugServices/ContextServiceExtensions.cs @ 21]
+00007FFFED0C5520 00007FFF6962F406 SOS.Hosting.TargetWrapper.GetRuntime(IntPtr, IntPtr*) [/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.Hosting/TargetWrapper.cs @ 97]
+00007FFFED0C55B0 00007FFF6962F2EB ILStubClass.IL_STUB_ReversePInvoke(Int64, Int64)
+(lldb) c
+Process 65005 resuming
+Process 65005 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 2.1
+    frame #0: 0x00007fffec447f38 libsos.so`HandleCLRNotificationEvent() at strike.cpp:5885:19
+   5882      * real breakpoints be set.
+   5883      */
+   5884     DEBUG_LAST_EVENT_INFO_EXCEPTION dle;
+-> 5885     CNotification Notification;
+   5886
+   5887     if (!CheckCLRNotificationEvent(&dle))
+   5888     {
+(lldb) bt
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 2.1
+  * frame #0: 0x00007fffec447f38 libsos.so`HandleCLRNotificationEvent() at strike.cpp:5885:19
+    frame #1: 0x00007fffec44841f libsos.so`HandleExceptionNotification(client=0x000000000062bde0) at strike.cpp:5958:12
+    frame #2: 0x00007fffec89182f libsosplugin.so`ExceptionBreakpointCallback(baton=0x00007fffec448220, process=0x00007fffed0c5780, thread=0x00007fffed0c5740, location=0x00007fffed0c5770) at services.cpp:292:19
+    frame #3: 0x00007ffff72363e9 liblldb-11.so.1`::PrivateBreakpointHitCallback() at SBBreakpointOptionCommon.cpp:72:16
+    frame #4: 0x00007ffff76d85fc liblldb-11.so.1`::PerformAction() at StopInfo.cpp:501:45
+    frame #5: 0x00007ffff76b1d60 liblldb-11.so.1`::ShouldStop() at Process.cpp:4086:23
+    frame #6: 0x00007ffff76b20b3 liblldb-11.so.1`::DoOnRemoval() at Process.cpp:4150:28
+    frame #7: 0x00007ffff774fa6a liblldb-11.so.1`::FindNextEventInternal() at Listener.cpp:309:17
+    frame #8: 0x00007ffff774ffc5 liblldb-11.so.1`::GetEventInternal() at Listener.cpp:357:9
+    frame #9: 0x00007ffff77500c7 liblldb-11.so.1`lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) at Listener.cpp:399:10
+    frame #10: 0x00007ffff756427a liblldb-11.so.1`::DefaultEventHandler() at Debugger.cpp:1423:22
+    frame #11: 0x00007ffff7564676 liblldb-11.so.1`lldb_private::Debugger::EventHandlerThread(void*) at Debugger.cpp:1476:22
+    frame #12: 0x00007ffff760a489 liblldb-11.so.1`::ThreadCreateTrampoline() at HostNativeThreadBase.cpp:68:10
+    frame #13: 0x00007ffff7fa9ea7 libpthread.so.0`start_thread + 215
+    frame #14: 0x00007fffeee72adf libc.so.6`__clone + 63
+(lldb) c
+Process 65005 resuming
+This is some simple exception.
+argument passed: A string!
+Process 65005 stopped
+* thread #2, name = 'dbg.evt-handler', stop reason = breakpoint 1.1
+    frame #0: 0x00007fffe7de6601 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x00007fffe81c14a0, ContextRecord=0x00007fffe81c0880) at seh-unwind.cpp:884:5
