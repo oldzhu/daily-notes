@@ -1,0 +1,116 @@
+Here’s a concise, safe set of steps to add the dotnet/runtime repo as a submodule at src/runtime and pin it to a specific version (8.0 or 10.0), plus optional shallow/lightweight variants. No changes are applied yet—this is just the playbook.
+
+1. Decide the version you want
+Common choices:
+
+Latest 8.0 servicing branch: release/8.0
+A specific 8.0.x tag (example): v8.0.15
+10.0 preview branch: release/10.0
+Mainline (for latest changes): main
+If you want to debug differences, you can later add a second submodule (e.g. src/runtime10) or just retarget one submodule by checking out a different branch/tag inside it.
+
+2. Add the submodule (standard/full clone)
+From the root of your gdbsos repo:
+
+
+git submodule add https://github.com/dotnet/runtime.git src/runtimecd src/runtimegit fetch --tagsgit checkout v8.0.15   # or: git checkout release/8.0   (pick one)cd ../..git add .gitmodules src/runtimegit commit -m "Add dotnet/runtime submodule pinned to v8.0.15"
+To instead target 10.0 later:
+
+
+cd src/runtimegit checkout release/10.0cd ../..git commit -am "Move runtime submodule to release/10.0"
+3. (Optional) Shallow the submodule to reduce size
+Shallow submodules are helpful (runtime is large) but slightly less flexible for later history spelunking.
+
+Inside the submodule after initial add:
+
+
+cd src/runtimegit fetch --depth 1 origin v8.0.15   # or your branch/taggit reset --hard FETCH_HEADcd ..
+Then edit .gitmodules and add:
+
+
+[submodule "src/runtime"]    path = src/runtime    url = https://github.com/dotnet/runtime.git    shallow = true
+Commit:
+
+
+git add .gitmodulesgit commit -m "Mark runtime submodule as shallow"
+(If later you need more history: cd src/runtime && git fetch --unshallow.)
+
+4. Initialize on fresh clones
+Anyone else (or a CI) cloning your repo will run:
+
+
+git clone <your-repo>cd gdbsosgit submodule update --init --recursive
+If you used shallow:
+
+
+git submodule update --init --depth 1 --recursive
+5. Updating the pinned runtime version later
+To move to another tag/branch:
+
+
+cd src/runtimegit fetch --tags origingit checkout v8.0.16   # examplecd ../..git add src/runtimegit commit -m "Bump runtime submodule to v8.0.16"
+6. (Optional) Maintain two versions side‑by‑side
+If you really want both 8.0 and 10.0 simultaneously:
+
+
+git submodule add https://github.com/dotnet/runtime.git src/runtime8git submodule add https://github.com/dotnet/runtime.git src/runtime10(cd src/runtime8 && git checkout v8.0.15)(cd src/runtime10 && git checkout release/10.0)git add .gitmodules src/runtime8 src/runtime10git commit -m "Add runtime8 (v8.0.15) and runtime10 (release/10.0) submodules"
+Downside: doubles storage.
+
+7. Basic build (Debug) after adding the submodule
+From repo root:
+
+
+cd src/runtime./build.sh -c Debug -subset clr -skiptests
+That produces (paths approximate; verify once built):
+
+
+artifacts/bin/coreclr/Linux.x64.Debug/libcoreclr.soartifacts/bin/coreclr/Linux.x64.Debug/libmscordaccore.so
+If you also need corerun to execute a managed test:
+
+
+./build.sh -c Debug -subset clr+libs -skiptests
+Then use:
+
+
+./artifacts/bin/coreclr/Linux.x64.Debug/corerun /path/to/YourTest.dll
+8. (Optional) Build Checked flavor (more asserts, slower, great for debugging)
+CoreCLR traditionally distinguishes “Debug” (very slow) and “Checked” (asserts + moderate speed). In the unified repo you can still request it:
+
+
+./build.sh -c Checked -subset clr -skiptests
+9. Prerequisite native packages (Debian 11 inside your devcontainer)
+Install once (if not already present):
+
+
+sudo apt-get updatesudo apt-get install -y build-essential clang lldb python3 cmake ninja-build \  libicu-dev libkrb5-dev zlib1g-dev libssl-dev liblttng-ust-dev libunwind-dev \  libnuma-dev gettext curl
+10. Point your debugging session at the new build
+Two common options:
+
+A. Use corerun directly:
+
+
+gdb --args ./artifacts/bin/coreclr/Linux.x64.Debug/corerun /path/to/SimpleThrow.dll
+B. Temporarily override the runtime your existing test host uses by adjusting environment variables (only if you need the shared host layout):
+
+Build more pieces: .[build.sh](http://_vscodecontentref_/1) -c Debug -subset clr+libs+host -skiptests
+Set DOTNET_ROOT to src/runtime/artifacts/bin/dotnet-linux-x64.Debug
+Run gdb --args $DOTNET_ROOT/dotnet /path/to/app.dll
+11. Symbol/source fidelity tips
+For fastest iteration add -skipmanagedtools -skipnative -subset clr only when you know exactly what you need.
+If you need DAC parity, ensure the same configuration (-c Debug or Checked) for both libcoreclr.so and libmscordaccore.so; mixing configurations leads to subtle callback mismatches.
+If you plan to patch PAL or exception dispatch code, build with -c Debug first, only switch to Checked if you need closer perf.
+12. Cleaning and rebuilding
+Inside src/runtime:
+
+
+git clean -xdf./build.sh -c Debug -subset clr -skiptests
+13. Submodule removal (if you change your mind)
+
+git submodule deinit -f src/runtimegit rm -f src/runtimerm -rf .git/modules/src/runtimegit commit -m "Remove runtime submodule"
+14. Quick checklist (minimal)
+git submodule add https://github.com/dotnet/runtime.git src/runtime
+cd src/runtime && git checkout v8.0.15 && cd [workspaces](http://_vscodecontentref_/2).
+git commit -m "..."
+cd src/runtime && [build.sh](http://_vscodecontentref_/3) -c Debug -subset clr -skiptests
+gdb --args ./artifacts/bin/coreclr/Linux.x64.Debug/corerun ...
+Let me know once you’ve added it—next we can tailor the minimal build script (or shallow strategy) and wire your gdb workflow to use the freshly built libs.

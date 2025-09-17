@@ -1,0 +1,66 @@
+(lldb) br dis 2
+1 breakpoints disabled.
+(lldb) br list
+Current breakpoints:
+1: name = 'coreclr_execute_assembly', module = libcoreclr.so, locations = 1, resolved = 1, hit count = 0
+
+  Names:
+    DoNotDeleteOrDisable
+
+  1.1: where = libcoreclr.so`::coreclr_execute_assembly(void *, unsigned int, int, const char **, const char *, unsigned int *) + 49 at exports.cpp:487:18, address = 0x00007ffff6c88a91, resolved, hit count = 0 
+
+2: regex = 'MethodDesc::JitCompileCodeLockedEventWrapper', locations = 1 Options: disabled 
+  2.1: where = libcoreclr.so`MethodDesc::JitCompileCodeLockedEventWrapper(PrepareCodeConfig*, ListLockEntryBase<NativeCodeVersion>*) + 52 at prestub.cpp:763:11, address = 0x00007ffff6e6cfd4, unresolved, hit count = 6 
+
+3: file = '/workspaces/gdbsos/src/runtime/src/coreclr/vm/prestub.cpp', line = 296, exact_match = 0, locations = 1, resolved = 1, hit count = 0
+  3.1: where = libcoreclr.so`DACNotifyCompilationFinished(MethodDesc*, unsigned long) + 167 at prestub.cpp:296:42, address = 0x00007ffff6e6ad17, resolved, hit count = 0 
+
+(lldb) c
+Process 98598 resuming
+Process 98598 stopped
+* thread #1, name = 'SimpleThrow', stop reason = breakpoint 3.1
+    frame #0: 0x00007ffff6e6ad17 libcoreclr.so`DACNotifyCompilationFinished(methodDesc=0x00007fff785fd8c8, pCode=140735211033712) at prestub.cpp:296:42
+   293          if (jnt & CLRDATA_METHNOTIFY_GENERATED)
+   294          {
+   295              // If so, throw an exception!
+-> 296              DACNotify::DoJITNotification(methodDesc, (TADDR)pCode);
+   297          }
+   298      }
+   299  }
+(lldb) p jn
+(JITNotifications) $5 = {
+  m_jitTable = 0x00005555555e1178
+}
+(lldb) p *jn.m_jitTable
+(JITNotification) $6 = (state = 1, clrModule = 140735212924320, methodToken = 100663297)
+(lldb) bt 
+* thread #1, name = 'SimpleThrow', stop reason = breakpoint 3.1
+  * frame #0: 0x00007ffff6e6ad17 libcoreclr.so`DACNotifyCompilationFinished(methodDesc=0x00007fff785fd8c8, pCode=140735211033712) at prestub.cpp:296:42
+    frame #1: 0x00007ffff6e6d50c libcoreclr.so`MethodDesc::JitCompileCodeLockedEventWrapper(this=0x00007fff785fd8c8, pConfig=0x00007fffffffc2d8, pEntry=0x00005555555d1a90) at prestub.cpp:921:9
+    frame #2: 0x00007ffff6e6c211 libcoreclr.so`MethodDesc::JitCompileCode(this=0x00007fff785fd8c8, pConfig=0x00007fffffffc2d8) at prestub.cpp:707:20
+    frame #3: 0x00007ffff6e6b419 libcoreclr.so`MethodDesc::PrepareILBasedCode(this=0x00007fff785fd8c8, pConfig=0x00007fffffffc2d8) at prestub.cpp:433:17
+    frame #4: 0x00007ffff6e6aeb6 libcoreclr.so`MethodDesc::PrepareCode(this=0x00007fff785fd8c8, pConfig=0x00007fffffffc2d8) at prestub.cpp:321:19
+    frame #5: 0x00007ffff6d2c416 libcoreclr.so`CodeVersionManager::PublishVersionableCodeIfNecessary(this=0x0000555555612d10, pMethodDesc=0x00007fff785fd8c8, callerGCMode=Coop, doBackpatchRef=0x00007fffffffc4b7, doFullBackpatchRef=0x00007fffffffc4b6) at codeversion.cpp:1734:34
+    frame #6: 0x00007ffff6e73bba libcoreclr.so`MethodDesc::DoPrestub(this=0x00007fff785fd8c8, pDispatchingMT=0x0000000000000000, callerGCMode=Coop) at prestub.cpp:2595:42
+    frame #7: 0x00007ffff6e72e93 libcoreclr.so`::PreStubWorker(pTransitionBlock=0x00007fffffffc7e8, pMD=0x00007fff785fd8c8) at prestub.cpp:2424:29
+    frame #8: 0x00007ffff72c03b8 libcoreclr.so`ThePreStub at theprestubamd64.S:16
+    frame #9: 0x00007ffff72bf363 libcoreclr.so`CallDescrWorkerInternal at calldescrworkeramd64.S:97
+    frame #10: 0x00007ffff6f2d03c libcoreclr.so`CallDescrWorkerWithHandler(pCallDescrData=0x00007fffffffcb68, fCriticalCall=NO) at callhelpers.cpp:67:5
+    frame #11: 0x00007ffff6f2dd77 libcoreclr.so`MethodDescCallSite::CallTargetWorker(this=0x00007fffffffcce0, pArguments=0x00007fffffffcc88, pReturnValue=0x00007fffffffcbe8, cbReturnValue=8) at callhelpers.cpp:562:9
+    frame #12: 0x00007ffff6cc214f libcoreclr.so`MethodDescCallSite::Call_RetArgSlot(this=0x00007fffffffcce0, pArguments=0x00007fffffffcc88) at callhelpers.h:458:9
+    frame #13: 0x00007ffff6cc1e21 libcoreclr.so`RunMainInternal(pParam=0x00007fffffffcf50) at assembly.cpp:1307:48
+    frame #14: 0x00007ffff6cc1b29 libcoreclr.so`RunMain(this=0x00007fffffffce58, pParam=0x00007fffffffcf50)::$_1::operator()(Param*) const::'lambda'(Param*)::operator()(Param*) const at assembly.cpp:1375:9
+    frame #15: 0x00007ffff6cbcc19 libcoreclr.so`RunMain(this=0x00007fffffffcf40, __EXparam=0x00007fffffffcf50)::$_1::operator()(Param*) const at assembly.cpp:1377:5
+    frame #16: 0x00007ffff6cbc9ca libcoreclr.so`RunMain(pFD=0x00007fff785fd8c8, numSkipArgs=1, piRetVal=0x00007fffffffd06c, stringArgs=0x00007fffffffd550) at assembly.cpp:1377:5
+    frame #17: 0x00007ffff6cbd04d libcoreclr.so`Assembly::ExecuteMainMethod(this=0x00005555556e47f0, stringArgs=0x00007fffffffd550, waitForOtherThreads=YES) at assembly.cpp:1504:18
+    frame #18: 0x00007ffff6d34bfd libcoreclr.so`CorHost2::ExecuteAssembly(this=0x00005555555ca270, dwAppDomainId=1, pwzAssemblyPath=u"/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll", argc=0, argv=0x0000000000000000, pReturnValue=0x00007fffffffd700) at corhost.cpp:349:39
+    frame #19: 0x00007ffff6c88be8 libcoreclr.so`::coreclr_execute_assembly(hostHandle=0x00005555555ca270, domainId=1, argc=0, argv=0x0000000000000000, managedAssemblyPath="/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll", exitCode=0x00007fffffffd700) at exports.cpp:504:24
+    frame #20: 0x00007ffff7a25a6e libhostpolicy.so`___lldb_unnamed_symbol213$$libhostpolicy.so + 910
+    frame #21: 0x00007ffff7a26b89 libhostpolicy.so`corehost_main + 345
+    frame #22: 0x00007ffff7a666db libhostfxr.so`___lldb_unnamed_symbol68$$libhostfxr.so + 1531
+    frame #23: 0x00007ffff7a65212 libhostfxr.so`___lldb_unnamed_symbol66$$libhostfxr.so + 1042
+    frame #24: 0x00007ffff7a5fbb7 libhostfxr.so`hostfxr_main_startupinfo + 263
+    frame #25: 0x0000555555564b10 SimpleThrow`___lldb_unnamed_symbol142$$SimpleThrow + 1136
+    frame #26: 0x0000555555564e3f SimpleThrow`___lldb_unnamed_symbol144$$SimpleThrow + 175
+    frame #27: 0x00007ffff7abfd7a libc.so.6`__libc_start_main + 234
+    frame #28: 0x000055555555b0f9 SimpleThrow`___lldb_unnamed_symbol1$$SimpleThrow + 41

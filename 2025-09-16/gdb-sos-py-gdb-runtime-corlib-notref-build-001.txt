@@ -1,0 +1,64 @@
+You actually built the implementation; it’s just not in the folder you inspected. The directory you looked at (artifacts/bin/System.Private.CoreLib/.../ref) holds only the reference assembly (the compile-time facade). The real (implementation) System.Private.CoreLib.dll for CoreCLR lives under the CoreCLR runtime bin/obj layout, not in the per-library packaging layout.
+
+Where the implementation output is
+After .[build.sh](http://_vscodecontentref_/0) -c Debug -subset clr.corelib you should find:
+
+Primary implementation (post-trim final IL copy): System.Private.CoreLib.dll System.Private.CoreLib.pdb
+
+Intermediate / obj copies: System.Private.CoreLib.dll System.Private.CoreLib.dll (before trimming/link descriptors applied) System.Private.CoreLib.pdb
+
+Reference assembly (what you saw; DO NOT execute): System.Private.CoreLib.dll
+
+Quick size heuristic:
+
+Ref assembly: tiny (a few hundred KB or less, no method bodies)
+Implementation: > 1 MB (contains method IL)
+Why you only saw the ref folder
+The top-level artifacts/bin/System.Private.CoreLib/... folder is part of the libraries packaging system. For the CoreCLR flavor, the “runtime pack” layout is aggregated under artifacts/bin/coreclr/<os>.<arch>.<Configuration>/IL/. The subset clr.corelib intentionally builds just the CoreCLR-flavored CoreLib project (src/coreclr/System.Private.CoreLib/System.Private.CoreLib.csproj) and drops the usable assembly into that CoreCLR bin tree.
+
+Recommended command patterns
+Build CoreLib only (what you ran, adding explicit arch is safer):
+
+
+./build.sh -c Debug -arch x64 -subset clr.corelib
+Build native runtime + CoreLib together (version/layout mismatch avoidance):
+
+
+./build.sh -c Debug -arch x64 -subset clr.runtime+clr.corelib
+Build native runtime first (coreclr), then CoreLib (if you want to iterate CoreLib fast):
+
+
+./build.sh -c Debug -arch x64 -subset clr.runtime./build.sh -c Debug -arch x64 -subset clr.corelib
+Direct project build (handy for rapid inner-loop changes without subset parsing):
+
+
+dotnet build src/runtime/src/coreclr/System.Private.CoreLib/System.Private.CoreLib.csproj -c Debug
+(That still relies on prior native build for running under corerun.)
+
+Which file to copy/use with your debug libcoreclr.so
+Use: System.Private.CoreLib.dll
+
+Don’t copy the ref assembly (the one under .../ref/Debug/net8.0/); doing so causes Loader error: 0x80131058 (reference assembly).
+
+If you’re experimenting with swapping just native libs in the global shared framework, prefer instead to run tests via corerun pointing to the matching IL directory:
+
+
+CORE_ROOT=src/runtime/artifacts/bin/coreclr/linux.x64.Debug/IL$CORE_ROOT/corerun SimpleThrow.dll
+Optionally export:
+
+
+export CORE_ROOT=$(pwd)/src/runtime/artifacts/bin/coreclr/linux.x64.Debug/IL
+Verifying you have the correct implementation
+
+ls -lh src/runtime/artifacts/bin/coreclr/linux.x64.Debug/IL/System.Private.CoreLib.dllfile src/runtime/artifacts/bin/coreclr/linux.x64.Debug/IL/System.Private.CoreLib.dll
+If size is >1MB and ildasm (or dotnet ildasm) shows method bodies, it’s the implementation.
+
+Common pitfalls
+Looking only under artifacts/bin/System.Private.CoreLib/ → you’ll see reference pack layout, not runtime pack.
+Copying the ref DLL into a runtime → 0x80131058.
+Building only CoreLib and pairing it with a different-version native libcoreclr.so → layout asserts (SafeHandle size, etc.).
+Forgetting -arch x64 when you later add other architectures (explicit is clearer).
+Next step
+Grab the implementation DLL from the coreclr/linux.x64.Debug/IL path and use it with your freshly built native libs (ideally built in the same build.sh invocation or at least same commit). If you’d like, I can show a tiny script to stage both native libs and CoreLib together for a corerun test directory—just say the word.
+
+Let me know if you want a quick verification command run or help wiring this into your swap-coreclr.sh workflow.

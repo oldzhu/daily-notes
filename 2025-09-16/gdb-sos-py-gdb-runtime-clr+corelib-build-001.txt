@@ -1,0 +1,109 @@
+
+Used 1 reference
+You want ONLY:
+
+Native VM bits: libcoreclr.so, libmscordaccore.so (DAC), the other native helpers (libsos.so, libdbgshim.so…)
+A single matching System.Private.CoreLib.dll WITHOUT paying the cost of building the entire libraries set.
+Below are progressively “smaller” options, from simplest (two small invocations) to the most granular (manual msbuild). Pick the level you’re comfortable with.
+
+Option 1 (Lean & Reliable): CoreCLR native + targeted CoreLib project build
+Step 1: Build native runtime (VM + DAC etc.)
+
+
+cd src/runtime./src/coreclr/build-runtime.sh -c Debug
+Step 2: Build ONLY System.Private.CoreLib (no full libs graph) From the same runtime root (top of dotnet/runtime submodule):
+
+
+./build.sh -c Debug -projects src/libraries/System.Private.CoreLib/src/System.Private.CoreLib.csproj -restore
+What this does:
+
+Restores the minimal SDK/toolset.
+Builds just that project (and its direct generated support) in Debug. Resulting CoreLib appears under something like:
+
+artifacts/bin/System.Private.CoreLib/Debug/net8.0/System.Private.CoreLib.dll
+(or net8.0-Linux-Debug depending on the commit; list the directory to confirm).
+
+Copy/overlay it next to your native bits if you want a self-contained debug directory:
+
+
+cp artifacts/bin/System.Private.CoreLib/Debug/**/System.Private.CoreLib.dll artifacts/bin/coreclr/Linux.x64.Debug/
+Then run with corerun:
+
+
+artifacts/bin/coreclr/Linux.x64.Debug/corerun path/to/YourApp.dll
+Why this is minimal:
+
+You didn’t ask for any other managed libraries—CoreLib alone is enough for simple throw / EE stepping scenarios.
+The rest of the base class library will be probed; for small repro apps that only hit mscorlib-level types, it often works. If you need additional assemblies, publish the app self-contained or copy them from the shared framework.
+Option 2: Use subset spec to get native + only CoreLib (single command)
+Some runtime revisions support a synthetic subset name; when present you can do:
+
+
+./build.sh -c Debug -subset clr+libs.corelib -skiptests
+If libs.corelib isn’t recognized in your commit, fall back to Option 1. (The subset names evolve; -projects is future‑proof.)
+
+Option 3: Manual msbuild invocation (bypassing build.sh for CoreLib)
+After Step 1 (native build):
+
+
+cd src/runtimedotnet build src/libraries/System.Private.CoreLib/src/System.Private.CoreLib.csproj \  -c Debug \  /p:RuntimeConfiguration=Debug \  /p:PortableBuild=true
+Then copy the DLL as in Option 1.
+Use this only if you want to avoid the build script overhead entirely—build.sh sets some environment defaults you otherwise have to remember (toolset restore, workload detection).
+
+Option 4: Fully self-contained minimal debug layout (recommended for repeated sessions)
+Create a staging directory:
+
+
+STAGE=coreclr-debug-layoutmkdir -p $STAGEcp src/runtime/artifacts/bin/coreclr/Linux.x64.Debug/{libcoreclr.so,libmscordaccore.so,libdbgshim.so,libsos*.so,corerun} $STAGE/cp src/runtime/artifacts/bin/System.Private.CoreLib/Debug/**/System.Private.CoreLib.dll $STAGE/
+Run:
+
+
+gdb --args ./$STAGE/corerun /path/to/YourApp.dll
+Add any additional managed assemblies your test needs (copy from the shared framework or from dotnet publish -f net8.0 -c Debug /p:SelfContained=true output of the app).
+
+Verification & Sanity Checks
+Ensure matching commit/tag before building both:
+
+git -C src/runtime describe --tags --always
+Check that VM and CoreLib versions align:
+
+strings src/runtime/artifacts/bin/coreclr/Linux.x64.Debug/libcoreclr.so | grep -i 'product version' | headdotnet --info | grep 'Microsoft.NETCore.App'
+(If mismatch: you mixed a native build from one commit and a CoreLib from another.)
+
+CoreLib size sanity (example):
+
+stat -c '%n %s' artifacts/bin/System.Private.CoreLib/Debug/**/System.Private.CoreLib.dll
+When You Need More Than CoreLib
+If your debugging scenario touches:
+
+Reflection.Emit / dynamic code
+Higher-level networking / globalization
+LINQ / generics stress that pulls other assemblies
+You’ll start hitting FileNotFoundException or type load errors. At that point either:
+
+Build full clr+libs once,
+Or run the app with the original shared framework and only swap the native bits (but then you must ensure the exact tag to avoid layout asserts again).
+Common Pitfalls
+Issue	Cause	Fix
+Size mismatch assert on SafeHandle	CoreLib commit doesn’t match VM	Rebuild CoreLib from same commit or rebuild all libs
+Type load exceptions	Only CoreLib present, app needs more assemblies	Copy required assemblies from shared framework or publish self-contained
+Missing R2R / slower startup	No crossgen/pgo images generated	Accept for debugging or run full libs build if perf matters
+Mismatched DAC in SOS session	Using shared framework’s DAC with custom libcoreclr	Copy libmscordaccore.so alongside and point SOS there
+Minimal Command Cheat Sheet
+Native only:
+
+
+./src/coreclr/build-runtime.sh -c Debug
+Add only CoreLib (preferred):
+
+
+./build.sh -c Debug -projects src/libraries/System.Private.CoreLib/src/System.Private.CoreLib.csproj -restore
+Run:
+
+
+artifacts/bin/coreclr/Linux.x64.Debug/corerun MyApp.dll
+(Optional copy CoreLib):
+
+
+cp artifacts/bin/System.Private.CoreLib/Debug/**/System.Private.CoreLib.dll artifacts/bin/coreclr/Linux.x64.Debug/
+Need a helper script to automate the “build-native + single corelib + stage directory” flow? Say the word and I can generate scripts/build-min-coreclr.sh.

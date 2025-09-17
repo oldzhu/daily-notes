@@ -1,0 +1,48 @@
+Seems like still not work in my testing after we implement virtualwrite. so I tried to debug the lldb plugin scenario to try to see when it calls SetCodeNOtification(later we can check why gdb sos not calling it), but one of the strange thing is tha tI am using lldb to debug lldb adn set the below bp, but non of them hit for my testing: source sos.py -> bpmd SimpleThrow.dll Simple.Main -> press ctrl-c to break into lldb to set the bp to SetCodeNotification->press c to back to the debugee lldb abd press r to continue -> bp not hit till the final exception throw by the testing program.
+
+(lldb) br list
+Current breakpoints:
+2: regex = 'SetCodeNotification', locations = 2, resolved = 2, hit count = 0
+2.1: where = libmscordaccore.soClrDataAccess::SetCodeNotifications(unsigned int, IXCLRDataModule**, IXCLRDataModule*, unsigned int*, unsigned int*, unsigned int) + 75 at daccess.cpp:4890:13, address = 0x00007fbead88e29b, resolved, hit count = 0    2.2: where = libmscordaccore.soClrDataMethodDefinition::SetCodeNotification(unsigned int) + 51 at task.cpp:3435:5, address = 0x00007fbead95d493, resolved, hit count = 0
+
+=============
+
+You’re very close—what you observed is consistent with two common gotchas:
+
+You set the DAC breakpoints after SOS had already set the notification
+bpmd triggers the SetCodeNotification call immediately when you run the bpmd command, not later at JIT time.
+In your sequence, you ran “bpmd SimpleThrow.dll Simple.Main”, then Ctrl-C into lldb, then set the breakpoints. By then, SetCodeNotification had already run—so the breakpoints won’t hit.
+Be sure you’re breaking in the process that actually loads DAC
+DAC (libmscordaccore.so) is loaded into the debugger process (the inner lldb running SOS), not the managed target.
+If you’re debugging lldb-with-lldb, your breakpoints must be in the inner lldb process (the one that dlopens DAC).
+Pending breakpoints by name are fine in lldb; just set them before issuing the SOS bpmd so they bind when DAC loads.
+What to try (minimal and reliable)
+
+Start a fresh lldb session that runs the lldb+SOS scenario you want to observe.
+Before you source sos.py or run any SOS command:
+Set pending breakpoints that will bind when DAC loads:
+br set -s libmscordaccore.so -n ClrDataMethodDefinition::SetCodeNotification
+br set -s libmscordaccore.so -n ClrDataAccess::SetAllCodeNotifications
+br set -s libmscordaccore.so -n JITNotifications::UpdateOutOfProcTable ← this one catches both per-method and module-wide paths
+Continue to the point where you can issue SOS commands.
+Now run: source sos.py; bpmd SimpleThrow.dll Simple.Main
+You should hit one of the above breakpoints right away (on the bpmd command), not at the actual JIT time.
+Extra checks that help
+
+Also set a breakpoint or watchpoint on the target’s g_pNotificationTable being updated:
+br set -s libmscordaccore.so -n UpdateOutOfProcTable (symbol names differ by inlining; JITNotifications::UpdateOutOfProcTable is the DAC-side copy/write)
+If symbols are tricky, after DAC loads, find g_pNotificationTable via symbol search and set a hardware watchpoint on its first entry (methodToken) being written.
+If a method is already JITted when you run bpmd, SOS may set a native code breakpoint directly, so SetCodeNotification may not be used. Try bpmd on a method that’s definitely not JITted yet (or set bpmd before running the program to keep it cold).
+About our GDB path
+
+We implemented WriteVirtual for both the ICLRDataTarget2 shim and the ILLDBServices lldb_write_virtual entry point, so DAC can now push the JIT notification table into the target.
+To confirm it’s exercised, add a temporary trace in _dt_write_virtual (we already do basic tracing) and watch it fire when you run bpmd. If you don’t see any write calls during bpmd, then SOS didn’t attempt to set a notification (likely because it resolved a jitted address and set a native bp instead).
+Make sure you’re testing on a live session (not a core dump); writes are intentionally disabled in dump mode.
+If you still don’t hit the DAC breakpoints after setting them first
+
+Verify the breakpoints are in the inner lldb process (where DAC is loaded). You should see them remain pending until libmscordaccore.so is loaded; then lldb will resolve them.
+Break also on ClrDataAccess::TranslateExceptionRecordToNotification (it handles JIT notifications mapped into IXCLRDataExceptionNotification::OnCodeGenerated). If SetCodeNotification succeeded, the later JIT should lead to that path being hit.
+Bottom line
+
+Your results make sense if SetCodeNotification ran before you set your breakpoints. Set the DAC breakpoints before running bpmd (or use pending breakpoints), and ensure you place them in the process that loads DAC (the debugger with SOS), not the managed app. That should give you a hit in LLDB. Then we can compare with the GDB path to see if SetCodeNotification is even being called and, if so, whether UpdateOutOfProcTable writes succeed.
+

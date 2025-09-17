@@ -1,0 +1,139 @@
+I debugged the bpmd for lldb plugin and our gdb sos py, and found the different execution flow in the below funcion DACNotifyCompilationFinished which could explain why bpmd not working for non-jitted function in our gdb sos but it is working in lldb plugin.
+271 void DACNotifyCompilationFinished(MethodDesc *methodDesc, PCODE pCode)
+272 {
+273 CONTRACTL
+274 {
+275 NOTHROW;
+276 GC_NOTRIGGER;
+277 MODE_PREEMPTIVE;
+278 }
+279 CONTRACTL_END;
+280
+281 // Is the list active?
+282 JITNotifications jn(g_pNotificationTable);
+283 if (jn.IsActive())
+284 {
+285 // Get Module and mdToken
+286 mdToken t = methodDesc->GetMemberDef();
+287 Module *modulePtr = methodDesc->GetModule();
+288
+289 _ASSERTE(modulePtr);
+290
+291 // Are we listed?
+292 USHORT jnt = jn.Requested((TADDR) modulePtr, t);
+293 if (jnt & CLRDATA_METHNOTIFY_GENERATED)
+294 {
+295 // If so, throw an exception!
+296 DACNotify::DoJITNotification(methodDesc, (TADDR)pCode);
+297 }
+298 }
+299 }
+in our gdb sos scenario, the line 296 DoJITNotification won't be hit.
+in lldb plugin scenario, the line 296 DoJITNotification will be hit.
+When the method and modules set by bpmd will be put into g_pNotificationTable and why it is not put into the table in our gdb sos implementation? Please review the related code in runtime submodule and diagnotics submodule, give the analysis and the clues for further debugging/troubleshooting.
+
+==============
+
+I'll search the runtime and diagnostics submodules for bpmd implementation and JIT notification table usage to explain how g_pNotificationTable gets populated and why it may differ between GDB and LLDB flows.
+
+Searched codebase for "bpmd JIT notification g_pNotificationTable DACNotify::DoJITNotification JITNotifications Requested CLRDATA_METHNOTIFY_GENERATED ISOSDacInterface SetJITNotification", 19 results
+Thanks for the concrete trace point. I’ll walk the “bpmd → JIT notification” path end-to-end, show exactly where the table should be populated, and why your GDB flow likely never triggers DoJITNotification.
+
+How bpmd is supposed to work (happy path)
+When you set bpmd for a not-yet-JITted method, the debugger must tell the runtime to notify on JIT completion for that specific method. The flow is:
+
+Resolve method Module* and mdMethodDef
+Done through DAC APIs (IXCLRData) from the debugger process.
+Set code notification for that (module, token)
+ClrDataMethodDefinition::SetCodeNotification(flags) writes an entry into the “host” JIT notification table and then pushes it into the target process-global table:
+Code: task.cpp → ClrDataMethodDefinition::SetCodeNotification
+Calls JITNotifications jn(m_dac->GetHostJitNotificationTable())
+Then jn.SetNotification(modulePtr, m_token, CLRDATA_METHNOTIFY_GENERATED) and jn.UpdateOutOfProcTable()
+Target-side table used by runtime
+Global in the target: g_pNotificationTable (see util.hpp → GPTR_DECL(JITNotification, g_pNotificationTable))
+Runtime checks it during JIT completion:
+Your snippet DACNotifyCompilationFinished calls:
+JITNotifications jn(g_pNotificationTable);
+if (jn.IsActive()) { if (jn.Requested(module, token) & CLRDATA_METHNOTIFY_GENERATED) DACNotify::DoJITNotification(...) }
+The notification itself
+DoJITNotification raises a special DAC notification “exception”
+DAC maps it and calls IXCLRDataExceptionNotification::OnCodeGenerated
+Code: daccess.cpp → TranslateExceptionRecordToNotification (case JIT_NOTIFICATION2)
+So: if DoJITNotification is not hit at line 296 in your snippet, there are only two real reasons:
+
+The JIT notification table entry was never written (most likely), or
+jn.IsActive() is false (table not initialized/visible), which is rarer in a live session.
+Exactly where the table is populated and pushed
+Host-side table creation:
+
+daccess.cpp → ClrDataAccess::GetHostJitNotificationTable():
+Allocates with JITNotifications::InitializeNotificationTable(1000)
+Writing the per-method entry:
+
+task.cpp → ClrDataMethodDefinition::SetCodeNotification
+Validates flags
+Calls jn.SetNotification(modulePtr, token, CLRDATA_METHNOTIFY_GENERATED)
+Calls jn.UpdateOutOfProcTable() to push the host copy into the target’s g_pNotificationTable
+Module-wide option (if used):
+
+daccess.cpp → ClrDataAccess::SetAllCodeNotifications(IXCLRDataModule*, flags)
+Target-side read/decision:
+
+util.cpp and .hpp
+JITNotifications::Requested (returns the state for module+token)
+Global g_pNotificationTable read by JITNotifications jn(g_pNotificationTable)
+Why LLDB works and GDB doesn’t in your setup
+From your observation:
+
+LLDB plugin: hits DoJITNotification → JIT notification table has the entry.
+GDB SOS: does not hit DoJITNotification → there’s no entry for (module, token).
+That points to one of these in the GDB flow:
+
+bpmd implementation doesn’t call SetCodeNotification
+If your GDB SOS Python command only sets a breakpoint on existing native addresses and never calls IXCLRData’s SetCodeNotification, non-JITted methods won’t ever trigger a notification.
+Wrong module/token pair
+The notification key is (TADDR Module*, mdToken). If your code passes the wrong Module* (e.g., PE/IL image pointer rather than the runtime Module), or a non-MethodDef token, Requested(...) won’t match and the notification won’t fire.
+UpdateOutOfProcTable fails because writes are not supported
+jn.UpdateOutOfProcTable() needs to WRITE into the target process (to g_pNotificationTable). DAC uses the data-target’s WriteVirtual.
+If your GDB bridge doesn’t implement “write memory” for DAC (or runs in a mode that disallows writes), UpdateOutOfProcTable will fail and the entry never reaches the target, so jn.IsActive() or Requested(...) will fail the check in runtime.
+LLDB’s plugin implements process memory writes; if your GDB bridge only implements read, that explains the discrepancy.
+Table never initialized target-side (unlikely, but quick check)
+jn.IsActive() is true only when g_pNotificationTable != NULL (since JITNotifications wraps the pointer and checks).
+If your GDB run shows IsActive() false, ensure target table is initialized. On Unix, InitializeJITNotificationTable() is available (see util.hpp), but in practice the DAC “push” path is responsible for ensuring the target has a table (by allocating and writing). If the write path is missing, you’ll observe a perpetually inactive table.
+What to check next (minimal, targeted)
+In your GDB SOS bpmd handler:
+
+Confirm you resolve IXCLRDataMethodDefinition for the intended method.
+Call SetCodeNotification(CLRDATA_METHNOTIFY_GENERATED) on it.
+Log the HRESULT; it must be S_OK.
+Verify DataTarget writes:
+
+Ensure your GDB bridge implements WriteVirtual and that jn.UpdateOutOfProcTable() succeeds. If not, you’ll see E_FAIL from SetCodeNotification.
+A quick probe: attempt a tiny WriteVirtual via DAC apis to a scratch location to confirm writes succeed.
+Sanity-trace in the runtime (with your Debug libcoreclr):
+
+Put a breakpoint in JITNotifications::SetNotification (target-side util.cpp) and in JITNotifications::UpdateOutOfProcTable (DAC side). If the former never hits during bpmd, the target was never updated.
+Dump g_pNotificationTable contents in target:
+Read pointer value of g_pNotificationTable
+Walk entries and print (clrModule, methodToken, state); compare with your intended module/token.
+Cross-check with LLDB flow:
+
+LLDB bpmd path calls SetCodeNotification and also registers IXCLRDataExceptionNotification sink (for callbacks). Your GDB path should do both:
+Set the notification (to populate g_pNotificationTable)
+Register to receive OnCodeGenerated (or ensure your bridge traps the DAC exception used for the event)
+Concrete code references you can use while stepping
+Write path setup and push:
+
+task.cpp: ClrDataMethodDefinition::SetCodeNotification
+daccess.cpp: ClrDataAccess::SetAllCodeNotifications, GetHostJitNotificationTable, TranslateExceptionRecordToNotification
+util.cpp: JITNotifications::SetNotification, Requested, UpdateOutOfProcTable (templated helper is referenced), GPTR_IMPL(JITNotification, g_pNotificationTable)
+Notification sink interface:
+
+xclrdata.h: IXCLRDataExceptionNotification::OnCodeGenerated
+Keys for the table:
+
+util.hpp: struct JITNotification { USHORT state; TADDR clrModule; mdToken methodToken; }
+Likely root cause in your GDB SOS
+The most probable culprit is (3): the GDB bridge doesn’t implement DAC memory writes, so UpdateOutOfProcTable() fails and the table in the target stays empty. The second most likely is (1) (bpmd path not calling SetCodeNotification at all). Both would produce exactly what you saw: zero hits on DoJITNotification.
+
+If you share the bpmd implementation snippet from gdbplugin/sos, I can point to the exact changes: calling SetCodeNotification and ensuring your bridge’s WriteVirtual is implemented.

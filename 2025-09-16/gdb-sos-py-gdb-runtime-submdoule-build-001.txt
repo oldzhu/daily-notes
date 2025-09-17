@@ -1,0 +1,80 @@
+You don’t need (and shouldn’t use) the full default repo build if you only want the native runtime debug .so files (e.g. libcoreclr.so, libmscordaccore.so (DAC), and friends like libdbgshim.so). Below is the minimal, practical set and the variants—ordered from smallest to broader.
+
+TL;DR (fastest path)
+From inside your runtime submodule:
+
+CoreCLR only (native + DAC + corelib IL build stub): build.sh -c Debug -subset clr -skiptests
+Even a bit leaner (bypass global orchestrator) using the legacy per-component script: ./src/coreclr/build.sh Debug
+Use (2) if you truly only want the native runtime bits. Use (1) if you might later layer in managed pieces without reconfiguring.
+
+What each option builds
+Option A: Top-level subset “clr” Command: build.sh -c Debug -subset clr -skiptests Produces (Linux x64 Debug):
+
+artifacts/bin/coreclr/Linux.x64.Debug/libcoreclr.so
+artifacts/bin/coreclr/Linux.x64.Debug/libmscordaccore.so (DAC)
+artifacts/bin/coreclr/Linux.x64.Debug/libdbgshim.so
+artifacts/bin/coreclr/Linux.x64.Debug/libsos.so, libsosplugin.so (SOS native components)
+artifacts/bin/coreclr/Linux.x64.Debug/corerun (host test harness) Also generates a targeting CoreLib (System.Private.CoreLib.dll) suitable for loading, built just enough for the VM to initialize.
+Option B: Direct CoreCLR component script Command: ./src/coreclr/build.sh Debug (or: ./src/coreclr/build.sh Debug x64) This bypasses the repo’s subset orchestration and only builds the VM, DAC, SOS, etc. It’s usually the quickest for iteration on exception dispatch, JIT, PAL, etc.
+
+Option C: Checked instead of Debug For more asserts but less pathological slowness than full Debug: build.sh -c Checked -subset clr -skiptests or ./src/coreclr/build.sh Checked
+
+Option D: If you later need managed libraries/JIT interactions that depend on updated IL (not just the native VM) Add libs: build.sh -c Debug -subset clr+libs -skiptests Only do this when you need managed assemblies rebuilt (slower).
+
+Which artifacts correspond to what you’ll step into
+File	Purpose
+libcoreclr.so	The VM (execution engine, GC, JIT loaders, PAL, exception dispatcher).
+libmscordaccore.so	DAC used for out-of-process inspection (your gdb-sos uses this).
+libdbgshim.so	Helper for process attach / launching debuggee.
+libsos.so / libsosplugin.so	SOS extension native side (already present in your existing pipelines).
+corerun	Minimal host to launch a managed DLL without full dotnet host.
+(Names sometimes have accompanying .dbg separate debug info files depending on build settings.)
+
+Minimal build vs. feature switches
+You generally don’t need to hand-disable features; the standard Debug build is already fine for stepping. Stripping features (e.g. ETW/event pipe) saves little compile time and can remove useful telemetry. Stick with defaults unless you hit time pressure.
+
+If you really want to squeeze: ./src/coreclr/build.sh Debug clean verbose skiptests (“skiptests” is implicit in these scripts; tests live elsewhere.)
+
+Don’t pass -subset arguments to the per-component script; they belong to top-level build.sh.
+
+Rebuilding quickly after source edits
+Inside runtime submodule:
+
+Touch a VM file and rebuild just coreclr
+./src/coreclr/build.sh Debug
+
+Parallelism: The script uses available cores by default; you can restrict: CLR_CMAKE_BUILD_PARALLEL=4 ./src/coreclr/build.sh Debug
+
+Clean only the VM: ./src/coreclr/build.sh Debug clean (Or, manual: rm -rf artifacts/obj/coreclr && rebuild.)
+
+Using the produced runtime in your gdb session
+Example with corerun: gdb --args ./artifacts/bin/coreclr/Linux.x64.Debug/corerun /path/to/SimpleThrow.dll
+
+If you want to swap just libcoreclr.so inside an existing dotnet layout (not recommended while exploring):
+
+Backup the original in your shared framework folder.
+Replace with the Debug build + ensure libmscordaccore.so path matches for DAC diagnostics. Better: Set DOTNET_ROOT to a locally built full host when you eventually build “clr+libs+host”.
+DAC/version consistency
+Always load matching DAC and VM builds. Mixing:
+
+Release libcoreclr.so with Debug libmscordaccore.so (or vice versa) is a classic source of confusing SOS failures or mismatched structures.
+Symbols and debug info
+By default, Debug build emits full DWARF into the .so. If you see stripped behavior (rare for Debug), ensure you didn’t pass any strip flags and check: readelf -S artifacts/bin/coreclr/Linux.x64.Debug/libcoreclr.so | grep debug
+
+When to use which:
+Goal	Recommended Command
+Just step through exception dispatch quickly	./src/coreclr/build.sh Debug
+Need DAC + SOS for gdb-sos test parity	Either option (A) or (B); both build DAC
+Need managed IL updates (e.g., modifying BCL)	build.sh -c Debug -subset clr+libs
+Need host (dotnet) too	build.sh -c Debug -subset clr+libs+host
+Quick verification script (optional)
+After build finishes: ls -1 artifacts/bin/coreclr/Linux.x64.Debug/{libcoreclr.so,libmscordaccore.so,libdbgshim.so,libsos.so}
+
+Edge cases / gotchas
+If you built once with -subset clr+libs then later run only src/coreclr/build.sh, you can safely interleave; artifacts will coexist. Just be sure which copy you’re pointing GDB at.
+Changing configuration (Debug ↔ Checked) requires a rebuild; mixing libraries from different configs in the same host layout will cause hard-to-diagnose issues.
+The per-component script may not automatically regenerate some generated headers if the repo layout changes across tags—stick to one tag/branch while iterating.
+Recommended minimal answer to your question
+Yes: to get the native *.so (VM + DAC) you can use either: build.sh -c Debug -subset clr -skiptests or the even more minimal: ./src/coreclr/build.sh Debug The latter is the smallest effective build for stepping into RtlpRaiseException, RaiseTheExceptionInternalOnly, JIT helpers, and PAL code.
+
+If you tell me which exact files you plan to patch first (exception dispatch vs JIT vs PAL), I can give you the handful of source directories to watch and a tiny rebuild loop. Just ask and I’ll tailor it.

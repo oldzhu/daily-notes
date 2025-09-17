@@ -1,0 +1,85 @@
+I followed ur suggestion as the below
+
+In the inner lldb that will run SOS:
+br set -s libmscordaccore.so -n ClrDataMethodDefinition::SetCodeNotification
+br set -s libmscordaccore.so -n ClrDataAccess::SetAllCodeNotifications
+br set -s libmscordaccore.so -n JITNotifications::UpdateOutOfProcTable
+br set -s libmscordaccore.so -n ClrDataAccess::TranslateExceptionRecordToNotification
+
+but none of the above 1st 3 breakpoints was hit before the ClrDataAccess::TranslateExceptionRecordToNotification was hit
+
+then I swicthed to use gdb to debug the lldb with SOS, the same occurs but one message as the below in gdb debugging seesion I saw as the below said Temporarily disabling breakpoints for unloaded shared library libmscordaccore.so. Could it be the cause
+of why these breakpoints were not hit in gdb and lldb? If it is, how to workaround or fix?
+[New Thread 0x7fbe953b3700 (LWP 69110)]
+[Thread 0x7fbe953b3700 (LWP 69110) exited]
+[New Thread 0x7fbe953b3700 (LWP 69140)]
+warning: Temporarily disabling breakpoints for unloaded shared library "/workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libmscordaccore.so"
+[Thread 0x7fbe953b3700 (LWP 69140) exited]
+[New Thread 0x7fbe953b3700 (LWP 69145)]
+[Switching to Thread 0x7fffed0c5700 (LWP 65396)]
+
+================
+
+
+You’re seeing exactly what happens when DAC gets loaded/unloaded around your breakpoint window and when SOS doesn’t always use the per-method “setter” path.
+
+Why your three “setter” breakpoints didn’t fire
+
+Per-method path isn’t always used:
+SOS will set a native breakpoint immediately if it can resolve the method’s native address (already JITted, R2R available, or quickly tiered). In that case, no call to ClrDataMethodDefinition::SetCodeNotification happens.
+Some builds/flows use the module/global path (SetAllCodeNotifications) once during initialization, not at each bpmd; if that happened before you armed the BPs, you’ll miss it.
+DAC may have been loaded/unloaded before your BPs were active:
+Your GDB log “Temporarily disabling breakpoints for unloaded shared library .../libmscordaccore.so” means the debugger disabled those BPs because DAC was dlclosed. If the “setter” calls happened during an earlier load window, the BPs won’t fire.
+Why TranslateExceptionRecordToNotification does fire
+
+That’s the handler for the actual notifications (JIT, module, exception, etc.) after the runtime raises them (e.g., DoJITNotification). You’re catching the consumption, but you missed the “setup” calls because they either:
+Happened earlier (global SetAllCodeNotifications) or
+Weren’t needed (direct native breakpoint path).
+How to make this deterministic
+
+Ensure DAC BPs survive loads/unloads
+GDB:
+set breakpoint pending on
+set stop-on-solib-events 1
+catch load libmscordaccore.so
+commands
+silent
+printf "DAC loaded; installing breakpoints\n"
+break ClrDataMethodDefinition::SetCodeNotification
+break ClrDataAccess::SetAllCodeNotifications
+break JITNotifications::UpdateOutOfProcTable
+continue
+end
+catch unload libmscordaccore.so
+optional: print a message and continue
+LLDB:
+Use a stop-hook that reinstalls breakpoints when libmscordaccore.so loads:
+target stop-hook add -o 'breakpoint set -s libmscordaccore.so -n ClrDataMethodDefinition::SetCodeNotification'
+target stop-hook add -o 'breakpoint set -s libmscordaccore.so -n ClrDataAccess::SetAllCodeNotifications'
+target stop-hook add -o 'breakpoint set -s libmscordaccore.so -n JITNotifications::UpdateOutOfProcTable'
+Or set a breakpoint on dlopen (libdl) and install the DAC BPs once DAC is loaded.
+Force bpmd to take the notification path
+Don’t test on Main; use a method that will be called later (e.g., Foo.Late() after sleep).
+Set bpmd before the program starts and disable tiering/quick-JIT to keep it cold:
+COMPlus_TieredCompilation=0
+Avoid R2R for the test assembly (run via corerun with your Debug build).
+With the method truly non-JITted, SOS has to either:
+Call SetCodeNotification (per-method) or
+Rely on a previously-set global SetAllCodeNotifications Either way, you should catch at least one “setter” before the first TranslateExceptionRecordToNotification for that method.
+Add one more highly revealing breakpoint
+ClrDataMethodDefinition::GetCodeNotification
+SOS sometimes probes “what’s set” and may go per-method only if needed. Seeing this call helps you time when the table is read.
+In the runtime, add:
+libcoreclr.so!DACNotify::DoJITNotification
+libcoreclr.so!DACNotifyCompilationFinished These confirm the runtime side’s decision to raise the notification.
+Verify it’s the right process and module
+When you’re debugging lldb-with-lldb (or gdb-with-lldb), the DAC breakpoints must be set in the inner debugger process (the one that dlopens libmscordaccore.so). Use “image list | grep libmscordaccore.so” (lldb) or “info shared” (gdb) in the inner session to ensure it loaded from the expected path.
+If you see “temporarily disabling” messages, your automation (stop-hook/catch load) ensures those breakpoints get reinstalled each time the library is loaded again.
+What this means for your GDB plugin
+
+We added WriteVirtual in services.py (both _dt_write_virtual for ICLRDataTarget2 and lldb_write_virtual delegating to it). This enables DAC’s UpdateOutOfProcTable to work when SOS does use the notif path.
+To confirm the GDB path is now capable, turn on tracing in _dt_write_virtual (already logs failures). When you run bpmd on a truly cold method, you should see write calls if DAC pushes the table. If you don’t, SOS used the instant-native breakpoint path or had already enabled global notifications earlier than your capture.
+Bottom line
+
+Yes, the “temporarily disabling” message explains missing hits: DAC was unloaded around your initial attempt. With stop-on-solib-events + auto-install of breakpoints on load, and by choosing a truly cold method (and optionally disabling tiering), you’ll see the “setter” breakpoints fire before TranslateExceptionRecordToNotification.
+

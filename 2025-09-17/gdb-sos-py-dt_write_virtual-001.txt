@@ -1,0 +1,34 @@
+Is lldb plugin also implement ICLRDataTarget2? where if it is? and If it is not, why we need to implement it?
+
+==============
+
+Good question. Short answer: the LLDB plugin doesn’t expose ICLRDataTarget2 directly in its services.cpp, but it absolutely provides a working WriteVirtual path to DAC via its SOS host/bridge. Your GDB plugin must do the same so DAC can populate the JIT notification table for bpmd.
+
+What LLDB does
+
+In the LLDB plugin, the file you showed, services.cpp, implements the debugger-side services (IDebugDataSpaces, etc.). Note this method:
+LLDBServices::WriteVirtual(...) → uses process.WriteMemory and returns S_OK on success.
+The actual COM data target object (the one passed to CLRDataCreateInstance) is created in the SOS native host layer. That object implements the ICLRDataTarget/ICLRDataTarget2 interfaces and delegates its ReadVirtual/WriteVirtual to LLDBServices::ReadVirtual/WriteVirtual.
+Net effect: when SOS calls SetCodeNotification, DAC can call WriteVirtual and push the JIT notification table (g_pNotificationTable) into the target. That’s why LLDB bpmd works for non-JITted methods.
+What you need in GDB
+
+You don’t have to literally implement “ICLRDataTarget2” in services.py, but you must provide a data target to CLRDataCreateInstance with a working WriteVirtual. In your GDB plugin, that’s your dt* methods (your ICLRDataTarget2 shim).
+Before this change, your lldb_write_virtual returned E_NOTIMPL (0x80004001), and _dt_write_virtual was missing. That prevented DAC’s UpdateOutOfProcTable() from writing the host JIT notification table into the target, so JITNotifications::Requested(...) never matched and DoJITNotification was not reached.
+I’ve added a proper implementation for both:
+_dt_write_virtual: writes via gdb.selected_inferior().write_memory for live sessions, guards against core dumps, sets bytesWritten, returns S_OK on success.
+lldb_write_virtual: delegates to _dt_write_virtual.
+With this in place, SOS’s bpmd path (which calls SetCodeNotification under the hood) will allow DAC to write g_pNotificationTable, and your DACNotifyCompilationFinished path will hit DoJITNotification like LLDB.
+Why it’s necessary even if LLDB “doesn’t show ICLRDataTarget2” here
+
+The interface boundary to DAC is either ICLRDataTarget or ICLRDataTarget2 (DAC will QI for the newer one when available). Both expose WriteVirtual semantics that DAC uses for mutating operations (JIT notification table, GC notification toggles, etc.). LLDB’s host provides an object that satisfies that contract; its WriteVirtual ultimately calls the services.cpp WriteVirtual shown above.
+In your GDB host, the analogous role is your dt* implementation you hand to CLRDataCreateInstance. That object must support WriteVirtual for live debugging scenarios.
+Validation checklist
+
+Live session (not a core dump).
+Set bpmd on a non-JITted method with SOS.
+Ensure SetCodeNotification returns S_OK (you can add temporary tracing).
+When the method JITs, your callback path should show:
+DAC updates table (your _dt_write_virtual messages),
+DoJITNotification is reached,
+Your registered exception/notification callback fires.
+If you want, I can add a small trace toggle around _dt_write_virtual to log first few writes so you can see the UpdateOutOfProcTable activity when bpmd is issued.

@@ -1,0 +1,135 @@
+(gdb) c
+Continuing.
+[Thread 0x7fbe958d1700 (LWP 78395) exited]
+warning: Temporarily disabling breakpoints for unloaded shared library "/workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libmscordaccore.so"
+Stopped due to shared library event:
+  Inferior unloaded /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libmscordaccore.so
+(gdb) c
+Continuing.
+[New Thread 0x7fbe958d1700 (LWP 78532)]
+Stopped due to shared library event (no libraries added or removed)
+(gdb) c
+Continuing.
+[Thread 0x7fbe958d1700 (LWP 78532) exited]
+Stopped due to shared library event:
+  Inferior loaded /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libmscordaccore.so
+(gdb) info br
+Num     Type           Disp Enb Address            What
+1       breakpoint     keep y   0x00007fbead95d493 in ClrDataMethodDefinition::SetCodeNotification(unsigned int) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/task.cpp:3435
+3       breakpoint     keep y   0x00007fbead88cd83 in ClrDataAccess::SetAllCodeNotifications(IXCLRDataModule*, unsigned int) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/daccess.cpp:4707
+4       breakpoint     keep y   0x00007fbeada8e111 in JITNotifications::UpdateOutOfProcTable() at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1292
+5       breakpoint     keep y   0x00007fbead88b2d4 in ClrDataAccess::TranslateExceptionRecordToNotification(_EXCEPTION_RECORD64*, IXCLRDataExceptionNotification*) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/daccess.cpp:4316
+6       catchpoint     keep y                      load of library matching libmscordaccore.so
+        catchpoint already hit 2 times
+7       catchpoint     keep y                      unload of library matching libmscordaccore.so
+        catchpoint already hit 1 time
+8       breakpoint     keep y   0x00007fbead95d493 in ClrDataMethodDefinition::SetCodeNotification(unsigned int) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/task.cpp:3435
+9       breakpoint     keep y   0x00007fbead88cd83 in ClrDataAccess::SetAllCodeNotifications(IXCLRDataModule*, unsigned int) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/daccess.cpp:4707
+10      breakpoint     keep y   0x00007fbeada8e111 in JITNotifications::UpdateOutOfProcTable() at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1292
+(gdb) del 1-5
+No breakpoint number 2.
+(gdb) del 8-10
+(gdb) info br
+Num     Type           Disp Enb Address            What
+6       catchpoint     keep y                      load of library matching libmscordaccore.so
+        catchpoint already hit 2 times
+7       catchpoint     keep y                      unload of library matching libmscordaccore.so
+        catchpoint already hit 1 time
+(gdb) break ClrDataMethodDefinition::SetCodeNotification
+Breakpoint 11 at 0x7fbead95d493: file /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/task.cpp, line 3435.
+(gdb) break ClrDataAccess::SetAllCodeNotifications
+Breakpoint 12 at 0x7fbead88cd83: file /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/daccess.cpp, line 4707.
+(gdb) break JITNotifications::UpdateOutOfProcTable
+Breakpoint 13 at 0x7fbeada8e111: file /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp, line 1292.
+(gdb) info br
+Num     Type           Disp Enb Address            What
+6       catchpoint     keep y                      load of library matching libmscordaccore.so
+        catchpoint already hit 2 times
+7       catchpoint     keep y                      unload of library matching libmscordaccore.so
+        catchpoint already hit 1 time
+11      breakpoint     keep y   0x00007fbead95d493 in ClrDataMethodDefinition::SetCodeNotification(unsigned int) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/task.cpp:3435
+12      breakpoint     keep y   0x00007fbead88cd83 in ClrDataAccess::SetAllCodeNotifications(IXCLRDataModule*, unsigned int) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/daccess.cpp:4707
+13      breakpoint     keep y   0x00007fbeada8e111 in JITNotifications::UpdateOutOfProcTable() at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1292
+(gdb) br ClrDataAccess::TranslateExceptionRecordToNotification
+Breakpoint 14 at 0x7fbead88b2d4: file /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/daccess.cpp, line 4316.
+(gdb) c
+Continuing.
+[New Thread 0x7fbe958d1700 (LWP 79559)]
+
+Thread 3 "dbg.evt-handler" hit Breakpoint 14, ClrDataAccess::TranslateExceptionRecordToNotification (this=0x7fffe8126cc0, record=0x7fffed0c45a8, notify=0x7fffed0c4598) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/daccess.cpp:4316
+4316        HRESULT status = E_FAIL;
+(gdb) bt 
+#0  ClrDataAccess::TranslateExceptionRecordToNotification (this=0x7fffe8126cc0, record=0x7fffed0c45a8, notify=0x7fffed0c4598) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/daccess.cpp:4316
+#1  0x00007fffec447fd1 in HandleCLRNotificationEvent () at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5900
+#2  0x00007fffec44841f in HandleExceptionNotification (client=0x6625c0) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5958
+#3  0x00007fffec89182f in ExceptionBreakpointCallback (baton=0x7fffec448220 <HandleExceptionNotification(ILLDBServices*)>, process=..., thread=..., location=...) at /workspaces/gdbsos/src/diagnostics/src/SOS/lldbplugin/services.cpp:292
+#4  0x00007ffff72353e9 in PrivateBreakpointHitCallback () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/API/SBBreakpointOptionCommon.cpp:72
+#5  0x00007ffff76d75fc in PerformAction () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Target/StopInfo.cpp:501
+#6  0x00007ffff76b0d60 in ShouldStop () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Target/Process.cpp:4086
+#7  0x00007ffff76b10b3 in DoOnRemoval () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Target/Process.cpp:4150
+#8  0x00007ffff774ea6a in FindNextEventInternal () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Utility/Listener.cpp:309
+#9  0x00007ffff774efc5 in GetEventInternal () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Utility/Listener.cpp:357
+#10 0x00007ffff774f0c7 in lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Utility/Listener.cpp:399
+#11 0x00007ffff756327a in DefaultEventHandler () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Core/Debugger.cpp:1423
+#12 0x00007ffff7563676 in lldb_private::Debugger::EventHandlerThread(void*) () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Core/Debugger.cpp:1476
+#13 0x00007ffff7609489 in ThreadCreateTrampoline () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Host/common/HostNativeThreadBase.cpp:68
+#14 0x00007ffff7fa8ea7 in start_thread () from /lib/x86_64-linux-gnu/libpthread.so.0
+#15 0x00007fffeee71adf in clone () from /lib/x86_64-linux-gnu/libc.so.6
+(gdb) c
+Continuing.
+[Thread 0x7fbe958d1700 (LWP 79559) exited]
+[New Thread 0x7fbe958d1700 (LWP 79718)]
+
+Thread 3 "dbg.evt-handler" hit Breakpoint 11, ClrDataMethodDefinition::SetCodeNotification (this=0x7fffe814cc70, flags=1) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/task.cpp:3435
+3435        DAC_ENTER_SUB(m_dac);
+(gdb) bt 
+#0  ClrDataMethodDefinition::SetCodeNotification (this=0x7fffe814cc70, flags=1) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/task.cpp:3435
+#1  0x00007fffec45de3e in Breakpoints::ResolveMethodInstances (pMeth=0x7fffe814cc70, ilOffset=0) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5403
+#2  0x00007fffec45daae in Breakpoints::ResolvePendingBreakpoint (this=0x7fffec6d2300 <g_bpoints>, addr=140735212924320, pCur=0x7fffe814cfc0) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5533
+#3  0x00007fffec44b00a in Breakpoints::Update (this=0x7fffec6d2300 <g_bpoints>, mod=140735212924320, isNewModule=1) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5147
+#4  0x00007fffec45c63c in CNotification::OnModuleLoaded (this=0x7fffed0c4598, mod=0x7fffe812a330) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5701
+#5  0x00007fbead88c002 in ClrDataAccess::TranslateExceptionRecordToNotification (this=0x7fffe8126cc0, record=0x7fffed0c45a8, notify=0x7fffed0c4598) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/daccess.cpp:4537
+#6  0x00007fffec447fd1 in HandleCLRNotificationEvent () at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5900
+#7  0x00007fffec44841f in HandleExceptionNotification (client=0x6625c0) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5958
+#8  0x00007fffec89182f in ExceptionBreakpointCallback (baton=0x7fffec448220 <HandleExceptionNotification(ILLDBServices*)>, process=..., thread=..., location=...) at /workspaces/gdbsos/src/diagnostics/src/SOS/lldbplugin/services.cpp:292
+#9  0x00007ffff72353e9 in PrivateBreakpointHitCallback () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/API/SBBreakpointOptionCommon.cpp:72
+#10 0x00007ffff76d75fc in PerformAction () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Target/StopInfo.cpp:501
+#11 0x00007ffff76b0d60 in ShouldStop () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Target/Process.cpp:4086
+#12 0x00007ffff76b10b3 in DoOnRemoval () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Target/Process.cpp:4150
+#13 0x00007ffff774ea6a in FindNextEventInternal () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Utility/Listener.cpp:309
+#14 0x00007ffff774efc5 in GetEventInternal () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Utility/Listener.cpp:357
+#15 0x00007ffff774f0c7 in lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Utility/Listener.cpp:399
+#16 0x00007ffff756327a in DefaultEventHandler () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Core/Debugger.cpp:1423
+#17 0x00007ffff7563676 in lldb_private::Debugger::EventHandlerThread(void*) () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Core/Debugger.cpp:1476
+#18 0x00007ffff7609489 in ThreadCreateTrampoline () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Host/common/HostNativeThreadBase.cpp:68
+#19 0x00007ffff7fa8ea7 in start_thread () from /lib/x86_64-linux-gnu/libpthread.so.0
+#20 0x00007fffeee71adf in clone () from /lib/x86_64-linux-gnu/libc.so.6
+
+(gdb) c
+Continuing.
+
+Thread 3 "dbg.evt-handler" hit Breakpoint 13, JITNotifications::UpdateOutOfProcTable (this=0x7fffed0c3eb8) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1292
+1292        return ::UpdateOutOfProcTable<JITNotification>(g_pNotificationTable, m_jitTable - 1, GetTableSize() + 1);
+(gdb) bt 
+#0  JITNotifications::UpdateOutOfProcTable (this=0x7fffed0c3eb8) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1292
+#1  0x00007fbead95d6f5 in ClrDataMethodDefinition::SetCodeNotification (this=0x7fffe814cc70, flags=1) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/task.cpp:3463
+#2  0x00007fffec45de3e in Breakpoints::ResolveMethodInstances (pMeth=0x7fffe814cc70, ilOffset=0) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5403
+#3  0x00007fffec45daae in Breakpoints::ResolvePendingBreakpoint (this=0x7fffec6d2300 <g_bpoints>, addr=140735212924320, pCur=0x7fffe814cfc0) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5533
+#4  0x00007fffec44b00a in Breakpoints::Update (this=0x7fffec6d2300 <g_bpoints>, mod=140735212924320, isNewModule=1) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5147
+#5  0x00007fffec45c63c in CNotification::OnModuleLoaded (this=0x7fffed0c4598, mod=0x7fffe812a330) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5701
+#6  0x00007fbead88c002 in ClrDataAccess::TranslateExceptionRecordToNotification (this=0x7fffe8126cc0, record=0x7fffed0c45a8, notify=0x7fffed0c4598) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/daccess.cpp:4537
+#7  0x00007fffec447fd1 in HandleCLRNotificationEvent () at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5900
+#8  0x00007fffec44841f in HandleExceptionNotification (client=0x6625c0) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5958
+#9  0x00007fffec89182f in ExceptionBreakpointCallback (baton=0x7fffec448220 <HandleExceptionNotification(ILLDBServices*)>, process=..., thread=..., location=...) at /workspaces/gdbsos/src/diagnostics/src/SOS/lldbplugin/services.cpp:292
+#10 0x00007ffff72353e9 in PrivateBreakpointHitCallback () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/API/SBBreakpointOptionCommon.cpp:72
+#11 0x00007ffff76d75fc in PerformAction () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Target/StopInfo.cpp:501
+#12 0x00007ffff76b0d60 in ShouldStop () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Target/Process.cpp:4086
+#13 0x00007ffff76b10b3 in DoOnRemoval () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Target/Process.cpp:4150
+#14 0x00007ffff774ea6a in FindNextEventInternal () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Utility/Listener.cpp:309
+#15 0x00007ffff774efc5 in GetEventInternal () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Utility/Listener.cpp:357
+#16 0x00007ffff774f0c7 in lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Utility/Listener.cpp:399
+#17 0x00007ffff756327a in DefaultEventHandler () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Core/Debugger.cpp:1423
+#18 0x00007ffff7563676 in lldb_private::Debugger::EventHandlerThread(void*) () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Core/Debugger.cpp:1476
+#19 0x00007ffff7609489 in ThreadCreateTrampoline () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Host/common/HostNativeThreadBase.cpp:68
+#20 0x00007ffff7fa8ea7 in start_thread () from /lib/x86_64-linux-gnu/libpthread.so.0
+#21 0x00007fffeee71adf in clone () from /lib/x86_64-linux-gnu/libc.so.6

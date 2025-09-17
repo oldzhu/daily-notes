@@ -1,0 +1,34 @@
+(gdb) del 4
+(gdb) info br
+Num     Type           Disp Enb Address            What
+1       breakpoint     del  y   0x00007ffff6c88a91 in coreclr_execute_assembly(void*, unsigned int, int, char const**, char const*, unsigned int*) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:487
+2       breakpoint     keep y   0x00007ffff6e6cfd4 in MethodDesc::JitCompileCodeLockedEventWrapper(PrepareCodeConfig*, ListLockEntryBase<NativeCodeVersion>*) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/prestub.cpp:763
+        breakpoint already hit 1 time
+3       breakpoint     keep y   0x00007ffff6e6ad17 in DACNotifyCompilationFinished(MethodDesc*, unsigned long) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/prestub.cpp:296
+(gdb) dis 2
+(gdb) c
+Continuing.
+
+Thread 1 "SimpleThrow" hit Temporary breakpoint 1, coreclr_execute_assembly (hostHandle=0x5555555ca2d0, domainId=1, argc=0, argv=0x0, managedAssemblyPath=0x55555559ead0 "/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll", exitCode=0x7fffffffd6e0) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:487
+487         if (exitCode == NULL)
+(gdb) c
+Continuing.
+[New Thread 0x7fffeddff700 (LWP 7745)]
+[Thread 0x7fffeddff700 (LWP 7745) exited]
+[New Thread 0x7fffeddff700 (LWP 7755)]
+[New Thread 0x7fffed10f700 (LWP 7756)]
+[Thread 0x7fffeddff700 (LWP 7755) exited]
+[New Thread 0x7fffeddff700 (LWP 7758)]
+This is some simple exception.
+argument passed: A string!
+Unhandled exception. [Thread 0x7fffeddff700 (LWP 7758) exited]
+[New Thread 0x7fffeddff700 (LWP 7766)]
+[Thread 0x7fffeddff700 (LWP 7766) exited]
+[New Thread 0x7fffeddff700 (LWP 7767)]
+[Thread 0x7fffeddff700 (LWP 7767) exited]
+System.InvalidOperationException: Throwing an invalid operation....
+   at UserObject.UseObject(String argument) in /workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/UserObject.cs:line 19
+   at Simple.Main() in /workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/SimpleThrow.cs:line 12
+
+Thread 1 "SimpleThrow" received signal SIGABRT, Aborted.
+0x00007ffff7ad4d61 in raise () from /lib/x86_64-linux-gnu/libc.so.6

@@ -1,0 +1,51 @@
+our gdb sos implementation align with lldb plugin (libsosplugin.so), and most of our code are python under src/gdbplugin/sos and one small cpp code under src/gdbplugin/bridge,and as lldb plugin, we implement the interfaces required by SOS and will deliver most works to SOS(our code wont call SetCodeNotification directly). Seems like we impelemt lldb_read_virtual but lldb_write_virtaul will return 0x80004001. Please revew our gdb sos implementation under src/gdbplugin and advice.
+
+=================
+
+To ensure bpmd works for non-JITted methods, I'll implement WriteVirtual in your GDB bridge so DAC can populate the JIT notification table in the target process. I'll update both dt_write_virtual (ICLRDataTarget2) and lldb_write_virtual to perform real writes, with a core-dump guard and proper error handling.
+
+services.py+81-2
+Great find on DACNotifyCompilationFinished; that’s exactly the decision point. The reason your GDB flow didn’t hit DoJITNotification is that the DAC couldn’t populate the target’s JIT notification table because WriteVirtual was unimplemented.
+
+Root cause and flow
+bpmd on a non-JITted method relies on DAC to write a (Module*, mdToken, state) entry into the target’s g_pNotificationTable.
+The write happens when SOS calls ClrDataMethodDefinition::SetCodeNotification(CLRDATA_METHNOTIFY_GENERATED), which:
+Updates a host-side table (GetHostJitNotificationTable), then
+Calls UpdateOutOfProcTable() to WRITE that table into the target process memory (g_pNotificationTable).
+If your data target’s WriteVirtual returns E_NOTIMPL or fails, UpdateOutOfProcTable can’t push entries; jn.IsActive()/Requested() won’t match, so DoJITNotification is never reached.
+In your GDB plugin, lldb_read_virtual was implemented, but lldb_write_virtual returned 0x80004001 (E_NOTIMPL). That prevented DAC from installing JIT notifications in the target.
+
+What I changed
+I implemented WriteVirtual in both the ICLRDataTarget2 path and the ILLDBServices wrapper, with a safe guard for core-dump sessions.
+
+File: services.py
+Implemented _dt_write_virtual:
+Guards against core-dump sessions (returns E_NOTIMPL for dumps).
+Extracts data from the input pointer and uses gdb.selected_inferior().write_memory(addr, data) to write.
+Sets bytes-written and returns S_OK (0) on success, E_ACCESSDENIED on failures.
+Updated lldb_write_virtual to delegate to _dt_write_virtual.
+This enables DAC’s UpdateOutOfProcTable() to succeed, allowing your bpmd requests to populate g_pNotificationTable so DACNotifyCompilationFinished can call DoJITNotification.
+
+Additional review notes and advice
+You don’t need to call SetCodeNotification yourself in Python. SOS will invoke the IXCLRData method; your job is to provide a functioning data target (read and write).
+Core dump sessions:
+Writes must be disabled. _dt_write_virtual returns E_NOTIMPL for dumps, so bpmd on non-JITted methods won’t work in dumps (expected).
+Check your service exposure:
+Ensure the ICLRDataTarget2 instance you pass to CLRDataCreateInstance is the one with this _dt_write_virtual.
+If SOS also queries IMemoryService, verify it returns your vtable with both lldb_read_virtual and lldb_write_virtual (your file already has these entry points).
+Token/module correctness:
+If bpmd is still not firing, verify that the (Module*, mdToken) SOS passes matches the runtime Module of the intended method. A mismatch leads to Requested() returning NONE even with a write-capable target.
+Receiving the event:
+LLDB’s plugin uses the DAC notification mechanism and surfaces it via its host callback. Your code already supports lldb_set_exception_callback; ensure SOS calls this and your stop hook/new objfile hook are connected (looks like you do).
+How to validate
+Run live (not a core dump) and set bpmd on a non-JITted method.
+Observe that:
+ClrDataMethodDefinition::SetCodeNotification returns S_OK (SOS usually logs minimal info; if not, turn on your plugin’s trace and watch for “[write_virtual]” traces).
+When the method JITs, DoJITNotification is hit and your exception callback or breakpoint is triggered.
+If you want extra visibility, add a temporary trace in _dt_write_virtual for address/len to confirm the write activity around notification setting.
+Edge cases to keep in mind
+Permissions: writing to the process from GDB requires proper ptrace permissions (inside the dev container it’s typically fine).
+Races: if the method JITs before the notification is installed, you won’t see the event. Try pausing at runtime entry, set bpmd, then continue.
+Architecture differences: you’ve coded for x64; ensure any arch flags in your build align with your running process.
+If you want, I can also add a tiny optional trace (behind an env var) to log when the notification table is being written, or wire a small SOS host command hook to print SetCodeNotification HRESULTs for bpmd.
+
