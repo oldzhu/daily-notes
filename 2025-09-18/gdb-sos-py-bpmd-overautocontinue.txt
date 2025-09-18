@@ -1,0 +1,60 @@
+Thanks for the clear repro and the note about editing only the original source. I’ll make the minimal changes in the canonical plugin under src/gdbplugin/sos so:
+
+We do not over-continue anymore.
+We stop showing visible __cxa_throw lines.
+bpmd-managed breakpoints actually stop.
+Here’s the plan:
+
+Add a safe-continue helper that’s used only when needed (runtime-entry one-shot and CLI-throw fallback), not for normal managed breakpoints.
+Remove automatic installation of any C++ exception catchpoints from lldb_set_exception_callback in the source (no Python or CLI catch throw). Keep only stop/new-objfile hooks.
+Keep the stop-hook smart enough to auto-continue only if the stop is clearly due to a CLI catch throw fallback (not used anymore after this change).
+You’ll rebuild and deploy from the source; then retest.
+actions taken in source
+
+File: services.py
+Added _continue_pending flag and _schedule_safe_continue() that posts a single “continue” via gdb.post_event; it’s safe and debounced.
+Stop-hook update:
+Detects if a stop came from a C++ throw catchpoint; only in that very case it will auto-continue. This preserves stops on bpmd-managed breakpoints and final exceptions.
+Runtime entry path still schedules one safe-continue after firing runtime-loaded and the immediate exception notification.
+lldb_set_exception_callback:
+Removed any automatic “catch throw” installation (both Python catchpoint and CLI fallback). Now it only registers the callback and connects the new-objfile hook. This eliminates the visible “Catchpoint … __cxa_throw” lines and unintended auto-continue loop.
+lldb_clear_exception_callback:
+Keeps cleanup for any legacy catchpoint if present, but we no longer create them here.
+what changes in behavior
+
+No automatic catch throw is installed in GDB anymore by our plugin. That means:
+No repeated “Catchpoint … __cxa_throw” lines in the console.
+The stop-hook won’t be spammed by throw events; bpmd can set the native bp when JIT happens without us consuming user-facing stops.
+Runtime-loaded still auto-continues once (to mimic LLDB), but normal managed breakpoints set by bpmd will now stop and remain stopped for inspection.
+Final unhandled exception should not be auto-continued.
+next steps for you
+
+Sync and test:
+
+Build and deploy from the canonical source:
+src/scripts/build.sh
+deploy-all.sh -c Debug
+Start a fresh GDB session (avoid stale hooks/catchpoints).
+Ensure you source the updated: sos.py or your diagnostics test folder after deploy.
+In GDB:
+Do not manually run “catch throw”.
+bpmd SimpleThrow.dll Simple.Main
+r
+Expect:
+No visible coreclr_execute_assembly stop (we auto-continue once).
+No visible “Catchpoint … __cxa_throw”.
+JITTED log and “Setting breakpoint …” line.
+When hitting the managed breakpoint, the process stops and stays stopped.
+Final unhandled exception will stop (no auto-continue).
+If you previously sourced a services.py that installed catch throw, clear it:
+
+Use info break to delete any catchpoints left in your session; then start fresh.
+notes
+
+I intentionally did not edit the diagnostics copies this round per your request. After your build + deploy, those copies will be regenerated.
+If later you want a selective CLI fallback (e.g., only for initial JIT binding) we can re-introduce a temporary silent catch throw around runtime initialization only, but let’s first confirm the current changes restore the intended stops.
+Quick summary
+
+Over-continue removed: we do not install any catch throw automatically from the canonical source, and stop-hook only auto-continues for the runtime-entry one-shot (and only for throw-catchpoint fallback, which we’re no longer creating).
+Managed bp from bpmd should stop and not auto-continue.
+cxa_throw lines should no longer display.

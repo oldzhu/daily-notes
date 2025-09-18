@@ -1,0 +1,159 @@
+vscode ➜ /workspaces/gdbsos (main) $ gdb --args gdb src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow
+GNU gdb (Debian 10.1-1.7) 10.1.90.20210103-git
+Copyright (C) 2021 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Type "show copying" and "show warranty" for details.
+This GDB was configured as "x86_64-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<https://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+    <http://www.gnu.org/software/gdb/documentation/>.
+
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+Reading symbols from gdb...
+(No debugging symbols found in gdb)
+(gdb) set pagination off
+(gdb) set breakpoint pending on
+(gdb) r
+Starting program: /usr/bin/gdb src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[Detaching after vfork from child process 26979]
+[New Thread 0x7ffff3c95700 (LWP 26980)]
+[New Thread 0x7ffff3494700 (LWP 26981)]
+[New Thread 0x7ffff2c93700 (LWP 26982)]
+[New Thread 0x7ffff2492700 (LWP 26983)]
+[New Thread 0x7ffff1c91700 (LWP 26984)]
+[New Thread 0x7ffff1490700 (LWP 26985)]
+[New Thread 0x7ffff0c8f700 (LWP 26986)]
+[New Thread 0x7fffdbfff700 (LWP 26987)]
+[New Thread 0x7fffdb7fe700 (LWP 26988)]
+[New Thread 0x7fffdaffd700 (LWP 26989)]
+[New Thread 0x7fffda7fc700 (LWP 26990)]
+[New Thread 0x7fffd9ffb700 (LWP 26991)]
+[New Thread 0x7fffd97fa700 (LWP 26992)]
+[New Thread 0x7fffd8ff9700 (LWP 26993)]
+[New Thread 0x7fffb7fff700 (LWP 26994)]
+[New Thread 0x7fffb77fe700 (LWP 26995)]
+GNU gdb (Debian 10.1-1.7) 10.1.90.20210103-git
+Copyright (C) 2021 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Type "show copying" and "show warranty" for details.
+This GDB was configured as "x86_64-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<https://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+    <http://www.gnu.org/software/gdb/documentation/>.
+
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+Reading symbols from src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow...
+(No debugging symbols found in src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow)
+(gdb) source src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow
+src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow:1: Error in sourced command file:
+Undefined command: "".  Try "help".
+(gdb) source src/diagnostics/artifacts/bin/linux.x64.Debug/sos.py 
+(gdb) bpmd SimpleThrow.dll Simple.Main
+[New Thread 0x7fffb61ff700 (LWP 27380)]
+[New Thread 0x7fffb59fe700 (LWP 27381)]
+[New Thread 0x7fffb51fd700 (LWP 27383)]
+[New Thread 0x7fffb49fc700 (LWP 27384)]
+[New Thread 0x7fff9ffff700 (LWP 27385)]
+[New Thread 0x7fff9f7fe700 (LWP 27386)]
+[New Thread 0x7fff9effd700 (LWP 27387)]
+[New Thread 0x7fff363ff700 (LWP 27419)]
+[Thread 0x7fff363ff700 (LWP 27419) exited]
+[New Thread 0x7fff363ff700 (LWP 27420)]
+[Thread 0x7fff363ff700 (LWP 27420) exited]
+[New Thread 0x7fff363ff700 (LWP 27423)]
+[Thread 0x7fff363ff700 (LWP 27423) exited]
+[New Thread 0x7fff363ff700 (LWP 27430)]
+[Thread 0x7fff363ff700 (LWP 27430) exited]
+[New Thread 0x7fff363ff700 (LWP 27431)]
+[Thread 0x7fff363ff700 (LWP 27431) exited]
+[New Thread 0x7fff363ff700 (LWP 27443)]
+[Thread 0x7fff363ff700 (LWP 27443) exited]
+[New Thread 0x7fff363ff700 (LWP 27445)]
+[Thread 0x7fff363ff700 (LWP 27445) exited]
+[New Thread 0x7fff363ff700 (LWP 27446)]
+[Thread 0x7fff363ff700 (LWP 27446) exited]
+[New Thread 0x7fff363ff700 (LWP 27458)]
+SOS GDB Python extension loaded (native host).
+[Thread 0x7fff363ff700 (LWP 27458) exited]
+[New Thread 0x7fff363ff700 (LWP 27459)]
+[Thread 0x7fff363ff700 (LWP 27459) exited]
+[New Thread 0x7fff363ff700 (LWP 27460)]
+[Thread 0x7fff363ff700 (LWP 27460) exited]
+[New Thread 0x7fff363ff700 (LWP 27461)]
+[Thread 0x7fff363ff700 (LWP 27461) exited]
+[New Thread 0x7fff363ff700 (LWP 27463)]
+[Thread 0x7fff363ff700 (LWP 27463) exited]
+[New Thread 0x7fff363ff700 (LWP 27464)]
+[Thread 0x7fff363ff700 (LWP 27464) exited]
+[New Thread 0x7fff363ff700 (LWP 27465)]
+Function "coreclr_execute_assembly" not defined.
+Temporary breakpoint 1 (coreclr_execute_assembly) pending.
+(gdb) [Thread 0x7fff363ff700 (LWP 27465) exited]
+c
+The program is not being run.
+(gdb) r
+Starting program: /workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow 
+[Detaching after vfork from child process 27510]
+[Detaching after fork from child process 27511]
+[Detaching after fork from child process 27514]
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7fff363ff700 (LWP 27538)]
+[Thread 0x7fff363ff700 (LWP 27538) exited]
+[New Thread 0x7ffff6a8b700 (LWP 27540)]
+[New Thread 0x7fffee28a700 (LWP 27541)]
+[New Thread 0x7ffff628a700 (LWP 27542)]
+[New Thread 0x7ffff5a80700 (LWP 27543)]
+[New Thread 0x7ffff526f700 (LWP 27544)]
+[New Thread 0x7ffff4a6a700 (LWP 27545)]
+[New Thread 0x7fffeffff700 (LWP 27546)]
+[New Thread 0x7fff363ff700 (LWP 27560)]
+[Thread 0x7fff363ff700 (LWP 27560) exited]
+[New Thread 0x7fff363ff700 (LWP 27561)]
+[Thread 0x7fff363ff700 (LWP 27561) exited]
+[New Thread 0x7fff363ff700 (LWP 27563)]
+[Thread 0x7fff363ff700 (LWP 27563) exited]
+[New Thread 0x7fff363ff700 (LWP 27564)]
+[Thread 0x7fff363ff700 (LWP 27564) exited]
+[New Thread 0x7fff363ff700 (LWP 27586)]
+
+Thread 1 "SimpleThrow" hit Temporary breakpoint 1, coreclr_execute_assembly (hostHandle=0x5555555ca1b0, domainId=1, argc=0, argv=0x0, managedAssemblyPath=0x55555559eab0 "/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll", exitCode=0x7fffffffd720) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:487
+487         if (exitCode == NULL)
+[Thread 0x7fff363ff700 (LWP 27586) exited]
+(gdb) c
+Continuing.
+[New Thread 0x7fffeda89700 (LWP 27718)]
+[Thread 0x7fffeda89700 (LWP 27718) exited]
+[New Thread 0x7fffeda89700 (LWP 27741)]
+[New Thread 0x7fffecf82700 (LWP 27742)]
+[Thread 0x7fffeda89700 (LWP 27741) exited]
+[New Thread 0x7fffeda89700 (LWP 27743)]
+This is some simple exception.
+argument passed: A string!
+Unhandled exception. [Thread 0x7fffeda89700 (LWP 27743) exited]
+[New Thread 0x7fffeda89700 (LWP 27779)]
+[Thread 0x7fffeda89700 (LWP 27779) exited]
+[New Thread 0x7fffeda89700 (LWP 27781)]
+[Thread 0x7fffeda89700 (LWP 27781) exited]
+System.InvalidOperationException: Throwing an invalid operation....
+   at UserObject.UseObject(String argument) in /workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/UserObject.cs:line 19
+   at Simple.Main() in /workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/SimpleThrow.cs:line 12
+
+Thread 1 "SimpleThrow" received signal SIGABRT, Aborted.
+0x00007ffff7ad4d61 in raise () from /lib/x86_64-linux-gnu/libc.so.6
+(gdb) p g_dacNotificationFlags
+$1 = 3
+(gdb) p *g_pNotificationTable
+$2 = {state = 0, clrModule = 0, meth

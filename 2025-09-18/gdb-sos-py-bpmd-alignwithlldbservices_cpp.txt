@@ -1,0 +1,89 @@
+I think the new change won'g work, pls check how lldb plug in works in diagnostic submodule services.cpp, it will create bp on coreclr_execute_assembly and then set this bp call back to runtimeloadedbpcallback - >when the bp hit, the runtimeloadedbpcllabck will call callback whcih is HandleRuntimeLoadedNotification set by strike.cpp -> HandleRuntimeLoadedNotification will enable module load/unload call backs which will cause runtime to raise c++ exception for module load/unload and also call our SetExceptionCallback to HandleExceptionNOtification which later can handle the rraised c++ exception(includeing module load/unload and clrn jitted exception)
+let us align with lldb services.cpp setruntimeloadedcallback and setexceptioncallback to cooperate with sos strike.cpp
+=============
+
+I'll update the GDB plugin to align with the LLDB flow: install a persistent, silent C++ throw catchpoint in lldb_set_exception_callback to invoke the exception callback, and complete the runtime-loaded breakpoint to invoke the callback once when coreclr_execute_assembly is hit.
+
+Read services.py, lines 1330 to 1410
+
+Read services.py, lines 1298 to 1368
+
+Read services.py, lines 1410 to 1475
+
+services.py+4-0
+services.py+36-2
+Searched text for _stop_hook_registered (**/src/gdbplugin/sos/services.py), 6 results
+services.py+27-0
+Checked services.py, no problems found
+
+Thanks for the pointer to the LLDB flow—I'll align the GDB plugin to match that contract so it cooperates cleanly with sos/strike.cpp. I’ve updated the canonical source to do exactly what services.cpp does:
+
+SetRuntimeLoadedCallback: create a pending, silent breakpoint on coreclr_execute_assembly, and when it’s hit call the runtime-loaded callback once and auto-continue.
+SetExceptionCallback: install a persistent, silent C++ throw catchpoint that invokes the exception callback (only after runtime-loaded has fired). This lets strike.cpp’s HandleRuntimeLoadedNotification enable module load/unload callbacks, which raise the C++ exceptions that flow into our exception callback (module load/unload and jitted notifications), just like LLDB.
+actions taken
+Removed the one-shot throw catchpoint hack from the new-objfile handler. We no longer try to invoke callbacks from there.
+Completed the runtime-loaded bp logic:
+Ensure breakpoint pending on.
+Break on coreclr_execute_assembly with a Python breakpoint that:
+Marks runtime initialized, refreshes coreclr mapping, updates host PID.
+Calls the managed runtime-loaded callback once.
+Auto-continues (silent).
+Implemented SetExceptionCallback to install a persistent C++ throw catchpoint:
+Uses a Python Breakpoint('throw', type=BP_CATCHPOINT) marked silent.
+stop() ignores throws until runtime-loaded has fired; then calls the exception callback and continues (silent).
+If Python catchpoint creation fails, falls back to CLI catch throw and attempts to mark it silent.
+Kept lldb_clear_exception_callback cleaning up any previously created catchpoint and disconnecting hooks.
+Kept new-objfile hook wiring (no side-effects) so we can react to loads if needed later.
+File touched:
+
+services.py
+lldb2_set_runtime_loaded_callback: finalized BP callback and ensured silent bp.
+lldb_set_exception_callback: now installs persistent, silent throw catchpoint (with CLI fallback); connects new-objfile hook.
+new-objfile handler: removed the previous one-shot catchpoint logic.
+Static check:
+
+No syntax/errors reported.
+how this matches LLDB’s services.cpp
+RuntimeLoaded: We place a pending breakpoint on coreclr_execute_assembly that calls back into the managed RuntimeLoaded handler and continues—matching the LLDB plugin’s RuntimeLoadedBpCallback behavior.
+Exception callback: We install a single persistent catchpoint on C++ throws after SetExceptionCallback is called. Once runtime-loaded fired, these throws deliver the module load/unload and JITTED notifications that strike.cpp wires up, and our callback HandleExceptionNotification will receive them—same cooperation model as LLDB.
+try it
+Rebuild/deploy your plugin so the canonical source copies into your artifacts:
+
+If your deploy script is flaky, re-run it and share the error if it fails—I'll help patch it. Once deployed, confirm services.py reflects these changes.
+Fresh GDB session:
+
+source sos.py
+sos clrstack, then bpmd SimpleThrow.dll Simple.Main (or your target method)
+run
+Expect:
+No visible “Catchpoint …” lines (we set bps silent).
+When hitting coreclr_execute_assembly: runtime-loaded callback fires (traced), GDB continues.
+Subsequently, module load/unload and JITTED exceptions are raised by the runtime; our persistent throw catchpoint invokes HandleExceptionNotification silently.
+Your bpmd breakpoint binds and stops when the method is JITTED/executed; we do not auto-continue managed breakpoints.
+Final exceptions still stop as usual unless you explicitly continue.
+Tip: If you had manual “catch throw” set from previous sessions, clear it before testing.
+
+Optional tracing:
+
+SOS_PY_TRACE=1
+SOS_PY_TRACE_CATEGORIES=bpmd You should see lines like:
+call into lldb2_set_runtime_loaded_callback
+RuntimeLoaded callback HR=0x00000000
+[exception-bp] Exception callback HR=0x00000000
+JITTED … / Setting breakpoint … and later the managed bp stop
+progress
+Aligned SetRuntimeLoadedCallback and SetExceptionCallback with the LLDB design (Done).
+Removed the new-objfile one-shot trigger that could cause early DAC load (Done).
+Ensured catchpoints and the runtime bp are silent and auto-continue only for the notification paths (Done).
+Quality gates
+
+Build/lint: Python file parsed; no errors detected.
+Runtime: Requires your rebuild/deploy to validate in-session behavior. If bpmd doesn’t bind or managed stops don’t happen, enable bpmd tracing and share the relevant log chunk—we’ll iterate quickly.
+Requirements coverage
+
+Align behavior with LLDB plugin for runtime-loaded and exception callback cooperation with strike.cpp: Done
+Avoid visible catchpoint spam; don’t over-continue normal stops: Done
+Source-of-truth edits only under src/gdbplugin/sos: Done
+If the deploy script continues to fail (exit 1), please share the last ~50 lines of output; I’ll fix the script or the underlying step.
+
+GPT-5 • 1x

@@ -1,0 +1,43 @@
+Thread 3 "dbg.evt-handler" hit Catchpoint 1
+  Inferior loaded /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libmscordaccore.so
+0x00007ffff7fe2590 in _dl_debug_state () from /lib64/ld-linux-x86-64.so.2
+(gdb) bt 
+#0  0x00007ffff7fe2590 in _dl_debug_state () from /lib64/ld-linux-x86-64.so.2
+#1  0x00007ffff7fe5e25 in ?? () from /lib64/ld-linux-x86-64.so.2
+#2  0x00007fffeeeabb40 in _dl_catch_exception () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7fe58fa in ?? () from /lib64/ld-linux-x86-64.so.2
+#4  0x00007fffee737258 in ?? () from /lib/x86_64-linux-gnu/libdl.so.2
+#5  0x00007fffeeeabb40 in _dl_catch_exception () from /lib/x86_64-linux-gnu/libc.so.6
+#6  0x00007fffeeeabbff in _dl_catch_error () from /lib/x86_64-linux-gnu/libc.so.6
+#7  0x00007fffee737a65 in ?? () from /lib/x86_64-linux-gnu/libdl.so.2
+#8  0x00007fffee7372e4 in dlopen () from /lib/x86_64-linux-gnu/libdl.so.2
+#9  0x00007fff68a63517 in ?? ()
+#10 0x00007fffed0c4180 in ?? ()
+#11 0x9abcdef012345678 in ?? ()
+#12 0x00007fffe7f3e7d0 in vtable for InlinedCallFrame () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libcoreclr.so
+#13 0xffffffffffffffff in ?? ()
+#14 0x00007fff69402220 in ?? ()
+#15 0x00007fff69402220 in ?? ()
+#16 0x00007fffed0c4180 in ?? ()
+#17 0x00007fff68a63517 in ?? ()
+#18 0x00007fffed0c4270 in ?? ()
+#19 0x00007fffed0c4268 in ?? ()
+#20 0x00007fff69402220 in ?? ()
+#21 0x00000063e78c0628 in ?? ()
+#22 0x9abcdef012345678 in ?? ()
+#23 0x00007fffe800c020 in ?? ()
+#24 0x002e00650072006f in ?? ()
+#25 0x00007fffee7372a0 in ?? () from /lib/x86_64-linux-gnu/libdl.so.2
+#26 0xffffffffffffffff in ?? ()
+#27 0xffffffffffffffff in ?? ()
+#28 0xffffffffffffffff in ?? ()
+#29 0x0000000000000002 in ?? ()
+#30 0x0000000000000000 in ?? ()
+(gdb) source src/diagnostics/artifacts/bin/linux.x64.Debug/sos.py
+(gdb) clrstack
+SOS GDB Python extension loaded (native host).
+Internal cached state reset
+Failed to find runtime module (libcoreclr.so), 0x80004002
+Extension commands need it in order to have something to do.
+For more information see https://go.microsoft.com/fwlink/?linkid=2135652
+Command 'clrstack' failed with HRESULT -2147467262.

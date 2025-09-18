@@ -1,0 +1,575 @@
+Thread 1 "SimpleThrow" hit Breakpoint 2, DACNotify::DoModuleLoadNotification (ModulePtr=0x7fff77c44000) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1571
+1571        if ((g_dacNotificationFlags & CLRDATA_NOTIFY_ON_MODULE_LOAD) != 0)
+(gdb) info br
+Num     Type           Disp Enb Address            What
+1       breakpoint     del  y   0x00007ffff6c88a91 in coreclr_execute_assembly(void*, unsigned int, int, char const**, char const*, unsigned int*) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:487
+2       breakpoint     keep y   0x00007ffff6eee219 in DACNotify::DoModuleLoadNotification(Module*) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1571
+        breakpoint already hit 1 time
+(gdb) bt 
+#0  DACNotify::DoModuleLoadNotification (ModulePtr=0x7fff77c44000) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1571
+#1  0x00007ffff6d4bbb4 in DomainAssembly::FinishLoad (this=0x55555559e120) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/domainassembly.cpp:557
+#2  0x00007ffff6d4b58d in DomainAssembly::DoIncrementalLoad (this=0x55555559e120, level=FILE_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/domainassembly.cpp:436
+#3  0x00007ffff6c97e48 in AppDomain::TryIncrementalLoad (this=0x555555611f50, pFile=0x55555559e120, workLevel=FILE_LOADED, lockHolder=...) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2947
+#4  0x00007ffff6c96ab8 in AppDomain::LoadDomainAssembly (this=0x555555611f50, pLock=0x55555562a6f0, targetLevel=FILE_ACTIVE) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2881
+#5  0x00007ffff6c965d6 in AppDomain::LoadDomainAssembly (this=0x555555611f50, pFile=0x55555559e120, targetLevel=FILE_ACTIVE) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2596
+#6  0x00007ffff6d4a2c0 in DomainAssembly::EnsureLoadLevel (this=0x55555559e120, targetLevel=FILE_ACTIVE) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/domainassembly.cpp:110
+#7  0x00007ffff6c8f871 in DomainAssembly::EnsureActive (this=0x55555559e120) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/domainassembly.h:228
+#8  0x00007ffff6c8e455 in SystemDomain::Init (this=0x7ffff7969880 <g_pSystemDomainMemory>) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:1163
+#9  0x00007ffff7546079 in EEStartupHelper () at /workspaces/gdbsos/src/runtime/src/coreclr/vm/ceemain.cpp:924
+#10 0x00007ffff7547704 in EEStartup()::$_1::operator()(void*) const (this=0x7fffffffd3c8, p=0x0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/ceemain.cpp:1060
+#11 0x00007ffff7544cab in EEStartup () at /workspaces/gdbsos/src/runtime/src/coreclr/vm/ceemain.cpp:1062
+#12 0x00007ffff7544ab2 in EnsureEEStarted () at /workspaces/gdbsos/src/runtime/src/coreclr/vm/ceemain.cpp:299
+#13 0x00007ffff6d33edd in CorHost2::Start (this=0x5555555ca1b0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/corhost.cpp:100
+#14 0x00007ffff6c87a93 in coreclr_initialize (exePath=0x55555559eab0 "/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow", appDomainFriendlyName=0x7ffff7a008d7 "clrhost", propertyCount=10, propertyKeys=0x5555555911f0, propertyValues=0x555555591080, hostHandle=0x7fffffffd748, domainId=0x7fffffffd744) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:320
+#15 0x00007ffff7a0c085 in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libhostpolicy.so
+#16 0x00007ffff7a2716e in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libhostpolicy.so
+#17 0x00007ffff7a26af4 in corehost_main () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libhostpolicy.so
+#18 0x00007ffff7a666db in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/host/fxr/10.0.0-rc.1.25451.107/libhostfxr.so
+#19 0x00007ffff7a65212 in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/host/fxr/10.0.0-rc.1.25451.107/libhostfxr.so
+#20 0x00007ffff7a5fbb7 in hostfxr_main_startupinfo () from /workspaces/gdbsos/src/diagnostics/.dotnet/host/fxr/10.0.0-rc.1.25451.107/libhostfxr.so
+#21 0x0000555555564b10 in ?? ()
+#22 0x0000555555564e3f in ?? ()
+#23 0x00007ffff7abfd7a in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+#24 0x000055555555b0f9 in ?? ()
+(gdb) list
+1566            GC_NOTRIGGER;
+1567            MODE_PREEMPTIVE;
+1568        }
+1569        CONTRACTL_END;
+1570
+1571        if ((g_dacNotificationFlags & CLRDATA_NOTIFY_ON_MODULE_LOAD) != 0)
+1572        {
+1573            TADDR Args[2] = { MODULE_LOAD_NOTIFICATION, (TADDR) ModulePtr};
+1574            DACNotifyExceptionHelper(Args, 2);
+1575        }
+(gdb) p g_dacNotificationFlags
+$1 = 0
+(gdb) c
+Continuing.
+[New Thread 0x7fff363ff700 (LWP 23057)]
+[Thread 0x7fff363ff700 (LWP 23057) exited]
+[New Thread 0x7fff363ff700 (LWP 23058)]
+[Thread 0x7fff363ff700 (LWP 23058) exited]
+[New Thread 0x7fff363ff700 (LWP 23075)]
+[Thread 0x7fff363ff700 (LWP 23075) exited]
+[New Thread 0x7fff363ff700 (LWP 23086)]
+[Thread 0x7fff363ff700 (LWP 23086) exited]
+
+Thread 1 "gdb" hit Catchpoint 1
+  Inferior loaded /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libmscordaccore.so
+0x00007ffff7fe2590 in _dl_debug_state () from /lib64/ld-linux-x86-64.so.2
+(gdb) bt
+#0  0x00007ffff7fe2590 in _dl_debug_state () from /lib64/ld-linux-x86-64.so.2
+#1  0x00007ffff7fe5e25 in ?? () from /lib64/ld-linux-x86-64.so.2
+#2  0x00007ffff70e9b40 in _dl_catch_exception () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7fe58fa in ?? () from /lib64/ld-linux-x86-64.so.2
+#4  0x00007ffff7ee0258 in ?? () from /lib/x86_64-linux-gnu/libdl.so.2
+#5  0x00007ffff70e9b40 in _dl_catch_exception () from /lib/x86_64-linux-gnu/libc.so.6
+#6  0x00007ffff70e9bff in _dl_catch_error () from /lib/x86_64-linux-gnu/libc.so.6
+#7  0x00007ffff7ee0a65 in ?? () from /lib/x86_64-linux-gnu/libdl.so.2
+#8  0x00007ffff7ee02e4 in dlopen () from /lib/x86_64-linux-gnu/libdl.so.2
+#9  0x00007fff37a53517 in ?? ()
+#10 0x00007fffffffcb00 in ?? ()
+#11 0x9abcdef012345678 in ?? ()
+#12 0x00007fffb6f3e7d0 in vtable for InlinedCallFrame () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libcoreclr.so
+#13 0xffffffffffffffff in ?? ()
+#14 0x00007fff383f2220 in ?? ()
+#15 0x00007fff383f2220 in ?? ()
+#16 0x00007fffffffcb00 in ?? ()
+#17 0x00007fff37a53517 in ?? ()
+#18 0x00007fffffffcbf0 in ?? ()
+#19 0x00007fffffffcbe8 in ?? ()
+#20 0x00007fff383f2220 in ?? ()
+#21 0x00000063b68c0628 in ?? ()
+#22 0x9abcdef012345678 in ?? ()
+#23 0x0000555556138fc0 in ?? ()
+#24 0x00007fff36bd9430 in ?? ()
+#25 0x00007ffff7ee02a0 in ?? () from /lib/x86_64-linux-gnu/libdl.so.2
+#26 0xffffffffffffffff in ?? ()
+#27 0xffffffffffffffff in ?? ()
+#28 0xffffffffffffffff in ?? ()
+#29 0x0000000000000002 in ?? ()
+#30 0x0000000000000000 in ?? ()
+(gdb) c
+Continuing.
+[New Thread 0x7fff363ff700 (LWP 23287)]
+
+Thread 1 "SimpleThrow" hit Temporary breakpoint 1, coreclr_execute_assembly (hostHandle=0x5555555ca1b0, domainId=1, argc=0, argv=0x0, managedAssemblyPath=0x55555559eab0 "/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll", exitCode=0x7fffffffd720) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:487
+[Thread 0x7fff363ff700 (LWP 23287) exited]
+487         if (exitCode == NULL)
+(gdb) c
+Continuing.
+
+Thread 1 "SimpleThrow" hit Breakpoint 2, DACNotify::DoModuleLoadNotification (ModulePtr=0x7fff785eada0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1571
+1571        if ((g_dacNotificationFlags & CLRDATA_NOTIFY_ON_MODULE_LOAD) != 0)
+(gdb) bt 
+#0  DACNotify::DoModuleLoadNotification (ModulePtr=0x7fff785eada0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1571
+#1  0x00007ffff6d4bbb4 in DomainAssembly::FinishLoad (this=0x555555788fd0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/domainassembly.cpp:557
+#2  0x00007ffff6d4b58d in DomainAssembly::DoIncrementalLoad (this=0x555555788fd0, level=FILE_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/domainassembly.cpp:436
+#3  0x00007ffff6c97e48 in AppDomain::TryIncrementalLoad (this=0x555555611f50, pFile=0x555555788fd0, workLevel=FILE_LOADED, lockHolder=...) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2947
+#4  0x00007ffff6c96ab8 in AppDomain::LoadDomainAssembly (this=0x555555611f50, pLock=0x55555562a6f0, targetLevel=FILE_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2881
+#5  0x00007ffff6c97217 in AppDomain::LoadDomainAssemblyInternal (this=0x555555611f50, pIdentity=0x7fffffffcef8, pPEAssembly=0x555555642620, targetLevel=FILE_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2778
+#6  0x00007ffff6c90308 in AppDomain::LoadDomainAssembly (this=0x555555611f50, pSpec=0x7fffffffcef8, pPEAssembly=0x555555642620, targetLevel=FILE_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2652
+#7  0x00007ffff6f15965 in AssemblyNative::LoadFromPEImage (pBinder=0x555555616500, pImage=0x555555658df0, excludeAppPaths=true) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/assemblynative.cpp:172
+#8  0x00007ffff6f25ed3 in AssemblySpec::LoadAssembly (pFilePath=0x5555556414f0 u"/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll") at /workspaces/gdbsos/src/runtime/src/coreclr/vm/assemblyspec.cpp:514
+#9  0x00007ffff6d34618 in CorHost2::ExecuteAssembly (this=0x5555555ca1b0, dwAppDomainId=1, pwzAssemblyPath=0x5555556414f0 u"/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll", argc=0, argv=0x0, pReturnValue=0x7fffffffd720) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/corhost.cpp:322
+#10 0x00007ffff6c88be8 in coreclr_execute_assembly (hostHandle=0x5555555ca1b0, domainId=1, argc=0, argv=0x0, managedAssemblyPath=0x55555559eab0 "/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll", exitCode=0x7fffffffd720) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:504
+#11 0x00007ffff7a25a6e in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libhostpolicy.so
+#12 0x00007ffff7a26b89 in corehost_main () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libhostpolicy.so
+#13 0x00007ffff7a666db in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/host/fxr/10.0.0-rc.1.25451.107/libhostfxr.so
+#14 0x00007ffff7a65212 in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/host/fxr/10.0.0-rc.1.25451.107/libhostfxr.so
+#15 0x00007ffff7a5fbb7 in hostfxr_main_startupinfo () from /workspaces/gdbsos/src/diagnostics/.dotnet/host/fxr/10.0.0-rc.1.25451.107/libhostfxr.so
+#16 0x0000555555564b10 in ?? ()
+#17 0x0000555555564e3f in ?? ()
+#18 0x00007ffff7abfd7a in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+#19 0x000055555555b0f9 in ?? ()
+(gdb) p g_dacNotificationFlags
+$2 = 3
+(gdb) br RtlpRaiseException
+Breakpoint 3 at 0x7fffeee4fdd5: RtlpRaiseException. (2 locations)
+(gdb) info br
+Num     Type           Disp Enb Address            What
+2       breakpoint     keep y   0x00007ffff6eee219 in DACNotify::DoModuleLoadNotification(Module*) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1571
+        breakpoint already hit 2 times
+3       breakpoint     keep y   <MULTIPLE>         
+3.1                         y   0x00007fffeee4fdd5 in RtlpRaiseException(_EXCEPTION_RECORD*, _CONTEXT*) at /workspaces/gdbsos/src/runtime/src/coreclr/pal/src/exception/seh-unwind.cpp:884
+3.2                         y   0x00007ffff7572025 in RtlpRaiseException(_EXCEPTION_RECORD*, _CONTEXT*) at /workspaces/gdbsos/src/runtime/src/coreclr/pal/src/exception/seh-unwind.cpp:884
+(gdb) c
+Continuing.
+
+Thread 1 "SimpleThrow" hit Breakpoint 3, RtlpRaiseException (ExceptionRecord=0x55555578a180, ContextRecord=0x555555789560) at /workspaces/gdbsos/src/runtime/src/coreclr/pal/src/exception/seh-unwind.cpp:884
+884         throw PAL_SEHException(ExceptionRecord, ContextRecord);
+
+Thread 1 "gdb" hit Breakpoint 3, ClrDataAccess::TranslateExceptionRecordToNotification (this=0x555558415a50, record=0x7fffffffd048, notify=0x7fffffffd038) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/daccess.cpp:4316
+4316        HRESULT status = E_FAIL;
+(gdb) bt 
+#0  ClrDataAccess::TranslateExceptionRecordToNotification (this=0x555558415a50, record=0x7fffffffd048, notify=0x7fffffffd038) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/daccess.cpp:4316
+#1  0x00007fffd8447fd1 in HandleCLRNotificationEvent () at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5900
+#2  0x00007fffd844841f in HandleExceptionNotification (client=0x7ffff0188390) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5958
+#3  0x00007ffff413dd1d in ?? () from /usr/lib/x86_64-linux-gnu/libffi.so.7
+#4  0x00007ffff413d289 in ?? () from /usr/lib/x86_64-linux-gnu/libffi.so.7
+#5  0x00007ffff3ceb360 in ?? () from /usr/lib/python3.9/lib-dynload/_ctypes.cpython-39-x86_64-linux-gnu.so
+#6  0x00007ffff3ceae05 in ?? () from /usr/lib/python3.9/lib-dynload/_ctypes.cpython-39-x86_64-linux-gnu.so
+#7  0x00007ffff7a1ab00 in _PyObject_MakeTpCall () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#8  0x00007ffff79caf08 in _PyEval_EvalFrameDefault () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#9  0x00007ffff7af8fdc in ?? () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#10 0x00007ffff7a15d2d in _PyFunction_Vectorcall () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#11 0x00007ffff7a1c7d4 in ?? () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#12 0x00007ffff7a1cc5f in PyObject_CallFunctionObjArgs () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#13 0x0000555555868e60 in ?? ()
+#14 0x0000555555879932 in ?? ()
+#15 0x000055555586e1ba in ?? ()
+#16 0x00005555557c5cfa in ?? ()
+#17 0x00005555557ce73f in ?? ()
+#18 0x0000555555a859d6 in ?? ()
+#19 0x0000555555a85cda in ?? ()
+#20 0x0000555555807895 in ?? ()
+#21 0x000055555580b585 in ?? ()
+#22 0x000055555562590c in ?? ()
+#23 0x00007ffff6fd7d7a in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+#24 0x000055555562af4a in ?? ()
+(gdb) info args
+this = 0x555558415a50
+record = 0x7fffffffd048
+notify = 0x7fffffffd038
+(gdb) p *record
+$1 = {ExceptionCode = 3762569539, ExceptionFlags = 0, ExceptionRecord = 0, ExceptionAddress = 0, NumberParameters = 0, __unusedAlignment = 0, ExceptionInformation = {1, 140735212858784, 0 <repeats 13 times>}}
+(gdb) p /x *record
+$2 = {ExceptionCode = 0xe0444143, ExceptionFlags = 0x0, ExceptionRecord = 0x0, ExceptionAddress = 0x0, NumberParameters = 0x0, __unusedAlignment = 0x0, ExceptionInformation = {0x1, 0x7fff785eada0, 0x0 <repeats 13 times>}}
+(gdb) break ClrDataMethodDefinition::SetCodeNotification
+Breakpoint 4 at 0x7fbe8895d493: file /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/task.cpp, line 3435.
+(gdb) break JITNotifications::UpdateOutOfProcTable
+Breakpoint 5 at 0x7fbe88a8e111: file /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp, line 1292.
+(gdb) break ClrDataAccess::SetAllCodeNotifications
+Breakpoint 6 at 0x7fbe8888cd83: file /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/daccess.cpp, line 4707.
+(gdb) c
+Continuing.
+[New Thread 0x7fff363ff700 (LWP 24605)]
+
+Thread 1 "gdb" hit Breakpoint 4, ClrDataMethodDefinition::SetCodeNotification (this=0x55555a537600, flags=1) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/task.cpp:3435
+3435        DAC_ENTER_SUB(m_dac);
+(gdb) bt 
+#0  ClrDataMethodDefinition::SetCodeNotification (this=0x55555a537600, flags=1) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/task.cpp:3435
+#1  0x00007fffd845de3e in Breakpoints::ResolveMethodInstances (pMeth=0x55555a537600, ilOffset=0) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5403
+#2  0x00007fffd845daae in Breakpoints::ResolvePendingBreakpoint (this=0x7fffd86d2300 <g_bpoints>, addr=140735212858784, pCur=0x555558cfc2d0) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5533
+#3  0x00007fffd844b00a in Breakpoints::Update (this=0x7fffd86d2300 <g_bpoints>, mod=140735212858784, isNewModule=1) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5147
+#4  0x00007fffd845c63c in CNotification::OnModuleLoaded (this=0x7fffffffd038, mod=0x555559ce24c0) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5701
+#5  0x00007fbe8888c002 in ClrDataAccess::TranslateExceptionRecordToNotification (this=0x555558415a50, record=0x7fffffffd048, notify=0x7fffffffd038) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/daccess.cpp:4537
+#6  0x00007fffd8447fd1 in HandleCLRNotificationEvent () at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5900
+#7  0x00007fffd844841f in HandleExceptionNotification (client=0x7ffff0188390) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5958
+#8  0x00007ffff413dd1d in ?? () from /usr/lib/x86_64-linux-gnu/libffi.so.7
+#9  0x00007ffff413d289 in ?? () from /usr/lib/x86_64-linux-gnu/libffi.so.7
+#10 0x00007ffff3ceb360 in ?? () from /usr/lib/python3.9/lib-dynload/_ctypes.cpython-39-x86_64-linux-gnu.so
+#11 0x00007ffff3ceae05 in ?? () from /usr/lib/python3.9/lib-dynload/_ctypes.cpython-39-x86_64-linux-gnu.so
+#12 0x00007ffff7a1ab00 in _PyObject_MakeTpCall () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#13 0x00007ffff79caf08 in _PyEval_EvalFrameDefault () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#14 0x00007ffff7af8fdc in ?? () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#15 0x00007ffff7a15d2d in _PyFunction_Vectorcall () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#16 0x00007ffff7a1c7d4 in ?? () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#17 0x00007ffff7a1cc5f in PyObject_CallFunctionObjArgs () from /usr/lib/x86_64-linux-gnu/libpython3.9.so.1.0
+#18 0x0000555555868e60 in ?? ()
+#19 0x0000555555879932 in ?? ()
+#20 0x000055555586e1ba in ?? ()
+#21 0x00005555557c5cfa in ?? ()
+#22 0x00005555557ce73f in ?? ()
+#23 0x0000555555a859d6 in ?? ()
+#24 0x0000555555a85cda in ?? ()
+#25 0x0000555555807895 in ?? ()
+#26 0x000055555580b585 in ?? ()
+#27 0x000055555562590c in ?? ()
+#28 0x00007ffff6fd7d7a in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+#29 0x000055555562af4a in ?? ()
+(gdb) c
+Continuing.
+
+Thread 1 "gdb" hit Breakpoint 5, JITNotifications::UpdateOutOfProcTable (this=0x7fffffffc958) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1292
+1292        return ::UpdateOutOfProcTable<JITNotification>(g_pNotificationTable, m_jitTable - 1, GetTableSize() + 1);
+(gdb) c
+Continuing.
+(gdb) [Thread 0x7fff363ff700 (LWP 24605) exited]
+bt
+#0  RtlpRaiseException (ExceptionRecord=0x55555578a180, ContextRecord=0x555555789560) at /workspaces/gdbsos/src/runtime/src/coreclr/pal/src/exception/seh-unwind.cpp:884
+#1  0x00007ffff7572006 in RaiseException (dwExceptionCode=3762569539, dwExceptionFlags=0, nNumberOfArguments=2, lpArguments=0x7fffffffc350) at /workspaces/gdbsos/src/runtime/src/coreclr/pal/src/exception/seh-unwind.cpp:951
+#2  0x00007ffff6eedf2c in DACRaiseException(unsigned long*, unsigned int)::$_1::operator()(DACRaiseException(unsigned long*, unsigned int)::Param*) const (this=0x7fffffffc2c8, pParam=0x7fffffffc2d8) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1464
+#3  0x00007ffff6eedddd in DACRaiseException (args=0x7fffffffc350, argCount=2) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1466
+#4  0x00007ffff6eee098 in DACNotifyExceptionHelper (args=0x7fffffffc350, argCount=2) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1493
+#5  0x00007ffff6eee249 in DACNotify::DoModuleLoadNotification (ModulePtr=0x7fff785eada0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1574
+#6  0x00007ffff6d4bbb4 in DomainAssembly::FinishLoad (this=0x555555788fd0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/domainassembly.cpp:557
+#7  0x00007ffff6d4b58d in DomainAssembly::DoIncrementalLoad (this=0x555555788fd0, level=FILE_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/domainassembly.cpp:436
+#8  0x00007ffff6c97e48 in AppDomain::TryIncrementalLoad (this=0x555555611f50, pFile=0x555555788fd0, workLevel=FILE_LOADED, lockHolder=...) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2947
+#9  0x00007ffff6c96ab8 in AppDomain::LoadDomainAssembly (this=0x555555611f50, pLock=0x55555562a6f0, targetLevel=FILE_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2881
+#10 0x00007ffff6c97217 in AppDomain::LoadDomainAssemblyInternal (this=0x555555611f50, pIdentity=0x7fffffffcef8, pPEAssembly=0x555555642620, targetLevel=FILE_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2778
+#11 0x00007ffff6c90308 in AppDomain::LoadDomainAssembly (this=0x555555611f50, pSpec=0x7fffffffcef8, pPEAssembly=0x555555642620, targetLevel=FILE_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2652
+#12 0x00007ffff6f15965 in AssemblyNative::LoadFromPEImage (pBinder=0x555555616500, pImage=0x555555658df0, excludeAppPaths=true) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/assemblynative.cpp:172
+#13 0x00007ffff6f25ed3 in AssemblySpec::LoadAssembly (pFilePath=0x5555556414f0 u"/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll") at /workspaces/gdbsos/src/runtime/src/coreclr/vm/assemblyspec.cpp:514
+#14 0x00007ffff6d34618 in CorHost2::ExecuteAssembly (this=0x5555555ca1b0, dwAppDomainId=1, pwzAssemblyPath=0x5555556414f0 u"/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll", argc=0, argv=0x0, pReturnValue=0x7fffffffd720) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/corhost.cpp:322
+#15 0x00007ffff6c88be8 in coreclr_execute_assembly (hostHandle=0x5555555ca1b0, domainId=1, argc=0, argv=0x0, managedAssemblyPath=0x55555559eab0 "/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll", exitCode=0x7fffffffd720) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:504
+#16 0x00007ffff7a25a6e in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libhostpolicy.so
+#17 0x00007ffff7a26b89 in corehost_main () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libhostpolicy.so
+#18 0x00007ffff7a666db in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/host/fxr/10.0.0-rc.1.25451.107/libhostfxr.so
+#19 0x00007ffff7a65212 in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/host/fxr/10.0.0-rc.1.25451.107/libhostfxr.so
+#20 0x00007ffff7a5fbb7 in hostfxr_main_startupinfo () from /workspaces/gdbsos/src/diagnostics/.dotnet/host/fxr/10.0.0-rc.1.25451.107/libhostfxr.so
+#21 0x0000555555564b10 in ?? ()
+#22 0x0000555555564e3f in ?? ()
+#23 0x00007ffff7abfd7a in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+#24 0x000055555555b0f9 in ?? ()
+(gdb) p g_pNotificationTable
+$3 = (PTR_JITNotification) 0x5555555e12c0
+(gdb) p *g_pNotificationTable
+$4 = {state = 0, clrModule = 1000, methodToken = 1}
+(gdb) c
+Continuing.
+
+Thread 1 "SimpleThrow" hit Breakpoint 2, DACNotify::DoModuleLoadNotification (ModulePtr=0x7fff785ecfa0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1571
+1571        if ((g_dacNotificationFlags & CLRDATA_NOTIFY_ON_MODULE_LOAD) != 0)
+(gdb) bt 
+#0  DACNotify::DoModuleLoadNotification (ModulePtr=0x7fff785ecfa0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1571
+#1  0x00007ffff6d4bbb4 in DomainAssembly::FinishLoad (this=0x555555789db0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/domainassembly.cpp:557
+#2  0x00007ffff6d4b58d in DomainAssembly::DoIncrementalLoad (this=0x555555789db0, level=FILE_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/domainassembly.cpp:436
+#3  0x00007ffff6c97e48 in AppDomain::TryIncrementalLoad (this=0x555555611f50, pFile=0x555555789db0, workLevel=FILE_LOADED, lockHolder=...) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2947
+#4  0x00007ffff6c96ab8 in AppDomain::LoadDomainAssembly (this=0x555555611f50, pLock=0x55555561f080, targetLevel=FILE_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2881
+#5  0x00007ffff6c97217 in AppDomain::LoadDomainAssemblyInternal (this=0x555555611f50, pIdentity=0x7fffffff90e0, pPEAssembly=0x555555656440, targetLevel=FILE_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2778
+#6  0x00007ffff6c90308 in AppDomain::LoadDomainAssembly (this=0x555555611f50, pSpec=0x7fffffff90e0, pPEAssembly=0x555555656440, targetLevel=FILE_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2652
+#7  0x00007ffff6ce983b in Module::LoadAssemblyImpl (this=0x7fff785eada0, kAssemblyRef=587202561) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/ceeload.cpp:3027
+#8  0x00007ffff6cb9da6 in ModuleBase::LoadAssembly (this=0x7fff785eada0, kAssemblyRef=587202561) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/ceeload.h:584
+#9  0x00007ffff6cba29a in Assembly::FindModuleByTypeRef (pModule=0x7fff785eada0, tkType=587202561, loadFlag=Loader::Load, pfNoResolutionScope=0x7fffffff9364) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/assembly.cpp:938
+#10 0x00007ffff6d1b492 in ClassLoader::LoadTypeDefOrRefThrowing (pModule=0x7fff785eada0, typeDefOrRef=16777235, fNotFoundAction=ClassLoader::ThrowIfNotFound, fUninstantiated=ClassLoader::FailIfUninstDefOrRef, tokenNotToLoad=0, level=CLASS_LOAD_APPROXPARENTS) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/clsload.cpp:2360
+#11 0x00007ffff6d1c7b7 in ClassLoader::LoadApproxTypeThrowing (pModule=0x7fff785eada0, tok=16777235, pSigInst=0x7fffffffbb48, pClassTypeContext=0x7fffffffbb00) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/clsload.cpp:2768
+#12 0x00007ffff6d1c8d5 in ClassLoader::LoadApproxParentThrowing (pModule=0x7fff785eada0, cl=33554434, pParentInst=0x7fffffffbb48, pClassTypeContext=0x7fffffffbb00) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/clsload.cpp:2822
+#13 0x00007ffff70548d2 in ClassLoader::CreateTypeHandleForTypeDefThrowing (pModule=0x7fff785eada0, cl=33554434, inst=..., pamTracker=0x7fffffffbff0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/methodtablebuilder.cpp:12329
+#14 0x00007ffff6d1cf59 in ClassLoader::CreateTypeHandleForTypeKey (pKey=0x7fffffffc7e0, pamTracker=0x7fffffffbff0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/clsload.cpp:2937
+#15 0x00007ffff6d1cc19 in ClassLoader::DoIncrementalLoad (pTypeKey=0x7fffffffc7e0, typeHnd=..., currentLevel=CLASS_LOAD_BEGIN) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/clsload.cpp:2877
+#16 0x00007ffff6d1f1ac in ClassLoader::LoadTypeHandleForTypeKey_Body (this=0x5555557890d0, pTypeKey=0x7fffffffc7e0, typeHnd=..., targetLevel=CLASS_LOAD_EXACTPARENTS) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/clsload.cpp:3553
+#17 0x00007ffff6d17a8e in ClassLoader::LoadTypeHandleForTypeKey (this=0x5555557890d0, pTypeKey=0x7fffffffc7e0, typeHnd=..., targetLevel=CLASS_LOADED, pInstContext=0x0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/clsload.cpp:3272
+#18 0x00007ffff6d19f06 in ClassLoader::LoadTypeDefThrowing (pModule=0x7fff785eada0, typeDef=33554434, fNotFoundAction=ClassLoader::ThrowIfNotFound, fUninstantiated=ClassLoader::FailIfUninstDefOrRef, tokenNotToLoad=0, level=CLASS_LOADED, pTargetInstantiation=0x0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/clsload.cpp:2252
+#19 0x00007ffff6d1b759 in ClassLoader::LoadTypeDefOrRefThrowing (pModule=0x7fff785eada0, typeDefOrRef=33554434, fNotFoundAction=ClassLoader::ThrowIfNotFound, fUninstantiated=ClassLoader::FailIfUninstDefOrRef, tokenNotToLoad=0, level=CLASS_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/clsload.cpp:2422
+#20 0x00007ffff6cbd5ba in Assembly::GetEntryPoint (this=0x555555789060) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/assembly.cpp:1603
+#21 0x00007ffff6cbced9 in Assembly::ExecuteMainMethod (this=0x555555789060, stringArgs=0x7fffffffd570, waitForOtherThreads=1) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/assembly.cpp:1466
+#22 0x00007ffff6d34bfd in CorHost2::ExecuteAssembly (this=0x5555555ca1b0, dwAppDomainId=1, pwzAssemblyPath=0x5555556414f0 u"/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll", argc=0, argv=0x0, pReturnValue=0x7fffffffd720) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/corhost.cpp:349
+#23 0x00007ffff6c88be8 in coreclr_execute_assembly (hostHandle=0x5555555ca1b0, domainId=1, argc=0, argv=0x0, managedAssemblyPath=0x55555559eab0 "/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll", exitCode=0x7fffffffd720) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:504
+#24 0x00007ffff7a25a6e in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libhostpolicy.so
+#25 0x00007ffff7a26b89 in corehost_main () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libhostpolicy.so
+#26 0x00007ffff7a666db in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/host/fxr/10.0.0-rc.1.25451.107/libhostfxr.so
+#27 0x00007ffff7a65212 in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/host/fxr/10.0.0-rc.1.25451.107/libhostfxr.so
+#28 0x00007ffff7a5fbb7 in hostfxr_main_startupinfo () from /workspaces/gdbsos/src/diagnostics/.dotnet/host/fxr/10.0.0-rc.1.25451.107/libhostfxr.so
+#29 0x0000555555564b10 in ?? ()
+#30 0x0000555555564e3f in ?? ()
+#31 0x00007ffff7abfd7a in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+#32 0x000055555555b0f9 in ?? ()
+(gdb) c
+Continuing.
+
+Thread 1 "SimpleThrow" hit Breakpoint 3, RtlpRaiseException (ExceptionRecord=0x5555555d1b60, ContextRecord=0x5555555d0f40) at /workspaces/gdbsos/src/runtime/src/coreclr/pal/src/exception/seh-unwind.cpp:884
+884         throw PAL_SEHException(ExceptionRecord, ContextRecord);
+
+Thread 1 "gdb" hit Breakpoint 3, ClrDataAccess::TranslateExceptionRecordToNotification (this=0x555558415a50, record=0x7fffffffd048, notify=0x7fffffffd038) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/daccess.cpp:4316
+4316        HRESULT status = E_FAIL;
+(gdb) c
+Continuing.
+[New Thread 0x7fff363ff700 (LWP 25427)]
+[Thread 0x7fff363ff700 (LWP 25427) exited]
+(gdb) bt 
+#0  RtlpRaiseException (ExceptionRecord=0x5555555d1b60, ContextRecord=0x5555555d0f40) at /workspaces/gdbsos/src/runtime/src/coreclr/pal/src/exception/seh-unwind.cpp:884
+#1  0x00007ffff7572006 in RaiseException (dwExceptionCode=3762569539, dwExceptionFlags=0, nNumberOfArguments=2, lpArguments=0x7fffffff8690) at /workspaces/gdbsos/src/runtime/src/coreclr/pal/src/exception/seh-unwind.cpp:951
+#2  0x00007ffff6eedf2c in DACRaiseException(unsigned long*, unsigned int)::$_1::operator()(DACRaiseException(unsigned long*, unsigned int)::Param*) const (this=0x7fffffff8608, pParam=0x7fffffff8618) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1464
+#3  0x00007ffff6eedddd in DACRaiseException (args=0x7fffffff8690, argCount=2) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1466
+#4  0x00007ffff6eee098 in DACNotifyExceptionHelper (args=0x7fffffff8690, argCount=2) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1493
+#5  0x00007ffff6eee249 in DACNotify::DoModuleLoadNotification (ModulePtr=0x7fff785ecfa0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1574
+#6  0x00007ffff6d4bbb4 in DomainAssembly::FinishLoad (this=0x555555789db0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/domainassembly.cpp:557
+#7  0x00007ffff6d4b58d in DomainAssembly::DoIncrementalLoad (this=0x555555789db0, level=FILE_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/domainassembly.cpp:436
+#8  0x00007ffff6c97e48 in AppDomain::TryIncrementalLoad (this=0x555555611f50, pFile=0x555555789db0, workLevel=FILE_LOADED, lockHolder=...) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2947
+#9  0x00007ffff6c96ab8 in AppDomain::LoadDomainAssembly (this=0x555555611f50, pLock=0x55555561f080, targetLevel=FILE_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2881
+#10 0x00007ffff6c97217 in AppDomain::LoadDomainAssemblyInternal (this=0x555555611f50, pIdentity=0x7fffffff90e0, pPEAssembly=0x555555656440, targetLevel=FILE_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2778
+#11 0x00007ffff6c90308 in AppDomain::LoadDomainAssembly (this=0x555555611f50, pSpec=0x7fffffff90e0, pPEAssembly=0x555555656440, targetLevel=FILE_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2652
+#12 0x00007ffff6ce983b in Module::LoadAssemblyImpl (this=0x7fff785eada0, kAssemblyRef=587202561) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/ceeload.cpp:3027
+#13 0x00007ffff6cb9da6 in ModuleBase::LoadAssembly (this=0x7fff785eada0, kAssemblyRef=587202561) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/ceeload.h:584
+#14 0x00007ffff6cba29a in Assembly::FindModuleByTypeRef (pModule=0x7fff785eada0, tkType=587202561, loadFlag=Loader::Load, pfNoResolutionScope=0x7fffffff9364) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/assembly.cpp:938
+#15 0x00007ffff6d1b492 in ClassLoader::LoadTypeDefOrRefThrowing (pModule=0x7fff785eada0, typeDefOrRef=16777235, fNotFoundAction=ClassLoader::ThrowIfNotFound, fUninstantiated=ClassLoader::FailIfUninstDefOrRef, tokenNotToLoad=0, level=CLASS_LOAD_APPROXPARENTS) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/clsload.cpp:2360
+#16 0x00007ffff6d1c7b7 in ClassLoader::LoadApproxTypeThrowing (pModule=0x7fff785eada0, tok=16777235, pSigInst=0x7fffffffbb48, pClassTypeContext=0x7fffffffbb00) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/clsload.cpp:2768
+#17 0x00007ffff6d1c8d5 in ClassLoader::LoadApproxParentThrowing (pModule=0x7fff785eada0, cl=33554434, pParentInst=0x7fffffffbb48, pClassTypeContext=0x7fffffffbb00) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/clsload.cpp:2822
+#18 0x00007ffff70548d2 in ClassLoader::CreateTypeHandleForTypeDefThrowing (pModule=0x7fff785eada0, cl=33554434, inst=..., pamTracker=0x7fffffffbff0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/methodtablebuilder.cpp:12329
+#19 0x00007ffff6d1cf59 in ClassLoader::CreateTypeHandleForTypeKey (pKey=0x7fffffffc7e0, pamTracker=0x7fffffffbff0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/clsload.cpp:2937
+#20 0x00007ffff6d1cc19 in ClassLoader::DoIncrementalLoad (pTypeKey=0x7fffffffc7e0, typeHnd=..., currentLevel=CLASS_LOAD_BEGIN) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/clsload.cpp:2877
+#21 0x00007ffff6d1f1ac in ClassLoader::LoadTypeHandleForTypeKey_Body (this=0x5555557890d0, pTypeKey=0x7fffffffc7e0, typeHnd=..., targetLevel=CLASS_LOAD_EXACTPARENTS) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/clsload.cpp:3553
+#22 0x00007ffff6d17a8e in ClassLoader::LoadTypeHandleForTypeKey (this=0x5555557890d0, pTypeKey=0x7fffffffc7e0, typeHnd=..., targetLevel=CLASS_LOADED, pInstContext=0x0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/clsload.cpp:3272
+#23 0x00007ffff6d19f06 in ClassLoader::LoadTypeDefThrowing (pModule=0x7fff785eada0, typeDef=33554434, fNotFoundAction=ClassLoader::ThrowIfNotFound, fUninstantiated=ClassLoader::FailIfUninstDefOrRef, tokenNotToLoad=0, level=CLASS_LOADED, pTargetInstantiation=0x0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/clsload.cpp:2252
+#24 0x00007ffff6d1b759 in ClassLoader::LoadTypeDefOrRefThrowing (pModule=0x7fff785eada0, typeDefOrRef=33554434, fNotFoundAction=ClassLoader::ThrowIfNotFound, fUninstantiated=ClassLoader::FailIfUninstDefOrRef, tokenNotToLoad=0, level=CLASS_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/clsload.cpp:2422
+#25 0x00007ffff6cbd5ba in Assembly::GetEntryPoint (this=0x555555789060) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/assembly.cpp:1603
+#26 0x00007ffff6cbced9 in Assembly::ExecuteMainMethod (this=0x555555789060, stringArgs=0x7fffffffd570, waitForOtherThreads=1) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/assembly.cpp:1466
+#27 0x00007ffff6d34bfd in CorHost2::ExecuteAssembly (this=0x5555555ca1b0, dwAppDomainId=1, pwzAssemblyPath=0x5555556414f0 u"/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll", argc=0, argv=0x0, pReturnValue=0x7fffffffd720) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/corhost.cpp:349
+#28 0x00007ffff6c88be8 in coreclr_execute_assembly (hostHandle=0x5555555ca1b0, domainId=1, argc=0, argv=0x0, managedAssemblyPath=0x55555559eab0 "/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll", exitCode=0x7fffffffd720) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:504
+#29 0x00007ffff7a25a6e in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libhostpolicy.so
+#30 0x00007ffff7a26b89 in corehost_main () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libhostpolicy.so
+#31 0x00007ffff7a666db in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/host/fxr/10.0.0-rc.1.25451.107/libhostfxr.so
+#32 0x00007ffff7a65212 in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/host/fxr/10.0.0-rc.1.25451.107/libhostfxr.so
+#33 0x00007ffff7a5fbb7 in hostfxr_main_startupinfo () from /workspaces/gdbsos/src/diagnostics/.dotnet/host/fxr/10.0.0-rc.1.25451.107/libhostfxr.so
+#34 0x0000555555564b10 in ?? ()
+#35 0x0000555555564e3f in ?? ()
+#36 0x00007ffff7abfd7a in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+#37 0x000055555555b0f9 in ?? ()
+(gdb) info rgs
+Undefined info command: "rgs".  Try "help info".
+(gdb) info args
+ExceptionRecord = 0x5555555d1b60
+ContextRecord = 0x5555555d0f40
+(gdb) p /x *ExceptionRecord
+$5 = {ExceptionCode = 0xe0444143, ExceptionFlags = 0x0, ExceptionRecord = 0x0, ExceptionAddress = 0x7ffff6eedf2c, NumberParameters = 0x2, ExceptionInformation = {0x1, 0x7fff785ecfa0, 0x0 <repeats 13 times>}}
+(gdb) c
+Continuing.
+
+Thread 1 "SimpleThrow" hit Breakpoint 2, DACNotify::DoModuleLoadNotification (ModulePtr=0x7fff78809d28) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1571
+1571        if ((g_dacNotificationFlags & CLRDATA_NOTIFY_ON_MODULE_LOAD) != 0)
+(gdb) p *g_pNotificationTable
+$6 = {state = 0, clrModule = 1000, methodToken = 1}
+(gdb) p g_dacNotificationFlags
+$7 = 3
+(gdb) c
+Continuing.
+
+Thread 1 "SimpleThrow" hit Breakpoint 3, RtlpRaiseException (ExceptionRecord=0x55555579eb20, ContextRecord=0x55555579df00) at /workspaces/gdbsos/src/runtime/src/coreclr/pal/src/exception/seh-unwind.cpp:884
+884         throw PAL_SEHException(ExceptionRecord, ContextRecord);
+
+Thread 1 "gdb" hit Breakpoint 3, ClrDataAccess::TranslateExceptionRecordToNotification (this=0x555558415a50, record=0x7fffffffd048, notify=0x7fffffffd038) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/daccess.cpp:4316
+4316        HRESULT status = E_FAIL;
+(gdb) c
+Continuing.
+[New Thread 0x7fff363ff700 (LWP 26022)]
+(gdb) [Thread 0x7fff363ff700 (LWP 26022) exited]
+bt
+#0  RtlpRaiseException (ExceptionRecord=0x55555579eb20, ContextRecord=0x55555579df00) at /workspaces/gdbsos/src/runtime/src/coreclr/pal/src/exception/seh-unwind.cpp:884
+#1  0x00007ffff7572006 in RaiseException (dwExceptionCode=3762569539, dwExceptionFlags=0, nNumberOfArguments=2, lpArguments=0x7fffffff5990) at /workspaces/gdbsos/src/runtime/src/coreclr/pal/src/exception/seh-unwind.cpp:951
+#2  0x00007ffff6eedf2c in DACRaiseException(unsigned long*, unsigned int)::$_1::operator()(DACRaiseException(unsigned long*, unsigned int)::Param*) const (this=0x7fffffff5908, pParam=0x7fffffff5918) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1464
+#3  0x00007ffff6eedddd in DACRaiseException (args=0x7fffffff5990, argCount=2) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1466
+#4  0x00007ffff6eee098 in DACNotifyExceptionHelper (args=0x7fffffff5990, argCount=2) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1493
+#5  0x00007ffff6eee249 in DACNotify::DoModuleLoadNotification (ModulePtr=0x7fff78809d28) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1574
+#6  0x00007ffff6d4bbb4 in DomainAssembly::FinishLoad (this=0x5555555d3d10) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/domainassembly.cpp:557
+#7  0x00007ffff6d4b58d in DomainAssembly::DoIncrementalLoad (this=0x5555555d3d10, level=FILE_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/domainassembly.cpp:436
+#8  0x00007ffff6c97e48 in AppDomain::TryIncrementalLoad (this=0x555555611f50, pFile=0x5555555d3d10, workLevel=FILE_LOADED, lockHolder=...) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2947
+#9  0x00007ffff6c96ab8 in AppDomain::LoadDomainAssembly (this=0x555555611f50, pLock=0x55555562a6f0, targetLevel=FILE_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2881
+#10 0x00007ffff6c97217 in AppDomain::LoadDomainAssemblyInternal (this=0x555555611f50, pIdentity=0x7fffffff63e0, pPEAssembly=0x5555555d0040, targetLevel=FILE_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2778
+#11 0x00007ffff6c90308 in AppDomain::LoadDomainAssembly (this=0x555555611f50, pSpec=0x7fffffff63e0, pPEAssembly=0x5555555d0040, targetLevel=FILE_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/appdomain.cpp:2652
+#12 0x00007ffff6ce983b in Module::LoadAssemblyImpl (this=0x7fff785eada0, kAssemblyRef=587202562) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/ceeload.cpp:3027
+#13 0x00007ffff6cb9da6 in ModuleBase::LoadAssembly (this=0x7fff785eada0, kAssemblyRef=587202562) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/ceeload.h:584
+#14 0x00007ffff6cba29a in Assembly::FindModuleByTypeRef (pModule=0x7fff785eada0, tkType=587202562, loadFlag=Loader::Load, pfNoResolutionScope=0x7fffffff6664) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/assembly.cpp:938
+#15 0x00007ffff6d1b492 in ClassLoader::LoadTypeDefOrRefThrowing (pModule=0x7fff785eada0, typeDefOrRef=16777236, fNotFoundAction=ClassLoader::ThrowIfNotFound, fUninstantiated=ClassLoader::FailIfUninstDefOrRef, tokenNotToLoad=0, level=CLASS_LOADED) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/clsload.cpp:2360
+#16 0x00007ffff6e0e2a3 in MemberLoader::GetDescFromMemberRef (pModule=0x7fff785eada0, MemberRef=167772177, ppMD=0x7fffffff6c30, ppFD=0x7fffffff6c28, pTypeContext=0x7fffffff6c98, strictMetadataChecks=1, ppTH=0x7fffffff6c38, actualTypeRequired=1, ppTypeSig=0x7fffffff8c40, pcbTypeSig=0x7fffffff8c48) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/memberload.cpp:306
+#17 0x00007ffff6dbfbb4 in CEEInfo::resolveToken (this=0x7fffffffb088, pResolvedToken=0x7fffffff8c10) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/jitinterface.cpp:1029
+#18 0x00007fffeebcb7ad in Compiler::impResolveToken (this=0x5555557c1e38, addr=0x7ffff40fa263 "\021", pResolvedToken=0x7fffffff8c10, kind=CORINFO_TOKENKIND_Method) at /workspaces/gdbsos/src/runtime/src/coreclr/jit/importer.cpp:122
+#19 0x00007fffeebe3b11 in Compiler::impImportBlockCode (this=0x5555557c1e38, block=0x5555557c3c78) at /workspaces/gdbsos/src/runtime/src/coreclr/jit/importer.cpp:8638
+#20 0x00007fffeebeec1b in Compiler::impImportBlock (this=0x5555557c1e38, block=0x5555557c3c78) at /workspaces/gdbsos/src/runtime/src/coreclr/jit/importer.cpp:11279
+#21 0x00007fffeebf18dd in Compiler::impImport (this=0x5555557c1e38) at /workspaces/gdbsos/src/runtime/src/coreclr/jit/importer.cpp:12232
+#22 0x00007fffeeb31f69 in Compiler::fgImport (this=0x5555557c1e38) at /workspaces/gdbsos/src/runtime/src/coreclr/jit/flowgraph.cpp:573
+#23 0x00007fffeeaa8b4b in CompilerPhaseWithStatus::DoPhase (this=0x7fffffff9558) at /workspaces/gdbsos/src/runtime/src/coreclr/jit/phase.h:124
+#24 0x00007fffeecf6185 in Phase::Run (this=0x7fffffff9558) at /workspaces/gdbsos/src/runtime/src/coreclr/jit/phase.cpp:61
+#25 0x00007fffeea9addf in DoPhase (_compiler=0x5555557c1e38, _phase=PHASE_IMPORTATION, _action=(PhaseStatus (Compiler::*)(Compiler * const)) 0x7fffeeb31f40 <Compiler::fgImport()>) at /workspaces/gdbsos/src/runtime/src/coreclr/jit/phase.h:136
+#26 0x00007fffeea98e30 in Compiler::compCompile (this=0x5555557c1e38, methodCodePtr=0x7fffffffa9a8, methodCodeSize=0x7fffffffae54, compileFlags=0x7fffffffa9e0) at /workspaces/gdbsos/src/runtime/src/coreclr/jit/compiler.cpp:4542
+#27 0x00007fffeeaa108e in Compiler::compCompileHelper (this=0x5555557c1e38, classPtr=0x7fff785eada0, compHnd=0x7fffffffb088, methodInfo=0x7fffffffaeb0, methodCodePtr=0x7fffffffa9a8, methodCodeSize=0x7fffffffae54, compileFlags=0x7fffffffa9e0) at /workspaces/gdbsos/src/runtime/src/coreclr/jit/compiler.cpp:7137
+#28 0x00007fffeea9f1cc in Compiler::compCompile(CORINFO_MODULE_STRUCT_*, void**, unsigned int*, JitFlags*)::$_3::operator()(Compiler::compCompile(CORINFO_MODULE_STRUCT_*, void**, unsigned int*, JitFlags*)::__JITParam*) const (this=0x7fffffffa0b0, __JITpParam=0x7fffffffa0b8) at /workspaces/gdbsos/src/runtime/src/coreclr/jit/compiler.cpp:6293
+#29 0x00007fffeea9e2db in Compiler::compCompile (this=0x5555557c1e38, classPtr=0x7fff785eada0, methodCodePtr=0x7fffffffa9a8, methodCodeSize=0x7fffffffae54, compileFlags=0x7fffffffa9e0) at /workspaces/gdbsos/src/runtime/src/coreclr/jit/compiler.cpp:6312
+#30 0x00007fffeeaaa04e in jitNativeCode(CORINFO_METHOD_STRUCT_*, CORINFO_MODULE_STRUCT_*, ICorJitInfo*, CORINFO_METHOD_INFO*, void**, unsigned int*, JitFlags*, void*)::$_6::operator()(jitNativeCode(CORINFO_METHOD_STRUCT_*, CORINFO_MODULE_STRUCT_*, ICorJitInfo*, CORINFO_METHOD_INFO*, void**, unsigned int*, JitFlags*, void*)::__JITParam*) const::{lambda(jitNativeCode(CORINFO_METHOD_STRUCT_*, CORINFO_MODULE_STRUCT_*, ICorJitInfo*, CORINFO_METHOD_INFO*, void**, unsigned int*, JitFlags*, void*)::$_6::operator()(jitNativeCode(CORINFO_METHOD_STRUCT_*, CORINFO_MODULE_STRUCT_*, ICorJitInfo*, CORINFO_METHOD_INFO*, void**, unsigned int*, JitFlags*, void*)::__JITParam*) const::__JITParam*)#1}::operator()(jitNativeCode(CORINFO_METHOD_STRUCT_*, CORINFO_MODULE_STRUCT_*, ICorJitInfo*, CORINFO_METHOD_INFO*, void**, unsigned int*, JitFlags*, void*)::$_6::operator()(jitNativeCode(CORINFO_METHOD_STRUCT_*, CORINFO_MODULE_STRUCT_*, ICorJitInfo*, CORINFO_METHOD_INFO*, void**, unsigned int*, JitFlags*, void*)::__JITParam*) const::__JITParam*) const (this=0x7fffffffa280, __JITpParam=0x7fffffffa288) at /workspaces/gdbsos/src/runtime/src/coreclr/jit/compiler.cpp:7783
+#31 0x00007fffeeaa3084 in jitNativeCode(CORINFO_METHOD_STRUCT_*, CORINFO_MODULE_STRUCT_*, ICorJitInfo*, CORINFO_METHOD_INFO*, void**, unsigned int*, JitFlags*, void*)::$_6::operator()(jitNativeCode(CORINFO_METHOD_STRUCT_*, CORINFO_MODULE_STRUCT_*, ICorJitInfo*, CORINFO_METHOD_INFO*, void**, unsigned int*, JitFlags*, void*)::__JITParam*) const (this=0x7fffffffa390, __JITpParam=0x7fffffffa3a0) at /workspaces/gdbsos/src/runtime/src/coreclr/jit/compiler.cpp:7808
+#32 0x00007fffeeaa2d53 in jitNativeCode (methodHnd=0x7fff785ed8c8, classPtr=0x7fff785eada0, compHnd=0x7fffffffb088, methodInfo=0x7fffffffaeb0, methodCodePtr=0x7fffffffa9a8, methodCodeSize=0x7fffffffae54, compileFlags=0x7fffffffa9e0, inlineInfoPtr=0x0) at /workspaces/gdbsos/src/runtime/src/coreclr/jit/compiler.cpp:7810
+#33 0x00007fffeeab3e96 in CILJit::compileMethod (this=0x7fffef082db8 <g_CILJit>, compHnd=0x7fffffffb088, methodInfo=0x7fffffffaeb0, flags=4294967295, entryAddress=0x7fffffffae58, nativeSizeOfCode=0x7fffffffae54) at /workspaces/gdbsos/src/runtime/src/coreclr/jit/ee_il_dll.cpp:296
+#34 0x00007ffff6df210a in invokeCompileMethodHelper (jitMgr=0x555555616b20, comp=0x7fffffffb088, info=0x7fffffffaeb0, jitFlags=..., nativeEntry=0x7fffffffae58, nativeSizeOfCode=0x7fffffffae54) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/jitinterface.cpp:12406
+#35 0x00007ffff6df2452 in invokeCompileMethod (jitMgr=0x555555616b20, comp=0x7fffffffb088, info=0x7fffffffaeb0, jitFlags=..., nativeEntry=0x7fffffffae58, nativeSizeOfCode=0x7fffffffae54) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/jitinterface.cpp:12469
+#36 0x00007ffff6df368e in UnsafeJitFunction (config=0x7fffffffc2f8, ILHeader=0x7fffffffbd98, pJitFlags=0x7fffffffbc80, pSizeOfCode=0x7fffffffbdf4) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/jitinterface.cpp:12914
+#37 0x00007ffff6e6d96d in MethodDesc::JitCompileCodeLocked (this=0x7fff785ed8c8, pConfig=0x7fffffffc2f8, pilHeader=0x7fffffffbd98, pEntry=0x55555565c2e0, pSizeOfCode=0x7fffffffbdf4) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/prestub.cpp:939
+#38 0x00007ffff6e6d27b in MethodDesc::JitCompileCodeLockedEventWrapper (this=0x7fff785ed8c8, pConfig=0x7fffffffc2f8, pEntry=0x55555565c2e0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/prestub.cpp:820
+#39 0x00007ffff6e6c211 in MethodDesc::JitCompileCode (this=0x7fff785ed8c8, pConfig=0x7fffffffc2f8) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/prestub.cpp:707
+#40 0x00007ffff6e6b419 in MethodDesc::PrepareILBasedCode (this=0x7fff785ed8c8, pConfig=0x7fffffffc2f8) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/prestub.cpp:433
+#41 0x00007ffff6e6aeb6 in MethodDesc::PrepareCode (this=0x7fff785ed8c8, pConfig=0x7fffffffc2f8) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/prestub.cpp:321
+#42 0x00007ffff6d2c416 in CodeVersionManager::PublishVersionableCodeIfNecessary (this=0x555555612ce0, pMethodDesc=0x7fff785ed8c8, callerGCMode=CallerGCMode::Coop, doBackpatchRef=0x7fffffffc4d7, doFullBackpatchRef=0x7fffffffc4d6) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/codeversion.cpp:1734
+#43 0x00007ffff6e73bba in MethodDesc::DoPrestub (this=0x7fff785ed8c8, pDispatchingMT=0x0, callerGCMode=CallerGCMode::Coop) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/prestub.cpp:2595
+#44 0x00007ffff6e72e93 in PreStubWorker (pTransitionBlock=0x7fffffffc808, pMD=0x7fff785ed8c8) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/prestub.cpp:2424
+#45 0x00007ffff72c03b8 in ThePreStub () at /workspaces/gdbsos/src/runtime/src/coreclr/vm/amd64/theprestubamd64.S:16
+#46 0x00007ffff72bf363 in CallDescrWorkerInternal () at /workspaces/gdbsos/src/runtime/src/coreclr/vm/amd64/calldescrworkeramd64.S:97
+#47 0x00007ffff6f2d03c in CallDescrWorkerWithHandler (pCallDescrData=0x7fffffffcb88, fCriticalCall=0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/callhelpers.cpp:67
+#48 0x00007ffff6f2dd77 in MethodDescCallSite::CallTargetWorker (this=0x7fffffffcd00, pArguments=0x7fffffffcca8, pReturnValue=0x7fffffffcc08, cbReturnValue=8) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/callhelpers.cpp:562
+#49 0x00007ffff6cc214f in MethodDescCallSite::Call_RetArgSlot (this=0x7fffffffcd00, pArguments=0x7fffffffcca8) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/callhelpers.h:458
+#50 0x00007ffff6cc1e21 in RunMainInternal (pParam=0x7fffffffcf70) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/assembly.cpp:1307
+#51 0x00007ffff6cc1b29 in RunMain(MethodDesc*, short, int*, REF<PtrArray>*)::$_1::operator()(Param*) const::{lambda(Param*)#1}::operator()(Param*) const (this=0x7fffffffce78, pParam=0x7fffffffcf70) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/assembly.cpp:1375
+#52 0x00007ffff6cbcc19 in RunMain(MethodDesc*, short, int*, REF<PtrArray>*)::$_1::operator()(Param*) const (this=0x7fffffffcf60, __EXparam=0x7fffffffcf70) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/assembly.cpp:1377
+#53 0x00007ffff6cbc9ca in RunMain (pFD=0x7fff785ed8c8, numSkipArgs=1, piRetVal=0x7fffffffd08c, stringArgs=0x7fffffffd570) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/assembly.cpp:1377
+#54 0x00007ffff6cbd04d in Assembly::ExecuteMainMethod (this=0x555555789060, stringArgs=0x7fffffffd570, waitForOtherThreads=1) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/assembly.cpp:1504
+#55 0x00007ffff6d34bfd in CorHost2::ExecuteAssembly (this=0x5555555ca1b0, dwAppDomainId=1, pwzAssemblyPath=0x5555556414f0 u"/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll", argc=0, argv=0x0, pReturnValue=0x7fffffffd720) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/corhost.cpp:349
+#56 0x00007ffff6c88be8 in coreclr_execute_assembly (hostHandle=0x5555555ca1b0, domainId=1, argc=0, argv=0x0, managedAssemblyPath=0x55555559eab0 "/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll", exitCode=0x7fffffffd720) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:504
+#57 0x00007ffff7a25a6e in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libhostpolicy.so
+#58 0x00007ffff7a26b89 in corehost_main () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libhostpolicy.so
+#59 0x00007ffff7a666db in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/host/fxr/10.0.0-rc.1.25451.107/libhostfxr.so
+#60 0x00007ffff7a65212 in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/host/fxr/10.0.0-rc.1.25451.107/libhostfxr.so
+#61 0x00007ffff7a5fbb7 in hostfxr_main_startupinfo () from /workspaces/gdbsos/src/diagnostics/.dotnet/host/fxr/10.0.0-rc.1.25451.107/libhostfxr.so
+#62 0x0000555555564b10 in ?? ()
+#63 0x0000555555564e3f in ?? ()
+#64 0x00007ffff7abfd7a in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+#65 0x000055555555b0f9 in ?? ()
+(gdb) c
+Continuing.
+
+Thread 1 "SimpleThrow" hit Breakpoint 3, RtlpRaiseException (ExceptionRecord=0x55555579ac20, ContextRecord=0x55555579a000) at /workspaces/gdbsos/src/runtime/src/coreclr/pal/src/exception/seh-unwind.cpp:884
+884         throw PAL_SEHException(ExceptionRecord, ContextRecord);
+
+Thread 1 "gdb" hit Breakpoint 3, ClrDataAccess::TranslateExceptionRecordToNotification (this=0x555558415a50, record=0x7fffffffd048, notify=0x7fffffffd038) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/daccess.cpp:4316
+4316        HRESULT status = E_FAIL;
+(gdb) c
+Continuing.
+JITTED SimpleThrow!Simple.Main()
+Setting breakpoint: breakpoint set --address 0x00007FFF7841D470 [Simple.Main()]
+(gdb) c
+Continuing.
+Warning:
+Cannot insert breakpoint 4.
+Cannot access memory at address 0x7fff7841d470
+
+Command aborted.
+(gdb) bt
+#0  RtlpRaiseException (ExceptionRecord=0x55555579ac20, ContextRecord=0x55555579a000) at /workspaces/gdbsos/src/runtime/src/coreclr/pal/src/exception/seh-unwind.cpp:884
+#1  0x00007ffff7572006 in RaiseException (dwExceptionCode=3762569539, dwExceptionFlags=0, nNumberOfArguments=3, lpArguments=0x7fffffffbc30) at /workspaces/gdbsos/src/runtime/src/coreclr/pal/src/exception/seh-unwind.cpp:951
+#2  0x00007ffff6eedf2c in DACRaiseException(unsigned long*, unsigned int)::$_1::operator()(DACRaiseException(unsigned long*, unsigned int)::Param*) const (this=0x7fffffffbba8, pParam=0x7fffffffbbb8) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1464
+#3  0x00007ffff6eedddd in DACRaiseException (args=0x7fffffffbc30, argCount=3) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1466
+#4  0x00007ffff6eee098 in DACNotifyExceptionHelper (args=0x7fffffffbc30, argCount=3) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1493
+#5  0x00007ffff6eee173 in DACNotify::DoJITNotification (MethodDescPtr=0x7fff785ed8c8, NativeCodeLocation=140735210968176) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:1541
+#6  0x00007ffff6e6ad24 in DACNotifyCompilationFinished (methodDesc=0x7fff785ed8c8, pCode=140735210968176) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/prestub.cpp:296
+#7  0x00007ffff6e6d50c in MethodDesc::JitCompileCodeLockedEventWrapper (this=0x7fff785ed8c8, pConfig=0x7fffffffc2f8, pEntry=0x55555565c2e0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/prestub.cpp:921
+#8  0x00007ffff6e6c211 in MethodDesc::JitCompileCode (this=0x7fff785ed8c8, pConfig=0x7fffffffc2f8) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/prestub.cpp:707
+#9  0x00007ffff6e6b419 in MethodDesc::PrepareILBasedCode (this=0x7fff785ed8c8, pConfig=0x7fffffffc2f8) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/prestub.cpp:433
+#10 0x00007ffff6e6aeb6 in MethodDesc::PrepareCode (this=0x7fff785ed8c8, pConfig=0x7fffffffc2f8) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/prestub.cpp:321
+#11 0x00007ffff6d2c416 in CodeVersionManager::PublishVersionableCodeIfNecessary (this=0x555555612ce0, pMethodDesc=0x7fff785ed8c8, callerGCMode=CallerGCMode::Coop, doBackpatchRef=0x7fffffffc4d7, doFullBackpatchRef=0x7fffffffc4d6) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/codeversion.cpp:1734
+#12 0x00007ffff6e73bba in MethodDesc::DoPrestub (this=0x7fff785ed8c8, pDispatchingMT=0x0, callerGCMode=CallerGCMode::Coop) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/prestub.cpp:2595
+#13 0x00007ffff6e72e93 in PreStubWorker (pTransitionBlock=0x7fffffffc808, pMD=0x7fff785ed8c8) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/prestub.cpp:2424
+#14 0x00007ffff72c03b8 in ThePreStub () at /workspaces/gdbsos/src/runtime/src/coreclr/vm/amd64/theprestubamd64.S:16
+#15 0x00007ffff72bf363 in CallDescrWorkerInternal () at /workspaces/gdbsos/src/runtime/src/coreclr/vm/amd64/calldescrworkeramd64.S:97
+#16 0x00007ffff6f2d03c in CallDescrWorkerWithHandler (pCallDescrData=0x7fffffffcb88, fCriticalCall=0) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/callhelpers.cpp:67
+#17 0x00007ffff6f2dd77 in MethodDescCallSite::CallTargetWorker (this=0x7fffffffcd00, pArguments=0x7fffffffcca8, pReturnValue=0x7fffffffcc08, cbReturnValue=8) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/callhelpers.cpp:562
+#18 0x00007ffff6cc214f in MethodDescCallSite::Call_RetArgSlot (this=0x7fffffffcd00, pArguments=0x7fffffffcca8) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/callhelpers.h:458
+#19 0x00007ffff6cc1e21 in RunMainInternal (pParam=0x7fffffffcf70) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/assembly.cpp:1307
+#20 0x00007ffff6cc1b29 in RunMain(MethodDesc*, short, int*, REF<PtrArray>*)::$_1::operator()(Param*) const::{lambda(Param*)#1}::operator()(Param*) const (this=0x7fffffffce78, pParam=0x7fffffffcf70) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/assembly.cpp:1375
+#21 0x00007ffff6cbcc19 in RunMain(MethodDesc*, short, int*, REF<PtrArray>*)::$_1::operator()(Param*) const (this=0x7fffffffcf60, __EXparam=0x7fffffffcf70) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/assembly.cpp:1377
+#22 0x00007ffff6cbc9ca in RunMain (pFD=0x7fff785ed8c8, numSkipArgs=1, piRetVal=0x7fffffffd08c, stringArgs=0x7fffffffd570) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/assembly.cpp:1377
+#23 0x00007ffff6cbd04d in Assembly::ExecuteMainMethod (this=0x555555789060, stringArgs=0x7fffffffd570, waitForOtherThreads=1) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/assembly.cpp:1504
+#24 0x00007ffff6d34bfd in CorHost2::ExecuteAssembly (this=0x5555555ca1b0, dwAppDomainId=1, pwzAssemblyPath=0x5555556414f0 u"/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll", argc=0, argv=0x0, pReturnValue=0x7fffffffd720) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/corhost.cpp:349
+#25 0x00007ffff6c88be8 in coreclr_execute_assembly (hostHandle=0x5555555ca1b0, domainId=1, argc=0, argv=0x0, managedAssemblyPath=0x55555559eab0 "/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll", exitCode=0x7fffffffd720) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:504
+#26 0x00007ffff7a25a6e in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libhostpolicy.so
+#27 0x00007ffff7a26b89 in corehost_main () from /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libhostpolicy.so
+#28 0x00007ffff7a666db in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/host/fxr/10.0.0-rc.1.25451.107/libhostfxr.so
+#29 0x00007ffff7a65212 in ?? () from /workspaces/gdbsos/src/diagnostics/.dotnet/host/fxr/10.0.0-rc.1.25451.107/libhostfxr.so
+#30 0x00007ffff7a5fbb7 in hostfxr_main_startupinfo () from /workspaces/gdbsos/src/diagnostics/.dotnet/host/fxr/10.0.0-rc.1.25451.107/libhostfxr.so
+#31 0x0000555555564b10 in ?? ()
+#32 0x0000555555564e3f in ?? ()
+#33 0x00007ffff7abfd7a in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+#34 0x000055555555b0f9 in ?? ()
+(gdb) c
+Continuing.
+Warning:
+Cannot insert breakpoint 4.
+Cannot access memory at address 0x7fff7841d470
+
+Command aborted.
+(gdb) ip2md 0x00007FFF7841D470
+[New Thread 0x7fff363ff700 (LWP 26705)]
+[Thread 0x7fff363ff700 (LWP 26705) exited]
+[New Thread 0x7fff363ff700 (LWP 26707)]
+warning: Temporarily disabling breakpoints for unloaded shared library "/workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libmscordaccore.so"
+
+Thread 1 "gdb" hit Catchpoint 2
+  Inferior unloaded /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libmscordaccore.so
+0x00007ffff7fe2590 in _dl_debug_state () from /lib64/ld-linux-x86-64.so.2
+(gdb) c
+Continuing.
+[Thread 0x7fff363ff700 (LWP 26707) exited]
+Internal cached state reset
+[New Thread 0x7fff363ff700 (LWP 26741)]
+[Thread 0x7fff363ff700 (LWP 26741) exited]
+
+Thread 1 "gdb" hit Catchpoint 1
+  Inferior loaded /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libmscordaccore.so
+0x00007ffff7fe2590 in _dl_debug_state () from /lib64/ld-linux-x86-64.so.2
+(gdb) c
+Continuing.
+[New Thread 0x7fff363ff700 (LWP 26772)]
+MethodDesc:   00007fff785ed8c8
+Method Name:          Simple.Main()
+Class:                00007fff78639420
+MethodTable:          00007fff785ed960
+mdToken:              0000000006000001
+Module:               00007fff785eada0
+IsJitted:             yes
+Current CodeAddr:     00007fff7841d470
+Version History:
+  ILCodeVersion:      0000000000000000
+  ReJIT ID:           0
+  IL Addr:            00007ffff40fa250
+Code Version History:
+     CodeAddr:           00007fff7841d470  (Tier 0)
+     NativeCodeVersion:  0000000000000000
+(gdb) [Thread 0x7fff363ff700 (LWP 26772) exited]
+q
+A debugging session is active.
+
+        Inferior 1 [process 22631] will be killed.
+
+Quit anyway? (y or n) y
+[Thread 0x7fff9effd700 (LWP 22245) exited]
+[Thread 0x7fff9f7fe700 (LWP 22244) exited]
+[Thread 0x7fffb49fc700 (LWP 22242) exited]
+[Thread 0x7fffb51fd700 (LWP 22241) exited]
+[Thread 0x7fffb59fe700 (LWP 22240) exited]
+[Thread 0x7fffb61ff700 (LWP 22239) exited]
+[Thread 0x7fffb77fe700 (LWP 22031) exited]
+[Thread 0x7fffb7fff700 (LWP 22030) exited]
+[Thread 0x7fffd8ff9700 (LWP 22029) exited]
+[Thread 0x7fffd97fa700 (LWP 22028) exited]
+[Thread 0x7fffd9ffb700 (LWP 22027) exited]
+[Thread 0x7fffda7fc700 (LWP 22026) exited]
+[Thread 0x7fffdaffd700 (LWP 22025) exited]
+[Thread 0x7fffdb7fe700 (LWP 22024) exited]
+[Thread 0x7fffdbfff700 (LWP 22023) exited]
+[Thread 0x7ffff0c8f700 (LWP 22022) exited]
+[Thread 0x7ffff1490700 (LWP 22021) exited]
+[Thread 0x7ffff1c91700 (LWP 22020) exited]
+[Thread 0x7ffff2492700 (LWP 22019) exited]
+[Thread 0x7ffff2c93700 (LWP 22018) exited]
+[Thread 0x7ffff3494700 (LWP 22017) exited]
+[Thread 0x7ffff3c95700 (LWP 22016) exited]
+[Thread 0x7ffff4128180 (LWP 22005) exited]
+[Inferior 1 (process 22005) exited normally]
+(gdb) q

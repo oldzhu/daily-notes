@@ -1,0 +1,55 @@
+(lldb) bt
+* thread #1, name = 'SimpleThrow', stop reason = breakpoint 1.1
+  * frame #0: 0x00007ffff7572025 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x000055555578a180, ContextRecord=0x0000555555789560) at seh-unwind.cpp:884:5
+    frame #1: 0x00007ffff7572006 libcoreclr.so`::RaiseException(dwExceptionCode=3762569539, dwExceptionFlags=0, nNumberOfArguments=2, lpArguments=0x00007fffffffc350) at seh-unwind.cpp:951:5
+    frame #2: 0x00007ffff6eedf2c libcoreclr.so`DACRaiseException(this=0x00007fffffffc2c8, pParam=0x00007fffffffc2d8)::$_1::operator()(DACRaiseException(unsigned long*, unsigned int)::Param*) const at util.cpp:1464:9
+    frame #3: 0x00007ffff6eedddd libcoreclr.so`DACRaiseException(args=0x00007fffffffc350, argCount=2) at util.cpp:1466:5
+    frame #4: 0x00007ffff6eee098 libcoreclr.so`DACNotifyExceptionHelper(args=0x00007fffffffc350, argCount=2) at util.cpp:1493:9
+    frame #5: 0x00007ffff6eee249 libcoreclr.so`DACNotify::DoModuleLoadNotification(ModulePtr=0x00007fff785cada0) at util.cpp:1574:9
+    frame #6: 0x00007ffff6d4bbb4 libcoreclr.so`DomainAssembly::FinishLoad(this=0x0000555555788fd0) at domainassembly.cpp:557:5
+    frame #7: 0x00007ffff6d4b58d libcoreclr.so`DomainAssembly::DoIncrementalLoad(this=0x0000555555788fd0, level=FILE_LOADED) at domainassembly.cpp:436:9
+    frame #8: 0x00007ffff6c97e48 libcoreclr.so`AppDomain::TryIncrementalLoad(this=0x0000555555611f50, pFile=0x0000555555788fd0, workLevel=FILE_LOADED, lockHolder=0x00007fffffffc6b8)), &(FileLoadLock::HolderLeave(FileLoadLock*)), 0ul, &(int CompareDefault<FileLoadLock*>(FileLoadLock*, FileLoadLock*)), true>&) at appdomain.cpp:2947:31
+    frame #9: 0x00007ffff6c96ab8 libcoreclr.so`AppDomain::LoadDomainAssembly(this=0x0000555555611f50, pLock=0x000055555562a6f0, targetLevel=FILE_LOADED) at appdomain.cpp:2881:21
+    frame #10: 0x00007ffff6c97217 libcoreclr.so`AppDomain::LoadDomainAssemblyInternal(this=0x0000555555611f50, pIdentity=0x00007fffffffcef8, pPEAssembly=0x0000555555642620, targetLevel=FILE_LOADED) at appdomain.cpp:2778:40
+    frame #11: 0x00007ffff6c90308 libcoreclr.so`AppDomain::LoadDomainAssembly(this=0x0000555555611f50, pSpec=0x00007fffffffcef8, pPEAssembly=0x0000555555642620, targetLevel=FILE_LOADED) at appdomain.cpp:2652:19
+    frame #12: 0x00007ffff6f15965 libcoreclr.so`AssemblyNative::LoadFromPEImage(pBinder=0x0000555555616500, pImage=0x0000555555658df0, excludeAppPaths=true) at assemblynative.cpp:172:51
+    frame #13: 0x00007ffff6f25ed3 libcoreclr.so`AssemblySpec::LoadAssembly(pFilePath=u"/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll") at assemblyspec.cpp:514:12
+    frame #14: 0x00007ffff6d34618 libcoreclr.so`CorHost2::ExecuteAssembly(this=0x00005555555ca1b0, dwAppDomainId=1, pwzAssemblyPath=u"/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll", argc=0, argv=0x0000000000000000, pReturnValue=0x00007fffffffd720) at corhost.cpp:322:27
+    frame #15: 0x00007ffff6c88be8 libcoreclr.so`::coreclr_execute_assembly(hostHandle=0x00005555555ca1b0, domainId=1, argc=0, argv=0x0000000000000000, managedAssemblyPath="/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll", exitCode=0x00007fffffffd720) at exports.cpp:504:24
+    frame #16: 0x00007ffff7a25a6e libhostpolicy.so`___lldb_unnamed_symbol213$$libhostpolicy.so + 910
+    frame #17: 0x00007ffff7a26b89 libhostpolicy.so`corehost_main + 345
+    frame #18: 0x00007ffff7a666db libhostfxr.so`___lldb_unnamed_symbol68$$libhostfxr.so + 1531
+    frame #19: 0x00007ffff7a65212 libhostfxr.so`___lldb_unnamed_symbol66$$libhostfxr.so + 1042
+    frame #20: 0x00007ffff7a5fbb7 libhostfxr.so`hostfxr_main_startupinfo + 263
+    frame #21: 0x0000555555564b10 SimpleThrow`___lldb_unnamed_symbol142$$SimpleThrow + 1136
+    frame #22: 0x0000555555564e3f SimpleThrow`___lldb_unnamed_symbol144$$SimpleThrow + 175
+    frame #23: 0x00007ffff7abfd7a libc.so.6`__libc_start_main + 234
+    frame #24: 0x000055555555b0f9 SimpleThrow`___lldb_unnamed_symbol1$$SimpleThrow + 41
+(lldb) f s 1
+error: too many arguments; expected frame-index, saw 's'.
+
+Command Options Usage:
+  frame select [-r <offset>] [<frame-index>]
+
+       -r <offset> ( --relative <offset> )
+            A relative frame index offset from the current frame index.
+(lldb) f 6
+frame #6: 0x00007ffff6d4bbb4 libcoreclr.so`DomainAssembly::FinishLoad(this=0x0000555555788fd0) at domainassembly.cpp:557:5
+   554      m_level = FILE_LOADED;
+   555 
+   556      // Now the DAC can find this module by enumerating assemblies in a domain.
+-> 557      DACNotify::DoModuleLoadNotification(m_pModule);
+   558 
+   559      // Set a bit to indicate that the module has been loaded in some domain, and therefore
+   560      // typeloads can involve types from this module. (Used for candidate instantiations.)
+(lldb) f 5
+frame #5: 0x00007ffff6eee249 libcoreclr.so`DACNotify::DoModuleLoadNotification(ModulePtr=0x00007fff785cada0) at util.cpp:1574:9
+   1571     if ((g_dacNotificationFlags & CLRDATA_NOTIFY_ON_MODULE_LOAD) != 0)
+   1572     {
+   1573         TADDR Args[2] = { MODULE_LOAD_NOTIFICATION, (TADDR) ModulePtr};
+-> 1574         DACNotifyExceptionHelper(Args, 2);
+   1575     }
+   1576 }
+   1577
+(lldb) p g_dacNotificationFlags
+(ULONG32) $3 = 3

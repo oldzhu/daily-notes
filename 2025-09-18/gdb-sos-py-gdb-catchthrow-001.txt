@@ -1,0 +1,116 @@
+Progress on the new testing
+
+we can catch c++ exception with catch throw after implement the lldb_write_virtual
+If not using catch throw and let the target run after the 1st coreclr_execute_assembly bp hit, we wont see the JITTED msg and bpmd won't set the bp for the function until the last exception throw..
+If using catch throw and let the target run after the 1st coreclr_execute_assembly bp hit, we see the JITTED msg and bpmd will set the bp for the function. You can see the below debugging trace.
+the below is the detailed debugging trace for your reference :
+
+Thread 1 "SimpleThrow" hit Temporary breakpoint 2, coreclr_execute_assembly (hostHandle=0x5555555ca240, domainId=1, argc=0, argv=0x0, managedAssemblyPath=0x55555559eab0 "/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net8.0/SimpleThrow.dll", exitCode=0x7fffffffd6c0) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:487
+[Thread 0x7fff363ff700 (LWP 29238) exited]
+487 if (exitCode == NULL)
+(gdb) r
+The program being debugged has been started already.
+Start it from the beginning? (y or n) n
+Program not restarted.
+(gdb) c
+Continuing.
+
+Thread 1 "SimpleThrow" hit Catchpoint 1 (exception thrown), 0x00007ffff7e73c2e in __cxa_throw () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+[New Thread 0x7fff363ff700 (LWP 29318)]
+(gdb) [Thread 0x7fff363ff700 (LWP 29318) exited]
+c
+Continuing.
+
+Thread 1 "SimpleThrow" hit Catchpoint 1 (exception thrown), 0x00007ffff7e73c2e in __cxa_throw () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+[New Thread 0x7fff363ff700 (LWP 29375)]
+(gdb) [Thread 0x7fff363ff700 (LWP 29375) exited]
+c
+Continuing.
+
+Thread 1 "SimpleThrow" hit Catchpoint 1 (exception thrown), 0x00007ffff7e73c2e in __cxa_throw () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+[New Thread 0x7fff363ff700 (LWP 29403)]
+(gdb) [Thread 0x7fff363ff700 (LWP 29403) exited]
+c
+Continuing.
+
+Thread 1 "SimpleThrow" hit Catchpoint 1 (exception thrown), 0x00007ffff7e73c2e in __cxa_throw () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+JITTED SimpleThrow!Simple.Main()
+Setting breakpoint: breakpoint set --address 0x00007FFF7840D470 [Simple.Main()]
+(gdb) bt
+#0 0x00007ffff7e73c2e in __cxa_throw () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+#1 0x00007ffff7572069 in RtlpRaiseException (ExceptionRecord=0x5555557e4e50, ContextRecord=0x5555557e4230) at /workspaces/gdbsos/src/runtime/src/coreclr/pal/src/exception/seh-unwind.cpp:884
+#2 0x00007ffff7572006 in RaiseException (dwExceptionCode=3762569539, dwExceptionFlags=0, nNumberOfArguments=3, lpArguments=0x7fffffffbbd0) at /workspaces/gdbsos/src/runtime/src/coreclr/pal/src/exception/seh-unwind.cpp:951
+#3 0x00007ffff6eedf2c in DACRaiseException(unsigned long*, unsigned int)::$_1::operator()(DACRaiseException(unsigned long*, unsigned int)::Param*) const (this=0x7fffffffbb48, pParam=0x7fffffffbb58) at /workspaces/gdbsos/src/runtime/src/coreclr/vm/util.cpp:146
+
+I see lldb plugin using the below code to create breakpoint for c++ exception
+
+HRESULT
+LLDBServices::SetExceptionCallback(
+PFN_EXCEPTION_CALLBACK callback)
+{
+if (!g_exceptionbp.IsValid())
+{
+lldb::SBTarget target = m_debugger.GetSelectedTarget();
+if (!target.IsValid())
+{
+return E_FAIL;
+}
+lldb::SBBreakpoint exceptionbp = target.BreakpointCreateForException(lldb::LanguageType::eLanguageTypeC_plus_plus, false, true);
+if (!exceptionbp.IsValid())
+{
+return E_FAIL;
+}
+#ifdef FLAGS_ANONYMOUS_ENUM
+exceptionbp.AddName("DoNotDeleteOrDisable");
+#endif
+exceptionbp.SetCallback(ExceptionBreakpointCallback, (void *)callback);
+g_exceptionbp = exceptionbp;
+}
+return S_OK;
+}
+
+I think lldb plug in behavior is - runtime bp hit- runtime load call back set c++ exception call back->continue->c++ exception throw->exception call back to handle clr notficaiton:resolve and set bp if it is -> continue...
+
+now let us
+
+auto cotniue after runtime call back(we break for debugging and checking now)
+align with lldb plugin breakpoint exception call back only for c++ exception.
+
+=============
+
+Nice progress—your observations line up with what we expected after enabling WriteVirtual. I’ll align the GDB plugin behavior with LLDB so:
+
+the runtime-loaded callback auto-continues, and
+a dedicated C++ exception catchpoint invokes the exception callback and auto-continues.
+actions taken
+
+Updated lldb2_set_runtime_loaded_callback to auto-continue by returning False from the Python breakpoint’s stop handler. Previously it stopped and required a manual continue.
+Implemented a dedicated C++ exception catchpoint inside lldb_set_exception_callback:
+Installs a Python gdb.Breakpoint of type BP_CATCHPOINT for “throw”.
+On each C++ exception, invokes the registered exception callback with the ILLDBServices pointer and then auto-continues.
+If the Python API path fails, falls back to catch throw and keeps the general stop-hook as a safety net.
+On lldb_clear_exception_callback, we now delete the dedicated catchpoint if present.
+what this changes for your repro
+
+After coreclr_execute_assembly hits once (runtime loaded), we’ll invoke the runtime-loaded callback and immediately continue—no need to press c; this mirrors LLDB host behavior.
+If you enable exception handling (through SOS registering the callback), the “C++ throw” catchpoint will fire early and run the exception callback. This is why you observed “JITTED …” and bpmd setting the native bp as soon as exceptions begin flowing.
+quick verification
+
+Launch your SimpleThrow target and load SOS via the GDB path you used before.
+Let it run after the first coreclr_execute_assembly hit. You should not be stuck at the runtime-loaded breakpoint anymore.
+When exceptions start (from PAL raise path), you should see your “JITTED …” trace and bpmd set the managed bp promptly.
+tips and notes
+
+If symbolization differs, pending breakpoints still work; the C++ exception catchpoint uses GDB’s catch throw so doesn’t rely on DAC symbols.
+If you prefer to stop at the runtime-loaded callback for inspection, we can add a knob/flag to make that stop configurable. For now, it auto-continues to match LLDB’s flow.
+If you only want the exception catchpoint active while the runtime is initialized, we can guard installation until after the runtime-loaded callback fires.
+completion summary
+
+Implemented auto-continue after runtime-loaded callback.
+Added a dedicated C++ exception catchpoint that calls back and auto-continues.
+Cleaned up the catchpoint on clear.
+No lint/errors reported for services.py.
+Next small improvements (optional)
+
+Add a debug flag to toggle the runtime-loaded breakpoint stop/continue behavior without code edits.
+Gate the exception catchpoint until _runtime_initialized is true to reduce noise if desired.
