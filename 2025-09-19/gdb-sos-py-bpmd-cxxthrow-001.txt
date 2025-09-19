@@ -1,0 +1,139 @@
+See the below trace collected with bpmd and write categories. We could see:
+
+Python catchpoint failed and trying CLI catch throw and is that the reason of _cxa_throw displayed and break for each c++ exception?
+Only 1 write trace which I guess is for p g_dacNotificationFlags.No other write could explain why g_pNotificationTable is not updated.
+Also did not see any exception callback for c++ throw stop and that can also explain why no other write(the write is indirectly called in exception call back) to update g_pNotificationTable, am I right?
+...
+[Thread 0x7fff9d5ff700 (LWP 38969) exited]
+lldb_write_virtual enter addr=0x7ffff7980ed0 size=4
+_dt_write_virtual enter addr=0x7ffff7980ed0 size=4
+_dt_write_virtual OK bytes=4
+lldb_write_virtual exit hr=0x00000000 bytes=4
+call into lldb_set_exception_callback
+exception cb registered
+[exception-bp] Python catchpoint failed: module 'gdb' has no attribute 'BP_CATCHPOINT'; trying CLI 'catch throw'
+RuntimeLoaded callback HR=0x00000000
+
+Thread 1 "SimpleThrow" hit Catchpoint 2 (exception thrown), 0x00007ffff7e73c2e in __cxa_throw () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+(gdb) c
+Continuing.
+
+Thread 1 "SimpleThrow" hit Catchpoint 2 (exception thrown), 0x00007ffff7e73c2e in __cxa_throw () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+(gdb) c
+Continuing.
+
+Thread 1 "SimpleThrow" hit Catchpoint 2 (exception thrown), 0x00007ffff7e73c2e in __cxa_throw () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+(gdb) c
+Continuing.
+[New Thread 0x7fffeda89700 (LWP 39310)]
+
+Thread 1 "SimpleThrow" hit Catchpoint 2 (exception thrown), 0x00007ffff7e73c2e in __cxa_throw () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+(gdb) c
+Continuing.
+
+Thread 1 "SimpleThrow" hit Catchpoint 2 (exception thrown), 0x00007ffff7e73c2e in __cxa_throw () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+(gdb) c
+Continuing.
+[Thread 0x7fffeda89700 (LWP 39310) exited]
+[New Thread 0x7fffeda89700 (LWP 39337)]
+[Thread 0x7fffeda89700 (LWP 39337) exited]
+[New Thread 0x7fffeda89700 (LWP 39341)]
+
+Thread 1 "SimpleThrow" hit Catchpoint 2 (exception thrown), 0x00007ffff7e73c2e in __cxa_throw () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+(gdb) c
+Continuing.
+[Thread 0x7fffeda89700 (LWP 39341) exited]
+[New Thread 0x7fffeda89700 (LWP 39406)]
+[New Thread 0x7fffecf82700 (LWP 39407)]
+[Thread 0x7fffeda89700 (LWP 39406) exited]
+[New Thread 0x7fffeda89700 (LWP 39408)]
+
+Thread 1 "SimpleThrow" hit Catchpoint 2 (exception thrown), 0x00007ffff7e73c2e in __cxa_throw () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+(gdb) c
+Continuing.
+
+Thread 1 "SimpleThrow" hit Catchpoint 2 (exception thrown), 0x00007ffff7e73c2e in __cxa_throw () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+(gdb) c
+Continuing.
+This is some simple exception.
+argument passed: A string!
+
+Thread 1 "SimpleThrow" hit Catchpoint 2 (exception thrown), 0x00007ffff7e73c2e in __cxa_throw () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+(gdb) info br
+Num Type Disp Enb Address What
+1 breakpoint del y 0x00007ffff6c88a91 in coreclr_execute_assembly(void*, unsigned int, int, char const**, char const*, unsigned int*) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:487
+2 catchpoint keep y exception throw
+catchpoint already hit 9 times
+(gdb)
+
+==========================
+
+Thanks for the detailed trace—that’s super helpful. Here’s what it shows and what I changed to get us to a clean, silent, auto-continue exception flow and to expose why JITTED notifications aren’t binding yet.
+
+What your trace confirms
+
+The Python gdb.BP_CATCHPOINT constant isn’t available in your GDB’s Python API, so our Python catchpoint failed and we fell back to CLI “catch throw”. That’s why you see visible “Catchpoint … __cxa_throw” stops and need to manually continue. The CLI catchpoint is not silent and GDB reports it verbosely.
+Only one write occurred: that’s very likely the write to g_dacNotificationFlags (enabling module load/unload). No further writes means we never invoked the exception callback or never reached the code path that writes to g_pNotificationTable for JITTED notifications.
+No “[exception-bp] Exception callback HR=…” logs appeared from our catchpoint path, agreeing with your observation. This matches the CLI “catch throw” not calling our callback because previously it wasn’t wired through a stop hook that auto-continues.
+Fixes implemented now
+
+Make exception processing driven by a stop hook, so any throw stop (including CLI “catch throw” or a Python bp on __cxa_throw) triggers our exception callback and auto-continues silently:
+Connected gdb.events.stop when SetExceptionCallback is called.
+In the stop handler:
+Detect the throw stop robustly by checking the breakpoint location string for “throw” or “__cxa_throw” (so it works without BP_CATCHPOINT support).
+Only after runtime is initialized, invoke the exception callback for those throw stops and immediately schedule a safe continue, preventing visible pauses or spam.
+At the first hit of coreclr_execute_assembly, the stop hook fires RuntimeLoaded (if not already fired) and then invokes one exception callback once, then auto-continues. This primes binding like LLDB.
+Fallback when Python catchpoint can’t be created:
+If BP_CATCHPOINT is unavailable and CLI “catch throw” fails, install a Python breakpoint on __cxa_throw and mark it silent. Regardless of which path succeeds, the stop hook now handles invoking our exception callback and auto-continue. So even with CLI catch throw, we don’t require manual ‘c’—the stop hook will immediately continue after invoking the callback.
+Added the tracing you requested:
+read: instrumented read_virtual, _dt_read_virtual, and lldb_read_virtual with enter/OK/FAIL/EXCEPTION and fallback logs.
+write: instrumented _dt_write_virtual and lldb_write_virtual with enter, success/failure, and exceptions; includes byte counts.
+bpmd: routed all RuntimeLoaded and exception callback setup/handler logs under the bpmd category, including fallback errors and stop-hook actions.
+What to test now
+
+Enable tracing:
+SOS_PY_TRACE=1
+SOS_PY_TRACE_CATEGORIES="bpmd,read,write"
+In a fresh session, source sos.py, set your bpmd on a non-JITted method, then run.
+Expected behavior:
+No visible “Catchpoint …” lines remain that require manual “c”. Even if the CLI catchpoint is present, our stop hook will auto-continue immediately after invoking the exception callback.
+You should see:
+bpmd: RuntimeLoaded callback HR=0x00000000
+bpmd: [stop-hook] exception after runtime-loaded HR=… once
+Subsequent “[stop-hook] Exception callback HR=0x00000000” for each module load/unload and JITTED event, auto-continued by the stop hook.
+write: multiple “_dt_write_virtual OK bytes=…” calls corresponding to writes DAC does when updating the JIT notification table (g_pNotificationTable and related fields).
+SOS should print JITTED … and Setting breakpoint … once methods JIT, and then bpmd breakpoints should bind and hit as usual.
+Why this fixes your 3 observations
+
+_cxa_throw showing and breaking:
+
+Root cause: we fell back to CLI “catch throw” and didn’t auto-continue. Now, we attach a stop hook that recognizes throw stops and auto-continues after invoking our exception callback, making the stop invisible and hands-off. If your GDB supports a Python breakpoint on __cxa_throw, we install that silently as well.
+Only one write and no g_pNotificationTable updates:
+
+Root cause: the exception callback that triggers the DAC notification writes wasn’t getting invoked on throw stops. The stop hook now ensures the exception callback runs on every throw after runtime-loaded, which should result in additional writes logged by _dt_write_virtual if DAC processes the notifications.
+No exception callback log:
+
+Root cause: without the stop hook wiring, the CLI catch throw didn’t route through our callback. Now it does, and you’ll see “[stop-hook] Exception callback HR=…” for each notification.
+If you still see visible “Catchpoint …” lines
+
+Some GDBs always print the first line even for silent breakpoints, but they should immediately continue. Let me know if GDB actually pauses requiring a manual “c” after these changes. If so, share the bpmd log lines around [stop-hook] and we’ll tighten the detection.
+If bpmd still doesn’t bind
+
+With write logging on, look for _dt_write_virtual calls after RuntimeLoaded. If none happen (beyond the flags write), then the exception callback might still not be firing. In that case, share:
+The bpmd logs around runtime-loaded and subsequent throws
+The output of “info breakpoints” (to see if our __cxa_throw Python bp exists and is silent)
+Any “[stop-hook] error” lines
+We can also adjust the stop-hook to be even more permissive on throw detection (e.g., matching “exception thrown” in the stop reason) if your GDB exposes it.
+
+Quick sanity checks performed
+
+Source compiles (Python-level): no syntax errors reported after edits.
+Categories applied: read/write/bpmd logs are in place in all the requested paths.
+Next step
+
+Please rerun with bpmd,read,write categories enabled and paste the segment starting from:
+call into lldb2_set_runtime_loaded_callback
+call into lldb_set_exception_callback
+First stop at coreclr_execute_assembly
+The first few “[stop-hook] Exception callback HR= …” lines
+Any _dt_write_virtual lines after that That will tell us if DAC now writes the JIT table and whether bpmd can bind.

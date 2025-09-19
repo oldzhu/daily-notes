@@ -1,0 +1,12 @@
+The other bpmd work items
+    1. anonying _cxa_throw display in debugging. I am thinking to align with lldb plugin SetExceptionCallback in services.cpp further by not using catch throw in gdb and using bp for __cxa_throw instead. Just two concerns- one is if __cxa_throw is standard for linux like system or at lest for most linux distributions for c++ exception throw and another is it resolvable even no symbol?
+    but what I saw is that in lldb plugin SetExceptionCallback, the breakpoing will be like the below:
+    2: Exception breakpoint (catch: off throw: on) using: names = {'__cxa_throw', '__cxa_rethrow'}, locations = 2, resolved = 2, hit count = 4
+
+  Names:
+    DoNotDeleteOrDisable
+
+  2.1: where = libstdc++.so.6`__cxa_throw, address = 0x00007ffff7e73c20, resolved, hit count = 4 
+  2.2: where = libstdc++.so.6`__cxa_rethrow, address = 0x00007ffff7e73c70, resolved, hit count = 0 
+  we could do the same for in our gdb services.py
+    2. bpmd -clear command does not remove the catch throw point used in our current implementation which cause c++ exception throw and stop after run bpmd -clear but in lldb plugin, I saw exception bp for _cxa_throw and _cxa_rethrow were removed after all managed bps are cleared.

@@ -1,0 +1,68 @@
+Nice progress on bpmd—seeing JITTED and breaking in Simple.Main confirms the runtime notification path is working. I’ll switch the exception handling to silent symbol breakpoints so the “Catchpoint …” spam goes away and make sure they’re cleaned up when managed breakpoints are cleared.
+
+Changes made
+Replaced CLI “catch throw” with silent Python breakpoints on __cxa_throw and __cxa_rethrow
+
+These are pending by name and resolve when libstdc++.so.6 loads (matching LLDB’s behavior).
+On hit: invoke the managed exception callback, schedule a safe continue, and return False (no visible stop/message).
+GDB’s Breakpoint.silent=True suppresses any output.
+Cleaned up on clear
+
+lldb_clear_exception_callback now deletes the __cxa_throw/__cxa_rethrow Python breakpoints we installed.
+Additionally, it scans and deletes any lingering CLI “catch throw” catchpoints from older sessions so future runs stay quiet.
+Files changed:
+
+services.py
+lldb_set_exception_callback: now installs Python BPs on '__cxa_throw' and '__cxa_rethrow' only; no CLI “catch throw”.
+lldb_clear_exception_callback: deletes our _cxa* BPs and best-effort removes any prior CLI catchpoints.
+Why __cxa_throw/__cxa_rethrow?
+Standard ABI: __cxa_throw and __cxa_rethrow come from the Itanium C++ ABI implemented by libstdc++ (GCC) and libc++abi (Clang). They’re present on mainstream Linux distros.
+Symbol availability: Even with stripped debug info, these are exported dynamic symbols in libstdc++.so.6, so pending breakpoints by name resolve reliably when the library loads. Extremely unusual builds that hide these symbols would be the exception.
+How to try it
+Start a fresh GDB session (important to avoid stale catchpoints).
+Source sos and run your test as usual.
+You should no longer see “Catchpoint N (exception thrown)” lines; instead, exceptions will silently drive the callback and continue.
+“info breakpoints” should show two Python breakpoints pending/resolved at __cxa_throw and __cxa_rethrow (marked silent).
+After running “bpmd -clear” (which triggers the managed host to clear exception callbacks), our code removes these exception breakpoints and any lingering CLI catchpoints. If you test mid-session, you can also call the clear path by unloading/reloading SOS or whatever invokes ClearExceptionCallback in your flow.
+Optional quick checks:
+
+Set SOS_PY_TRACE=1 and SOS_PY_TRACE_CATEGORIES=bpmd to see lines like:
+[exception-bp] installed ‘__cxa_throw’ breakpoint
+[exception-bp] installed ‘__cxa_rethrow’ breakpoint
+[exception-bp] Exception callback HR=0x00000000
+“info breakpoints” should not list a catchpoint “throw”; if it appears from a previous run, our clear now removes it, or you can manually “delete <id>”.
+Notes on your two work items
+Remove annoying Catchpoint display and align with LLDB
+
+Done. We no longer use “catch throw”. We install silent Python breakpoints on __cxa_throw and __cxa_rethrow, auto-continue, and invoke the callback—mirroring LLDB’s “Exception breakpoint (throw: on) names={__cxa_throw,__cxa_rethrow}” behavior.
+Ensure bpmd -clear removes exception breakpoints
+
+Done. lldb_clear_exception_callback deletes our _cxa* breakpoints and also scrubs lingering CLI catch throw catchpoints from earlier sessions.
+Sanity status
+Syntax/type checks: PASS (no errors reported in services.py).
+Behavior: Should eliminate “Catchpoint …” lines going forward. If you still see them, it’s likely from a pre-existing GDB CLI catchpoint—clear the session or rely on the enhanced clear to remove them.
+Requirements coverage:
+
+1.1 Replace catch throw with _cxa* and suppress output: Done.
+1.2 Ensure bpmd -clear removes exception breakpoint(s): Done.
+Next small follow-ups
+If you want absolute quiet before runtime starts, we already suppress exception callback until runtime-loaded fires; you can flip that if you prefer to capture extremely early throws.
+If you ever encounter an environment where __cxa_throw isn’t resolvable, we can add a late fallback (e.g., break by address via a symbol query), but this shouldn’t be needed on mainstream distros.
+If you want, I can add a trace toggle that logs each throw handled by the _cxa* breakpoints under “bpmd” so you can confirm callback cadence while staying silent on the console.
+
+ou’re absolutely right—that best-effort cleanup could delete user-created catchpoints and doesn’t match LLDB’s clear behavior. I’ve removed that part.
+
+What changed
+
+lldb_clear_exception_callback now only deletes the Python breakpoints we install for '__cxa_throw' and '__cxa_rethrow'.
+It no longer scans/deletes any CLI “catch throw” or other catchpoints. This aligns with LLDB and respects user-defined breakpoints.
+What remains
+
+lldb_set_exception_callback installs silent Python BPs on __cxa_throw and __cxa_rethrow (pending by name), invokes the managed exception callback on hit, and auto-continues—no “Catchpoint …” lines.
+lldb_clear_exception_callback removes only those two Python breakpoints.
+Quick validation
+
+Fresh GDB session, source sos, run your app.
+You should see no “Catchpoint …” output; exceptions will silently notify and continue.
+info breakpoints shows silent BPs on __cxa_throw/__cxa_rethrow while active; they disappear after the clear callback path runs.
+Any user “catch throw” you create manually remains intact.

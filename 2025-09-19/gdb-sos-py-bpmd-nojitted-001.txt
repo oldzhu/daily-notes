@@ -1,0 +1,68 @@
+ still not work as expect
+
+_cxa_throw is still displayed in gdb for each c++ exception throwed and would break and not auto continue.
+No JITTED msg and bpmd still not work for nonjitted function as g_pNotificationTable is not populated with the bpmd target function. Meanwhile I found g_dacNotificationFlags is 0x3 which means module load/unload is enabled.
+Let us debug/figure out why before decide how to move forward.
+I would like to modify the tracing in our python sos as the below in order to trace more
+Add trace category read and write to category read_virtual and write_virtual calls traces and I also want to see if read and write succeed or fail from trace.
+category all traces in setexceptioncall back and setrutnimecallback and all traces in their handlers to bpmd category
+so that all these traces would turn on if set category to bpmd.
+Aftert the change, I will turn on bpmd and write category to trace and see if can find clues.
+
+==============
+
+Good call—let’s add the tracing you asked for so we can see exactly what’s going on with reads/writes and the runtime/exception handshake.
+
+actions taken
+
+read/write categories added:
+
+read_virtual: logs enter, OK/FAIL byte count, and exceptions under the read category.
+_dt_read_virtual: logs enter, process_vm_readv success, fallback to GDB, OK, and exceptions under read.
+lldb_read_virtual: logs enter under read.
+_dt_write_virtual: logs enter, zero/NULL short-circuit, string_at failure, gdb write failure, OK/FAIL byte count, and exceptions under write.
+lldb_write_virtual: logs enter, exit hr and bytes written, and exceptions under write.
+bpmd category tightened:
+
+lldb2_set_runtime_loaded_callback: callback HR and errors now use trace_cat('bpmd', ...).
+lldb_set_exception_callback:
+Persistent C++ throw catchpoint installed; stop() ignores until runtime-loaded fired; calls exception callback and continues.
+All install/fallback logs and callback errors now trace under bpmd.
+Fallback tbreak failure now logs under bpmd.
+what to try next
+
+In a fresh GDB session, enable:
+SOS_PY_TRACE=1
+SOS_PY_TRACE_CATEGORIES="bpmd,read,write"
+Then:
+source the plugin (sos.py)
+set bpmd on a non-JITted method
+run
+What we expect to see:
+
+bpmd:
+call into lldb2_set_runtime_loaded_callback
+RuntimeLoaded callback HR=0x00000000 (and _runtime_loaded_fired becomes True)
+[exception-bp] Exception callback HR=0x00000000 events when module load/unload and JITTED notifications occur
+JITTED … and Setting breakpoint … lines from SOS once g_pNotificationTable fills
+read/write:
+_dt_write_virtual enter/OK where DAC updates the JIT table
+_dt_read_virtual and read_virtual activity around DAC queries
+No visible “Catchpoint” lines (we set catchpoints silent and return False), and no stops on __cxa_throw.
+Notes and hypotheses on your current symptoms
+
+If GDB still displays _cxa_throw and stops, there might be an existing non-silent catchpoint lingering from earlier sessions or created by CLI (e.g., from .gdbinit). Please check with “info breakpoints” and remove any catch throw entries. Our installed catchpoint is silent and returns False—so it shouldn’t show.
+g_dacNotificationFlags=0x3 indicates module load/unload enabled; JITTED requires runtime to raise the exception and our catchpoint to be active after runtime-loaded fired. With tracing now, we can confirm:
+RuntimeLoaded callback actually succeeded (HR=0)
+Our persistent catchpoint exists and is invoked after runtime-loaded
+_dt_write_virtual OK lines appear when DAC attempts to update g_pNotificationTable
+If _dt_write_virtual shows FAIL/EXCEPTION or zero bytes, DAC can’t persist notifications; bpmd won’t bind. The new write traces will show us the exact failure.
+wrap-up
+
+The requested tracing is in place and categorized:
+read, write for memory ops
+bpmd for runtime/exception setup and handlers
+Please re-run with those categories enabled and share the bpmd+read+write log snippets around:
+runtime entry (coreclr_execute_assembly)
+first module load/JITTED notifications
+any _dt_write_virtual events From that, we can pinpoint why the catchpoint is visible/stopping and why the JIT notification table isn’t being written.

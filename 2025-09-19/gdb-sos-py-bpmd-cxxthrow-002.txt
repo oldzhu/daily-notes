@@ -1,0 +1,98 @@
+still the same and see the below trace
+
+lldb_write_virtual enter addr=0x7ffff7980ed0 size=4
+_dt_write_virtual enter addr=0x7ffff7980ed0 size=4
+_dt_write_virtual OK bytes=4
+lldb_write_virtual exit hr=0x00000000 bytes=4
+call into lldb_set_exception_callback
+exception cb registered
+[exception-bp] Python catchpoint failed: module 'gdb' has no attribute 'BP_CATCHPOINT'; trying CLI 'catch throw'
+[stop-hook] connected
+RuntimeLoaded callback HR=0x00000000
+
+Thread 1 "SimpleThrow" hit Catchpoint 2 (exception thrown), 0x00007ffff7e73c2e in __cxa_throw () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+(gdb) [Thread 0x7fff363ff700 (LWP 39397) exited]
+info br
+Num Type Disp Enb Address What
+1 breakpoint del y 0x00007ffff6c88a91 in coreclr_execute_assembly(void*, unsigned int, int, char const**, char const*, unsigned int*) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:487
+2 catchpoint keep y exception throw
+catchpoint already hit 1 time
+(gdb) c
+Continuing.
+
+Thread 1 "SimpleThrow" hit Catchpoint 2 (exception thrown), 0x00007ffff7e73c2e in __cxa_throw () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+(gdb) c
+Continuing.
+
+Thread 1 "SimpleThrow" hit Catchpoint 2 (exception thrown), 0x00007ffff7e73c2e in __cxa_throw () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+(gdb) c
+Continuing.
+[New Thread 0x7fffeddff700 (LWP 39726)]
+
+Thread 1 "SimpleThrow" hit Catchpoint 2 (exception thrown), 0x00007ffff7e73c2e in __cxa_throw () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+(gdb)
+Could it be related with the code after we fail back to catch throw cli as newest is none since the below woulf fail as no constant BP_CATCHPOINT?
+if getattr(bp, 'type', None) == gdb.BP_CATCHPOINT:
+
+
+                       # Fallback: use CLI catchpoint and try to mark it silent                        trace_cat('bpmd', f"[exception-bp] Python catchpoint failed: {ex_bppy}; trying CLI 'catch throw'")                        try:                            out = gdb.execute('catch throw', to_string=True)                            _ = out  # suppress unused                        except Exception as ex_cli:                            trace_cat('bpmd', f"[exception-bp] CLI catch throw failed: {ex_cli}")                            # Last-resort: break on __cxa_throw symbol and let stop-hook invoke callback and continue                            try:                                class _CxaThrowBP(gdb.Breakpoint):                                    def __init__(bp_self):                                        super().__init__('__cxa_throw', temporary=False)                                        bp_self.silent = True                                self._cpp_exception_bp = _CxaThrowBP()                                trace_cat('bpmd', "[exception-bp] __cxa_throw bp installed (python)")                            except Exception as ex_last:                                trace_cat('bpmd', f"[exception-bp] __cxa_throw python bp failed: {ex_last}")                        # Try to locate the most recent catchpoint and mark silent                        try:                            newest = None                            for bp in (gdb.breakpoints() or []):                                try:                                    if getattr(bp, 'type', None) == gdb.BP_CATCHPOINT:                                        newest = bp                                except Exception:                                    pass                            if newest is not None:                                try:                                    newest.silent = True                                except Exception:                                    pass                                self._cpp_exception_bp = newest                                trace_cat('bpmd', "[exception-bp] CLI catch throw installed and silenced")                        except Exception as ex_find:                            trace_cat('bpmd', f"[exception-bp] unable to locate/silence CLI catchpoint: {ex_find}")
+I can understand _cxa_throw displayed and gdb stop for each c++ exception as did not set newest.silent = true if my above guess is right? but I can not understand why did not see any further exception callback got called for these c++ exception stops as I saw the trace said exception cb registered....
+
+===========
+
+Thanks for the trace—that pinpoints two issues:
+
+Your GDB’s Python API doesn’t expose BP_CATCHPOINT, so our Python catchpoint creation fails and we fall back to CLI “catch throw.” That explains the visible “Catchpoint … __cxa_throw” lines.
+Because the CLI catchpoint wasn’t marked silent, and we weren’t guaranteed to route throw stops through our exception callback, you didn’t see further writes to g_pNotificationTable.
+I’ve updated the canonical services.py to make the flow robust even on GDBs without BP_CATCHPOINT:
+
+What I changed
+
+Make CLI catch throw silent without BP_CATCHPOINT:
+
+After running “catch throw”, we now scan all breakpoints and look for those whose location string contains “throw” or “exception throw” and then mark that breakpoint silent. This doesn’t depend on BP_CATCHPOINT anymore.
+Route ALL throw stops through our stop-hook:
+
+Connected the stop hook when SetExceptionCallback is called.
+Throw-stop detection doesn’t rely on BP_CATCHPOINT. It now:
+Checks event.breakpoints’ location text for “throw” or “__cxa_throw”.
+Falls back to examining the current function/symbol at $pc to detect “__cxa_throw”.
+After runtime is initialized:
+For throw stops, the stop hook invokes the exception callback and immediately schedules a safe continue. This should prevent visible pauses and ensure the callback runs every throw.
+At the first hit of coreclr_execute_assembly:
+The stop hook fires RuntimeLoaded if needed, then immediately pumps one exception callback to trigger binding, and continues.
+Tracing:
+
+You already enabled write/read, and I added bpmd logs around the stop-hook’s exception handling. You’ll now see:
+[stop-hook] handling C++ throw; invoking exception callback
+[stop-hook] Exception callback HR=…
+What this should fix in your repro
+
+“Catchpoint … __cxa_throw” lines: You might still see GDB print them once, but the stop-hook will immediately continue. More importantly, you should no longer need to type “c” manually; it should auto-continue after invoking our callback.
+Only one write observed: With exception-callback now invoked on every throw, you should see more _dt_write_virtual OK bytes=… entries from DAC updating the notification table (including JITTED entries).
+Missing exception callback logs: You should now see “[stop-hook] Exception callback HR=…” whenever a throw occurs after runtime-loaded.
+Why your initial suspicion was correct
+
+Yes, the “newest” loop previously checked bp.type == gdb.BP_CATCHPOINT. On your GDB, that attribute doesn’t exist, so we never marked the CLI catchpoint silent. I replaced it with a location-string-based detection so we can silence it reliably.
+Next steps to validate
+
+Fresh session, tracing on:
+SOS_PY_TRACE=1
+SOS_PY_TRACE_CATEGORIES=bpmd,read,write
+Source the plugin, set bpmd on a non-jitted method, run.
+Look for:
+bpmd: RuntimeLoaded callback HR=0x00000000
+bpmd: [stop-hook] handling C++ throw; invoking exception callback
+bpmd: [stop-hook] Exception callback HR=0x00000000
+write: multiple _dt_write_virtual OK bytes=… calls after those throws
+Confirm that GDB is no longer waiting for manual “c” on each throw.
+If it still pauses visibly
+
+Run “info breakpoints”. The CLI “catch throw” should show “silent y” (if GDB displays that); even if it doesn’t display “silent,” our stop hook should auto-continue anyway.
+Share the bpmd trace lines around each throw so we can see if the stop hook is firing.
+If no extra writes appear
+
+That would imply the exception callback isn’t being invoked or returns failure. The new logs will show the HR. If it’s failing, we’ll need to trace into HandleExceptionNotification wiring in strike.cpp or confirm that g_dacNotificationFlags includes the JIT notification bit (module flags alone are 0x3; JIT notification may require additional enabling).
+We can iterate quickly with the new logs.
+
+
