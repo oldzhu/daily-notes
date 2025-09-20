@@ -1,0 +1,72 @@
+Got it—let’s unpack why LLDB behaves that way, what our GDB plugin currently does, and how we can align soshelp/help semantics to match LLDB before we touch code.
+
+What LLDB does and why
+Commands are pre-registered with the LLDB interpreter at plugin load:
+
+In soscommand.cpp, the plugin calls g_services->AddCommand() for native-forwarders (e.g., clru→u, bpmd) and g_services->AddManagedCommand() for managed-forwarded commands (assemblies, dumpheap, etc.).
+Therefore, help in LLDB always shows the full list of “Current user-defined commands” before and after the target starts. These are LLDB interpreter commands registered up-front.
+soshelp output is dynamic based on runtime/hosting state:
+
+The soshelp command is mapped to the native SOS export “Help” (new sosCommand("Help")).
+The LLDB services layer loads managed hosting on demand and the managed extension assemblies register their commands via HostServices (see HostServices.cs → AddCommands).
+Before the runtime starts (or hosting is not initialized), the managed command layer isn’t present, so “Help” prints a smaller, native-only subset.
+After the runtime is running and hosting is initialized, the managed command set is discovered and “Help” prints the full list.
+Technical hooks behind this:
+
+LLDBServices::AddManagedCommand() ultimately uses AddCommand(name, help, ...) to insert a lightweight LLDB command that forwards to HostServices-managed dispatch when invoked.
+LLDBServices::ExecuteCommand(...) calls GetHostServices() to ensure managed hosting is initialized before trying to dispatch a command that wasn’t directly added to the interpreter, providing a fallback to managed dispatch.
+Result: LLDB’s “help” shows everything immediately because the interpreter commands are added at plugin load. “soshelp” is the canonical dynamic listing—small pre-runtime, full post-runtime.
+
+What our GDB plugin does today
+We also pre-register a large set of GDB commands up-front:
+
+In sos.py, _register_default_commands() instantiates SOSCommand(name) for a long list (including bpmd, clru, etc.). That means GDB’s own help will list these user-defined commands before and after the run, like LLDB.
+Our soshelp routing already tries to mirror LLDB’s dynamic behavior:
+
+In SOSCommand.invoke, for help/soshelp we attempt managed “help” first if the runtime is loaded and hosting is initialized; otherwise we fall back to the native SOS “Help” export.
+This produces a smaller set pre-runtime and a larger set post-runtime—matching LLDB’s soshelp behavior.
+Why you saw “bpmd”, “clru” missing from soshelp
+
+soshelp output is produced by the SOS help machinery (native/managed), not GDB’s interpreter help.
+The managed Help command aggregates its list from commands registered via the hosting layer (HostServices/IDebuggerServices).
+Although we register bpmd and clru as GDB commands, we haven’t fully mirrored LLDB’s IDebuggerServices AddCommand/ManagedCommand pathway inside our Python services. Without that registration, managed Help may not “see” some commands to list.
+When runtime isn’t loaded and we fall back to native Help, the subset is expected (managed extensions aren’t present yet). After runtime start, if some commands still don’t appear, it’s typically because the debugger-services command registration channel wasn’t surfaced to the managed Help logic.
+How to align our GDB soshelp/help to LLDB
+We’ll keep the same observable behavior:
+
+GDB “help” should always show the full list of user-defined commands (we already do this).
+soshelp should be minimal pre-runtime and full post-runtime (we already largely do this), and it should include bpmd/clru in the post-runtime list.
+To make soshelp enumerate like LLDB, we’ll align the registration path used by the Help producer:
+
+Implement the IDebuggerServices command registration surface in our Python services
+
+Add IDebuggerServices.AddCommand/AddAlias/AddManagedCommand equivalents in services.py.
+Maintain an internal registry (name → help/alias/managed flag) that the managed Help infrastructure can query through the existing interfaces.
+When HostServices starts and extensions load, their AddCommands calls will reach our service and populate this registry.
+Bridge native/alias registrations similarly to LLDB
+
+Ensure the SOS/native side can register its commands (bpmd, clru→u) via the same IDebuggerServices.AddCommand path at or after SOSInitializeByHost.
+This allows the managed Help command to include those items and display alias forms like “u (clru)” and “bpmd (bpmd)”, as seen in LLDB.
+Keep interpreter-level pre-registration as-is for GDB “help”
+
+_register_default_commands() in sos.py stays, so GDB’s help always lists the commands up-front, same as LLDB’s “user-defined commands”.
+This doesn’t conflict with the managed Help list; it just ensures the shell provides discoverability even pre-runtime.
+soshelp dispatch preference stays LLDB-like
+
+If runtime is loaded and hosting is initialized, dispatch managed “help”.
+Otherwise, fallback to native “Help”.
+Minor polish
+
+Ensure help text strings (short summaries) for the IDebuggerServices.AddCommand path match LLDB so soshelp prints consistent descriptions.
+Verify aliases: show canonical and aliases together (e.g., “PrintException (pe)”, “u (clru)”).
+Acceptance outcomes after alignment
+
+GDB “help”:
+Always shows a comprehensive set of SOS user-defined commands (bpmd, clru, etc.) before and after running the target.
+soshelp (and help in SOS context):
+Before run: minimal native subset (matches LLDB).
+After run: full set including bpmd, clru, and managed extension commands (matches LLDB).
+Commands that were missing from soshelp (like bpmd, clru) appear after runtime is started.
+If this plan looks good, I’ll wire up the IDebuggerServices registration methods in services.py, hook them to our existing command wrappers, and verify soshelp output before/after runtime matches LLDB’s behavior.
+
+GPT-5 • 1x

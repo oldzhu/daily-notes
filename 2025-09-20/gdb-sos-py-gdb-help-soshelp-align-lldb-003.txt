@@ -1,0 +1,54 @@
+I’ll add the thin GDB-side wrappers you asked for so you can exercise the LLDB-style aliases directly in GDB before CLR loads; they’re registered under the sos prefix and use safe top-level aliases when they won’t collide.
+
+actions taken
+Implemented wrapper commands in sos.py:
+Memory dumps:
+sos d (alias of readmemory; sos-prefixed only to avoid top-level collision)
+sos readmemory [count default=64]
+sos db/dd/dq/dw/dc (bytes/dwords/qwords/words/chars)
+sos du/da (zero-terminated strings)
+sos dp (pointers; uses GDB’s address format)
+Gated top-level aliases for these where safe (not d, not r) via SOS_GDB_TOPLEVEL_ALIASES.
+Native info wrappers:
+sos modules, sos lm (show “info sharedlibrary” + “info files”); gated top-level aliases modules/lm.
+sos registers (runs “info registers”); top-level “registers” alias gated (not “r”).
+sos threads (runs “info threads”); sos setthread <id> (maps to “thread <id>”); gated top-level.
+Runtime selection:
+sos setruntime <id> → attempts “sos exec runtimes -set <id>”; falls back to “sos runtimes”.
+Logging helpers:
+sos logopen <path> (enable GDB console logging to file)
+sos logclose (disable logging)
+Symbol server alias:
+sos SetSymbolServer <url> → forwards to “sos setsymbolserver”.
+Kept existing behavior:
+No edits to artifacts copies.
+Respect SOS_GDB_TOPLEVEL_ALIASES=0 to suppress top-level aliases globally.
+Validated with a Python syntax check (no errors).
+how to try it
+In GDB, source the updated sos.py (or re-launch with the plugin path):
+Example usage (all available pre-CLR):
+sos readmemory 0xADDRESS 128
+sos db 0xADDRESS 64
+sos dq 0xADDRESS 8
+sos du 0xADDRESS
+sos dp 0xADDRESS 16
+sos modules
+sos registers
+sos threads
+sos setthread 3
+sos setruntime 1
+sos logopen /tmp/gdb-sos.log
+sos logclose
+sos SetSymbolServer https://msdl.microsoft.com/download/symbols
+Optional top-level (if SOS_GDB_TOPLEVEL_ALIASES not disabled):
+readmemory, db, dd, dq, dw, dc, du, da, dp, modules, lm, registers, threads, setthread, setruntime, logopen, logclose, SetSymbolServer
+Notes:
+
+I intentionally didn’t register top-level “d” and “r” to avoid colliding with GDB’s “delete”/“run” shortcuts.
+setruntime tries the managed path first. If runtimes -set isn’t supported, it falls back to listing runtimes so you can see IDs.
+quality gates
+Syntax: PASS (compiled sos.py with Python 3).
+No build/tests to run in this repo for the Python plugin itself.
+Requirements coverage:
+Add thin runnable wrappers for the alias utilities: Done.
+If you want any of these wrappers to print exactly the LLDB alias text on “soshelp <alias>”, I can wire their docstrings into the targeted single-line help lookup too.

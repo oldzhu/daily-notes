@@ -1,0 +1,84 @@
+before apply the plan, I have question, do you mean gdb help already already shows a comprehensive set of SOS user-defined commands? I mean when I run help in gdb no matter begin or after start the program, I will all SOS user-defined commands? if I run help directly, I will see below:
+(gdb) help
+List of classes of commands:
+
+aliases -- User-defined aliases of other commands.
+breakpoints -- Making program stop at certain points.
+data -- Examining data.
+files -- Specifying and examining files.
+internals -- Maintenance commands.
+obscure -- Obscure features.
+running -- Running the program.
+stack -- Examining the stack.
+status -- Status inquiries.
+support -- Support facilities.
+text-user-interface -- TUI is the GDB text based interface.
+tracepoints -- Tracing of program execution without stopping the program.
+user-defined -- User-defined commands.
+
+Type "help" followed by a class name for a list of commands in that class.
+Type "help all" for the list of all commands.
+Type "help" followed by command name for full documentation.
+Type "apropos word" to search for commands related to "word".
+Type "apropos -v word" for full documentation of commands related to "word".
+Command name abbreviations are allowed if unambiguous.
+
+seemes all SOS user-defined commands are registered under class data, so I can see these command by running "help data" which are mixed with other gdb built-in data class command, which is not clean and also different as what u see when run help in lldb directly? is it possible to create a help class in gdb which named as "sos-defined" and put all sos user-defined commands to this class? Another problem I see is that for all sos commands which we can see when run gdb help, all help description is "A base class for SOS commands that handles loading libsos" and that is also different as lldb help description.
+
+=================
+
+
+Great question. Short answer:
+
+GDB’s help categories are fixed; our SOS commands currently register under the “data” class, so “help data” shows them mixed with built-ins.
+We can’t create a brand-new top-level help class named “sos-defined”.
+We can, however, create a prefix command “sos” and register all SOS subcommands under it. Then “help sos” shows a clean SOS-specific list (very similar to LLDB’s “Current user-defined commands”), and we can also give each subcommand a real, per-command description.
+Here’s the why and how.
+
+Why GDB behaves differently from LLDB
+LLDB plugin pre-registers commands with short descriptions at load time (see soscommand.cpp: calls to AddCommand/AddManagedCommand). LLDB’s “help” lists these under “Current user-defined commands.” This list is static with respect to the interpreter and shows up before/after running the target.
+
+In our GDB plugin, we register commands using one Python class SOSCommand for many names. GDB’s help uses the command’s class docstring as the help text. Since all commands share the same class, they all inherit the same generic description (“A base class for SOS commands that handles loading libsos”). That’s why “help bpmd” shows the generic string.
+
+GDB’s command “classes” (data, stack, running, support, etc.) are fixed. You can choose one when registering a command, but you can’t define a new class like “sos-defined”.
+
+GDB does support hierarchical commands with a “prefix” command. If we create a prefix command named “sos” and register subcommands “sos bpmd”, “sos clrstack”, etc., then:
+
+“help sos” lists exactly those subcommands, with their own help strings.
+This gives a neat, dedicated help entry point, similar to LLDB’s user-defined block.
+We can still keep the convenient top-level aliases (bpmd, clru, etc.) if we want.
+Alignment plan to match LLDB’s ergonomics
+Goal 1: Clean, SOS-only help entry point in GDB
+
+Add a prefix command “sos” and register all SOS subcommands under it.
+“help sos” will display a clean list of SOS subcommands only.
+Optional: Keep the top-level aliases (bpmd, clru, etc.) so your muscle memory still works; or gate them behind an env var (e.g., SOS_GDB_PREFIX_ONLY=1) to avoid clutter under “help data”.
+Goal 2: Command-specific help text (no more generic blurb)
+
+Provide per-command help strings matching LLDB’s help texts in soscommand.cpp.
+Implementation-wise for GDB:
+Either create a tiny dynamic subclass per command with its own docstring; or
+Use GDB’s “document <cmd> … end” facility programmatically to attach help text to each command name.
+We’ll do this for both “sos <cmd>” subcommands and, if retained, the top-level aliases.
+Goal 3: Keep soshelp semantics identical to LLDB
+
+soshelp remains dynamic: minimal list pre-runtime and the full managed list post-runtime (we already behave like this).
+The GDB “help” hygiene is independent from soshelp; “help sos” will give an LLDB-like discoverability surface in GDB, while soshelp continues to reflect runtime/hosting state.
+Expected results
+Before target run:
+
+“help” shows standard categories.
+“help data” might include our top-level aliases (if we keep them).
+“help sos” shows the SOS subcommands with proper one-line descriptions (clean list, no built-in commands mixed in).
+After target run:
+
+“help sos” still shows the same SOS subcommands (static interpreter view).
+“soshelp” shows the richer, managed list (dynamic, like LLDB).
+Practical knobs
+Prefix-only mode: If you want zero clutter in “help data”, we can add an env var (e.g., SOS_GDB_PREFIX_ONLY=1) to skip registering the top-level aliases and only expose “sos <cmd>”.
+Descriptions: We’ll copy LLDB’s one-liners from soscommand.cpp so “help sos bpmd” (and “help bpmd” if alias kept) shows the same short text as LLDB.
+If this plan looks good, I’ll implement it in two small steps:
+
+Add the “sos” prefix command and register “sos <cmd>” subcommands with per-command help strings.
+Optionally gate the top-level alias registration behind an env var to keep “help data” clean if you prefer.
+

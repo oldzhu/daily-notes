@@ -1,0 +1,18 @@
+I am thinking the next challenging work item on help sos and soshelp is how to make sure their help string for each command in gdb is the same and sync with their peers in lldb plugin in case there is change on help or any new command added,  which you can review the lldb plugin code and think about how we can do on that, we can discuss on that later or tomorrow some time and thanks!
+
+=====================
+
+help sync idea (for later discussion)
+Source of truth: define a single declarative manifest (YAML/JSON or Python dict) listing:
+command name, aliases, one-line help, export name (if native), and category
+Codegen:
+LLDB plugin: generate registrations and help strings from the manifest
+GDB plugin: generate COMMAND_HELP, dynamic registrations, and static soshelp block from the same manifest
+CI guard:
+A small script that loads both plugins (or stubs) and compares command names + one-liners to fail CI on drift
+Extensibility:
+Allow “implementation hints” fields for cases where GDB must wrap a GDB command versus SOS export
+Keep “static soshelp ordering” as a list in the manifest to control pre-run output order
+When you’re ready, I can sketch the manifest shape and wire a minimal codegen step so both plugins stay in lockstep.
+
+
