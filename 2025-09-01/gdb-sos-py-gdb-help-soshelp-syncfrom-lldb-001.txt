@@ -1,0 +1,132 @@
+Good call to keep LLDB as the source of truth. Here’s a practical, low-friction way to sync from the diagnostics submodule without changing anything yet.
+
+proposed sync model
+Source of truth: diagnostics submodule (LLDB plugin)
+Our artifact: a generated manifest (JSON/YAML) in this repo
+Consumers:
+GDB plugin uses the manifest to build COMMAND_HELP and the static soshelp list
+A small CI/utility script compares LLDB vs our manifest to flag drift
+options to pull from LLDB (pick 1 or combine)
+Static parser (no LLDB import)
+What: Parse the LLDB plugin Python directly in the diagnostics submodule.
+How:
+Regex/AST scan for command registrations and their one-line help (LLDB commands typically have class-level docstrings or registration strings).
+Parse the pre-run static soshelp block if it exists in LLDB plugin.
+Pros: No runtime deps, works anywhere.
+Cons: Parser must tolerate upstream refactors. We can keep it robust by extracting conservative patterns and falling back to known blocks.
+Light import shim (if feasible locally)
+What: Import the LLDB plugin Python and introspect its command tables (without LLDB).
+How:
+Create a minimal shim that mocks just enough symbols so the plugin loads and exposes its “commands + help” structure.
+Pros: More resilient to refactors if the LLDB plugin keeps a central registry.
+Cons: Might be brittle if LLDB APIs are required at import time; probably not worth it versus static parsing.
+CI-only smoke via text diff
+What: Keep a canonical “expected help” text snapshot derived from LLDB. On submodule updates, a CI script re-scrapes LLDB and diffs the snapshot.
+Pros: Easiest to start. Alerts on drift; you update the manifest when alerted.
+Cons: Still manual manifest updates after CI warning.
+Recommendation: Start with (1) Static parser + (3) CI guard. Keep it simple, resilient, and fully offline.
+
+data model (manifest)
+A single manifest that captures both LLDB truth and our GDB-specific bits:
+
+commands: array of
+name: string
+aliases: [string] optional
+help: string (one-liner)
+export: string|null (native libsos export if any)
+origin: "lldb" | "gdb-wrapper"
+staticList: boolean (include in pre-run “soshelp” list)
+staticOrder: number (for LLDB’s pre-run order; only for items present there)
+gdb:
+wrapper?: one of:
+{ type: "memory", fmt: "bx|hx|wx|gx|c|s|a", defaultCount: number }
+{ type: "delegate", command: "info registers|info threads|thread <id>|..." }
+topLevelSafe?: boolean (controls alias gating in addition to SOS_GDB_TOPLEVEL_ALIASES)
+We’ll also keep an overrides section for any local wording differences or alias additions we intentionally want that LLDB doesn’t have.
+
+pipeline
+update-submodule (your normal workflow)
+run scraper:
+Walk diagnostics LLDB plugin files and extract:
+command names, aliases, one-liners
+if available, pre-run static help order
+Merge with our local overrides (GDB-only wrappers, alias gating, export mappings)
+Output: manifest.json (committed)
+regen GDB plugin:
+Small generator creates:
+COMMAND_HELP from manifest
+Static soshelp block from entries where staticList=true sorted by staticOrder; then append remaining commands
+Optional export name mapping for MANUAL_EXPORTS
+The generator writes a tiny _generated_help.py module that sos.py imports.
+CI guard:
+On PRs that bump diagnostics submodule, run scraper and compare to committed manifest.
+If drift, fail with a helpful diff so you can review and re-run the generator.
+handling GDB-only wrappers and collisions
+Manifest marks those as origin=gdb-wrapper.
+topLevelSafe guards “don’t register top-level r/d” etc.
+For aliases like SetSymbolServer vs setsymbolserver, keep both in aliases.
+For export mapping, LLDB plugin often implies the native name; we keep our MANUAL_EXPORTS in the manifest so both generator and runtime use the same mapping.
+rollout steps (later, only if we agree)
+Add tools/soshelp-scrape.py to parse the LLDB plugin in the submodule.
+Add tools/soshelp-generate.py to build _generated_help.py and optionally update the static list.
+Wire a minimal CI check that runs scraper and diffs against manifest.json on submodule changes.
+Update sos.py to import _generated_help.py if present, with a safe fallback to the current in-file maps.
+This keeps us synced to upstream without depending on LLDB at runtime and with a clear, reviewable artifact (the manifest) sitting in our repo. If LLDB changes format, the CI diff will catch it and we can fix the scraper once, rather than hand-edit every command.
+
+We can whiteboard the scraper targets next (which file(s) in diagnostics to parse and the patterns to rely on), then decide how automated you want the generator step to be.
+
+============
+
+
+Got it—thanks for the correction. If the LLDB plugin lives mostly in C/C++ and C#, we shouldn’t plan to scrape Python. Here’s a revised, practical sync approach that treats the diagnostics submodule as the source of truth without touching their code.
+
+proposed source(s) of truth
+Primary: diagnostics submodule docs (markdown), e.g., documentation/sos.md
+This typically lists commands, aliases, and one-line descriptions.
+It’s maintained upstream and is the most stable artifact to parse without building/running anything.
+Optional verification: managed “help” output (when convenient)
+In CI or a local tool, spin up a tiny target and run managed help (e.g., via dotnet-sos or SOS managed Help) to sanity-check the doc-derived manifest. This is a nice-to-have; we can start without it.
+pipeline (pull-only, upstream-first)
+On submodule updates:
+Scrape diagnostics’ documentation/sos.md for:
+command names, aliases, one-liner help
+if present, the canonical pre-run list and ordering
+Merge with a small local overrides file:
+GDB-only wrappers (readmemory, db/dd/dq… modules/lm, registers, threads/setthread, logging, setruntime, SetSymbolServer)
+export mappings that LLDB implies but aren’t in docs
+pre-run static order for items not captured by docs
+Emit a manifest.json (committed to this repo)
+Generate a tiny _generated_help.py consumed by sos.py:
+COMMAND_HELP map
+MANUAL_EXPORTS (when relevant)
+Static soshelp block order + alias lines
+CI drift check:
+Re-run the scraper on PRs that bump the diagnostics submodule
+Diff new scrape vs committed manifest and fail with a readable delta if they diverge
+manifest shape (concise)
+commands: [
+
+name: string
+aliases?: [string]
+help: string
+export?: string|null // native export if applicable
+origin: "lldb" | "gdb-wrapper"
+staticList?: boolean // include in pre-run soshelp
+staticOrder?: number // pre-run order when relevant
+gdb?: { // GDB-specific wrapper info (for our thin commands) wrapper?: { type: "memory"|"delegate", fmt?: "bx|hx|wx|gx|c|s|a", defaultCount?: number, command?: string } topLevelSafe?: boolean // don’t register top-level alias if unsafe (e.g., d/r) } ]
+overrides: { // for wording tweaks, additional aliases, or explicit ordering not present in docs }
+
+why this works
+Doesn’t depend on LLDB internals or building/running upstream code.
+Uses a stable artifact (docs) maintained by the same team as the C++/C# implementations.
+Keeps our GDB one-liners and pre-run “soshelp” aligned without hand-curating.
+Gives us a clean escape hatch via overrides for GDB-only wrappers and alias safety.
+risks and mitigations
+Docs may lag or omit certain aliases:
+Keep a small overrides file in-repo for additions.
+Exact pre-run order might not be fully documented:
+Capture known order from LLDB behavior once; keep it in overrides until docs cover it.
+Export mapping not documented:
+Keep MANUAL_EXPORTS in the manifest; adjust if upstream changes surface in CI drift.
+If this direction sounds right, next step (when you’re ready) is for me to sketch a small markdown scraper (robust to formatting) and a generator that produces _generated_help.py. We won’t wire it in until you give the go-ahead.
+

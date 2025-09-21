@@ -1,0 +1,57 @@
+Perfect—let’s lock in the dynamic sync approach and line up the concrete steps. I won’t make any changes yet; here’s a crisp plan we can run when you say “go”.
+
+plan overview
+Capture from LLDB (pre-run and post-run)
+Parse and build a manifest
+Merge GDB-only overrides
+Generate a tiny module consumed by sos.py
+Optional CI drift check
+deliverables
+tools/soshelp_capture.sh
+
+Runs LLDB in batch mode against your local plugin + a tiny sample app.
+Captures:
+Pre-run: soshelp, help sos, and soshelp <cmd> for each listed command
+Post-run: same set after starting the target (reference only)
+Outputs structured JSON (raw lines + normalized one-liners + pre-run order)
+tools/soshelp_manifest.py
+
+Reads capture JSON and produces manifest.json:
+name, aliases, one-liner help, staticList/staticOrder
+Keeps post-run (managed) deltas as reference-only fields
+manifest_overrides.json (checked in)
+
+GDB-only wrappers: readmemory, da/db/dc/dd/dp/dq/du/dw, modules/lm, registers, threads/setthread, logopen/logclose, setruntime, SetSymbolServer
+topLevelSafe flags (avoid d/r), export mappings, explicit ordering pins where LLDB doesn’t emit
+tools/soshelp_generate.py
+
+Merges manifest.json + overrides and emits:
+src/gdbplugin/sos/_generated_help.py (COMMAND_HELP, MANUAL_EXPORTS, static soshelp block in LLDB order)
+sos.py
+
+Tiny, non-fatal import of _generated_help.py (fallback to current in-file maps if absent)
+.github/workflows/help-drift.yml (optional)
+
+On diagnostics submodule changes:
+Re-run soshelp_capture.sh (or use recorded mode)
+Rebuild manifest.json and diff with committed version
+Fail with a readable diff on drift
+LLDB batch outline (what the capturer will run)
+Pre-run snapshot:
+
+plugin load <path>/libsosplugin.so
+soshelp
+help sos
+For each command discovered: soshelp <command>
+quit
+Post-run snapshot:
+
+plugin load <path>/libsosplugin.so
+target create <dotnet-host> -- <managed-app>
+run
+soshelp
+For each command: soshelp <command>
+quit
+We’ll normalize the single-line descriptions (prefer soshelp’s one-liner when both exist) and preserve LLDB’s pre-run order for our static block. GDB-only wrappers and alias safety live in overrides so we never depend on LLDB for those.
+
+If you’re happy with this exact shape, I can scaffold the scripts (no wiring into your build yet) so we can iterate on outputs before integrating.

@@ -1,0 +1,36 @@
+All set—I generated the manifest and the GDB help module, and wired sos.py to optionally consume it so you can test right away.
+
+actions taken
+Generated manifest from your latest captures:
+manifest: manifest.json
+Generated the help module for the GDB plugin:
+module: _generated_help.py
+Integrated into plugin (safe optional import):
+sos.py now tries to import GENERATED_COMMAND_HELP/GENERATED_STATIC_BLOCK/GENERATED_EXPORTS and merges them with existing fallbacks; if the file is missing or malformed, it falls back to the baked-in lists.
+files changed
+parse_and_manifest.py
+Extracts only the soshelp block from pre/post logs and parses via a robust 2+ space column split, ignoring usage suffixes.
+generate_gdb_help.py
+Merges manifest + overrides and emits src/gdbplugin/sos/_generated_help.py.
+_generated_help.py
+Newly generated from your capture; contains GENERATED_COMMAND_HELP, GENERATED_STATIC_BLOCK, and GENERATED_EXPORTS stubs.
+sos.py
+Optionally imports _generated_help and merges data; prefers generated static block when present, otherwise falls back to the baked block.
+how to run (optional)
+Regenerate from captures (already done this session):
+
+python3 parse_and_manifest.py --in src/tools/syncsoshelp/output --out manifest.json
+python3 generate_gdb_help.py --manifest manifest.json --overrides overrides.json --out _generated_help.py
+Quick smoke test in GDB:
+
+Start gdb, source the plugin, and run: help sos
+You should see the generated static listing; soshelp should use managed/native paths as before.
+notes
+The lldb_capture.sh help parser is now resilient to wrapped lines and ignores the trailing “For more information…” line, so the pre_help list shouldn’t pollute command names.
+The post-run soshelp per-command captures now use the commands listed by post soshelp, which ensures CLR-dependent commands are covered.
+commit message (short)
+syncsoshelp: robust help parsing + post-run soshelp list; generate manifest and _generated_help.py; wire sos.py to optional import
+
+Let me know how your test goes; if you spot any odd entries in the generated static list, I can tighten the filter to only include known SOS (and wrapper) commands before we finalize.
+
+

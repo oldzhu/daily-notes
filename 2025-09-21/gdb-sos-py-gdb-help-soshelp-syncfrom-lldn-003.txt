@@ -1,0 +1,21 @@
+it works as the below and I saw all files generated under otuput
+
+vscode ➜ /workspaces/gdbsos (main) $ src/tools/syncsoshelp/lldb_capture.sh
+Captured:\n /workspaces/gdbsos/src/tools/syncsoshelp/output/pre_lldb.log\n /workspaces/gdbsos/src/tools/syncsoshelp/output/post_lldb.log\n 29 soshelp cmds, 142 help cmds; see pre_/post_ folders
+
+But still some pasring issue when proessing help command list in pre_lldb.log, seems parsing works fine when processing soshelp command list in pre_lldb.log and post_lldb.log. That is beause soshelp command list output strictly follow the format for one command and online such as the below
+
+
+crashinfo                                 Displays the crash details that created the dump.d, readmemory <address>                   Dumps memory contents.da <address>                              Dumps memory as zero-terminated byte strings.db <address>                              Dumps memory as bytes.dc <address>                              Dumps memory as chars.dd <address>                              Dumps memory as dwords (uint).
+but some commands in help command list may cover multiple lines like the below:
+
+
+   du                       -- Dumps memory as zero-terminated char strings.   dumpalc                  -- Displays details about a collectible AssemblyLoadContext to which the specified                               object is loaded.   dumparray                -- Displays details about a managed array.
+such as the above command dumpalc which cross the two lines and the 2nd line the beginnning string object is condiered as another new command in the current parse process.
+and another thing is the end line of the help command list "For more informtion..." is also condiered as a command line and the start For is considered as aother command.
+
+
+  verifyobj                -- Checks the object that is passed as an argument for signs of corruption.  watsonbuckets            -- Displays the Watson buckets.For more information on any command, type 'help <command-name>'.
+We'd better to consider and handle this help output format scenarioes.
+
+===========

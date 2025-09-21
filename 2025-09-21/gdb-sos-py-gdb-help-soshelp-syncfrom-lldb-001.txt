@@ -1,0 +1,84 @@
+actually if u read documentation/sos.md and you will see the below
+```
+This documentation is now being maintained at [dotnet-sos](https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-sos). This doc is no longer being updated.
+```
+we can't use it as primary source.  Regarding the souce, I am thinking the below two ways:
+1. Satic way: review and check the help and soshelp related source code to generated the mainfest.- can it be done by develop python script?
+2. Dynamic way: Load local building lldb plugin(normally under src/dianostics/artifacts/bin/linux.x64/) locally in lldb for a .net program and run help and soshelp to get the list help, run help and soshelp for each command listed, based on the output to generated the manifest used by gdb. For soshelp, we can run it before and after start the target program to see the outout difference for our reference. We also can create test scripts/cases to compar the output of the lldb plugin and gdb sos.  
+seems way 2 is better and feasible from my point of view.
+what do u think?
+
+=============
+
+You’re right that the docs aren’t a reliable upstream source anymore; between your two options, I recommend the dynamic approach (2). It’s more future-proof and mirrors what users actually see.
+
+recommendation
+Choose the dynamic sync as the primary path.
+Keep a small static override file for GDB-only wrappers and alias policy.
+Gate the whole pipeline so it runs only when the diagnostics submodule changes (or on demand).
+how the dynamic sync would work
+Collect from LLDB (pre-run and post-run)
+Pre-run:
+Launch LLDB in batch mode, load the locally built plugin, and capture:
+soshelp (the LLDB-style static list and order)
+help sos (one-liners for the command registry)
+For each command in that list, run soshelp <cmd> and capture the single-line alias/description (if it returns more, keep the first one-liner).
+Post-run:
+Start the target (tiny .NET sample you already build, like SimpleThrow).
+Run soshelp and soshelp <cmd> again to capture managed help variants (reference only; we won’t copy the full long-form text into the manifest—just the one-liners if they differ).
+Output: a JSON manifest containing names, aliases, one-liners, and the pre-run order.
+Merge GDB-only overrides
+Maintain a small overrides file in this repo:
+GDB-only wrappers (readmemory, db/dd/dq/dw/dc/du/da/dp, modules/lm, registers, threads/setthread, logopen/logclose, setruntime, SetSymbolServer)
+top-level alias safety flags (don’t register d/r)
+any export mappings that LLDB implies but aren’t obvious from the help
+any LLDB ordering gaps that need pinning explicitly
+Generate GDB artifacts
+From the merged manifest, generate a tiny module (e.g., _generated_help.py) that sos.py imports:
+COMMAND_HELP map
+MANUAL_EXPORTS additions
+The LLDB-style pre-run soshelp block (exact order + alias lines)
+Keep a safe fallback in sos.py (what we have now) when the generated module isn’t present.
+CI drift check (optional but helpful)
+On PRs that bump the diagnostics submodule:
+Re-run the LLDB capture (or allow a “recorded outputs” mode if CI lacks LLDB).
+Diff the newly scraped manifest with the committed one; fail with a readable diff on changes.
+This makes drift visible without forcing manual audits every time.
+details that make it robust
+LLDB batch driver
+Use LLDB’s non-interactive mode to capture output deterministically:
+lldb -b -o "plugin load <path-to-libsosplugin.so>" -o "soshelp" -- <program>
+Then either “quit” for pre-run only, or continue with “run”, then “soshelp”, etc.
+Prefer “process launch” or “run” depending on LLDB version; both are fine for our use.
+Parsing strategy
+Pre-run soshelp block: treat it as authoritative for order and alias lines. Regex lines like:
+^([a-zA-Z0-9, ]+?)\s+--\s+(.*)$
+help sos: read per-command one-liners; when both sources disagree, prefer soshelp one-liners (users see those most).
+soshelp <cmd>: use to refine the one-liner, but avoid pulling in long managed help paragraphs.
+Stability
+Only run the scraper when the diagnostics submodule changes or on an explicit developer command (e.g., “make refresh-help”).
+Cache last manifest to avoid churn.
+why not the static source parse?
+Most of the LLDB/SOS command registrations and help wiring live in C++/C# across multiple files; extracting the text via AST/regex would be brittle and may miss dynamic registrations.
+The dynamic approach captures the exact UX users see, including aliases and ordering.
+manifest shape (lean)
+commands: [
+
+name: string
+aliases?: [string]
+help: string
+export?: string|null
+origin: "lldb" | "gdb-wrapper"
+staticList?: boolean
+staticOrder?: number
+gdb?: { wrapper?: { type: "memory"|"delegate", fmt?: "bx|hx|wx|gx|c|s|a", defaultCount?: number, command?: string }, topLevelSafe?: boolean } ]
+overrides: for GDB-only wrappers, alias safety, export mapping tweaks, and pinned ordering if LLDB doesn’t emit some lines.
+
+lightweight test ideas
+Snapshot comparison:
+Store a golden “pre-run soshelp” snapshot (from LLDB).
+Script to print GDB’s pre-run soshelp and diff the sections that should match.
+One-liner parity:
+For every command in the manifest, compare LLDB one-liner vs GDB ‘help sos <cmd>’ line.
+Allow a tiny whitelist of intentional wording differences.
+If this direction works for you, I’ll draft the exact CLI for the LLDB batch driver and the manifest generator next (no code applied yet), so we can agree on inputs/outputs before implementing.
