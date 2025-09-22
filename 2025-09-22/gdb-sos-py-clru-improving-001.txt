@@ -1,0 +1,25 @@
+(gdb) clru 0x00007FFF792A18DA 
+Normal JIT generated code
+Simple.Main()
+ilAddr is 00007FFFF4373250 pImport is 000056841913E260
+Begin 00007FFF792A1860, size 8a
+
+
+sub    $0x20,6.953215e-310sp
+
+
+
+
+
+
+
+vxorps 558f5c70mm8,0mm8,0mm8
+
+
+
+rol    $0x7a,ph
+
+jp     0x7fff792a18f1
+jg     0x7fff792a18b8
+rex.RB call 0x7fff0272d8ab
+call   0x7fff0272d8ab

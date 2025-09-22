@@ -1,0 +1,86 @@
+Nice progress. I’ll make three targeted improvements you requested and explain the behavior you observed.
+
+What I’m doing:
+Add a “not found” addendum so soshelp <cmd> prints our one‑liner if native help says it’s missing.
+Add a provenance inspector command sos help-sources.
+Make pre‑run soshelp print the LLDB‑style static block instead of calling native Help.
+Actions taken
+soshelp “not found” addendum
+
+Change: When you run soshelp <cmd>, we now capture the output of the native Help export.
+If hr==0 and the captured text contains “not found”, we append a one-liner addendum from COMMAND_HELP.
+Files:
+services.py: dbg_output_string now supports a capture buffer controlled by _capture_output flags.
+sos.py: For soshelp with an arg, we enable capture before the native call, and if “not found” is detected, we print:
+[help] native help missing docs for '<cmd>'; printing one-liner addendum
+Suggested: <cmd> -- <desc>
+Provenance inspector: sos help-sources
+
+New command: sos help-sources [filter]
+Lists each command and whether its one-liner is generated or baked.
+Shows generated if the one-liner came from GENERATED_COMMAND_HELP; otherwise baked.
+File: sos.py
+Pre‑run soshelp behavior aligned to LLDB
+
+Before CLR loads, soshelp now prints the static LLDB‑like block (generated if available; otherwise baked).
+We no longer call native Help in this pre‑run case.
+File: sos.py
+Traces you’ll see:
+[help] soshelp pre-run: using static block (LLDB parity)
+[help] using generated static block (… lines) or [help] using baked static block (… lines)
+How to try it
+In gdb, source the updated plugin:
+
+source sos.py
+Or re-run your deploy script and source the artifacts copy.
+Enable tracing for clarity:
+
+sostrace on help,gen
+Exercise the paths:
+
+Pre-run static block parity:
+soshelp
+Expect the LLDB-style static list (from GENERATED_STATIC_BLOCK if present).
+Not found addendum:
+soshelp dumpheap
+If native prints “Documentation … not found.”, we now append:
+Suggested: dumpheap -- … (with provenance trace for one-liner).
+Provenance inspector:
+sos help-sources
+sos help-sources dump
+Why you previously saw the LLDB category list for pre‑run soshelp
+Before this change, we always called the native Help export for soshelp. Even pre‑run, the native code printed the big categorized list, so you didn’t see the GENERATED_STATIC_BLOCK.
+Now we explicitly use the generated/baked static block for pre‑run soshelp to mirror LLDB’s pre‑run experience from our captures.
+Generated vs baked quick reference
+GENERATED_STATIC_BLOCK
+
+What: LLDB-style pre‑run soshelp listing lines like “modules, lm -- …”.
+Made by: lldb_capture.sh + parse_and_manifest.py + generate_gdb_help.py
+Used by: sos/help static fallback and now soshelp pre‑run.
+GENERATED_COMMAND_HELP
+
+What: Map of command → one-liner. Merged into COMMAND_HELP (overrides baked).
+Used by: help sos rendering; single-line fallback for sos help/soshelp <cmd>; addendum.
+GENERATED_EXPORTS
+
+What: Map of command → native export symbol (optional). Merged into MANUAL_EXPORTS.
+Used by: Better native symbol resolution when present.
+Baked
+
+Hardcoded fallback lists and one-liners in sos.py used when generated data is missing or for entries not covered by generated output.
+Tracing reports source=baked vs source=generated to show provenance.
+Notes
+If you typically load from artifacts/bin, re-run your deploy and then source that version so it picks up these changes.
+If you want the addendum heuristic to always show our one-liner for soshelp <cmd> (even when native help exists but is sparse), we can broaden the condition.
+Completion summary
+
+Implemented the “not found” addendum and provenance inspector; aligned soshelp pre‑run to use the LLDB-like static block.
+Verified with static analysis (no syntax errors) and the new traces/hooks are in place.
+Requirements coverage:
+Not-found addendum: Done.
+help-sources command: Done.
+Pre-run soshelp static list parity: Done.
+Next steps (optional)
+
+Expand GENERATED_COMMAND_HELP coverage by re-running the sync toolchain.
+If you want the addendum on any soshelp <cmd> where native help is too terse, we can relax the trigger beyond “not found.”

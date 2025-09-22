@@ -1,0 +1,49 @@
+Thanks I tested the soshelp and help and so far no errors. I would like you help to add traces and trace categories help so I can trace how soshelp and help so works in our code and what generated items used or fallback or any merge when turn on help trace category.
+
+===============
+
+Nice—let’s add targeted tracing so you can see exactly how help and soshelp flow, what generated data is used, and when we fall back.
+
+Here’s what I changed and how to use it:
+
+New trace categories
+
+help: traces the help/soshelp flow and which path was taken (managed vs static), which static block was used, and per-command matching/fallback.
+gen: traces generated help detection and export merging.
+Where traces were added
+
+sos.py
+On help/soshelp invoke:
+Logs request name/args, whether runtime is loaded, and return codes from bridge/libsos managed dispatch; logs when falling back to static help.
+In static help printer:
+Logs whether the generated static block or the baked one is used.
+Logs per-command lookup matches and fallbacks.
+Logs how many extra COMMAND_HELP lines were printed after the static block.
+On generated exports merge:
+Logs count of generated exports available and when merged.
+tracing.py
+Help text now mentions common categories: help, gen, bpmd, read, write.
+How to turn it on
+
+In GDB:
+sostrace on help,gen
+Then run:
+help sos
+soshelp
+soshelp <cmd>
+You’ll see lines like:
+[help] request: name='soshelp' args=''
+[help] runtime loaded: attempting managed help via bridge/libsos
+[help] bridge DispatchManagedCommand => 0x00000000
+[help] using generated static block (… lines)
+[help] matched static entry for token='dumpheap'
+[help] printed static block + N extra COMMAND_HELP entries
+[gen] generated exports available: 2
+[gen] merged generated exports into MANUAL_EXPORTS
+Notes
+
+Nothing else changes at runtime unless you enable tracing.
+Categories are scoped; if you want everything, use sostrace on with no arguments.
+If you want more granularity (e.g., which COMMAND_HELP entries came from generated vs baked), I can tag those during the merge and include that in the traces.
+
+

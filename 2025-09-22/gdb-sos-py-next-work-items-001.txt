@@ -1,0 +1,95 @@
+The new work items I am thinking what we can do next.
+1. create a script src/scripts/checkout-sub-runtime.sh which is doing something like the below
+pushd $REPOROOT/src/runtime
+git fetch --tags origin
+provide a teminal selection menu only show the list of tags which has the pattern
+1 main
+2 release/8.0
+...
+n release/d.d
+
+d.d are dicimal digit for exmplae release/8.0 release/10.0
+for exmple if press 2 and 2 is release/8.0
+then run
+git checkout release/8.0
+or if I did not type any digit between 1 and n, but type v8.0.6
+then run
+git checkout v8.0.6
+popd
+
+2. Continue the auto testing under src/tests/gdb which temporarily hold on because bpmd did not work previously.
+3. improving the clru command, see the blow clru output in our gdb looks incorrect and not make sense comparing with lldb clru output.
+clru in our gdb:
+(gdb) clru 00007FFF792D18DA
+Normal JIT generated code
+Simple.Main()
+ilAddr is 00007FFFF4373250 pImport is 0000592F9D280650
+Begin 00007FFF792D1860, size 8a
+
+
+sub    $0x20,6.952537e-310sp
+
+
+
+
+
+
+
+vxorps 23eb1970mm8,0mm8,0mm8
+
+
+
+rol    $0x7a,ph
+
+jp     0x7fff792d18f1
+jg     0x7fff792d18b8
+rex.RB call 0x7fff0275d8ab
+call   0x7fff0275d8ab
+xor    6.952537e-310ax,6.952537e-310ax
+
+
+
+rex.RB clc
+clc
+
+cmp    $0xb5357,6.952537e-310ax
+
+
+
+
+
+je     0x7fff792d1888
+add    $0x3dc348e8,6.952537e-310ax
+call   0x7ffff76adbd0
+rex.W ret
+ret
+...
+clru in lldb:
+(lldb) clru 00007FFF792C18DA
+Normal JIT generated code
+Simple.Main()
+ilAddr is 00007FFFF403A250 pImport is 0000000018631640
+Begin 00007FFF792C1860, size 8a
+
+/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/SimpleThrow.cs @ 9:
+00007fff792c1860 55                   push    rbp
+00007fff792c1861 4883ec20             sub     rsp, 0x20
+00007fff792c1865 488d6c2420           lea     rbp, [rsp + 0x20]
+00007fff792c186a c4413857c0           vxorps  xmm8, xmm8, xmm8
+00007fff792c186f c57a7f45e8           vmovdqu xmmword ptr [rbp - 0x18], xmm8
+00007fff792c1874 33c0                 xor     eax, eax
+00007fff792c1876 488945f8             mov     qword ptr [rbp - 0x8], rax
+00007fff792c187a 833d57530b0000       cmp     dword ptr [rip + 0xb5357], 0x0
+00007fff792c1881 7405                 je      0x7fff792c1888
+00007fff792c1883 e848c33e7e           call    0x7ffff76adbd0 (JitHelp: CORINFO_HELP_DBG_IS_JUST_MY_CODE)
+00007fff792c1888 90                   nop     
+
+/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/SimpleThrow.cs @ 10:
+00007fff792c1889 48bf206733e7ff7f0000 movabs  rdi, 0x7fffe7336720
+00007fff792c1893 ff152f5cf8ff         call    qword ptr [rip - 0x7a3d1]
+00007fff792c1899 90                   nop     
+....
+4. Implement memory region service so that maddress also works in gdb (lldb maddress also not work as the below) - that could be long term work item.
+(lldb) maddress 
+The memory region service does not exists. This command is only supported under windbg/cdb debuggers.
+let us start from 1st work item 

@@ -1,0 +1,86 @@
+Good news—your traces confirm the routing is working. Here’s what you’re seeing and why, plus what the “generated vs baked” terms mean and how they’re produced.
+
+Why these three calls behave differently
+soshelp
+
+Path: Native SOS export Help (in libsos) first; if that succeeds, we return.
+Your trace shows:
+[help] soshelp requested; args=''
+… native listing printed from libsos …
+[help] native Help export returned hr=0x00000000
+Because hr=0, we don’t use our static block or managed dispatcher.
+soshelp dumpheap
+
+Same first step (native Help export). For subcommand help, libsos reported “Documentation … not found.” with hr=0, so we still return without printing our static one‑liner.
+That’s why you saw only the “not found” plus the hr trace.
+sos help dumpheap
+
+This uses our “help” subcommand under the sos prefix (not the native Help export). We try managed help only if the CLR is ready; in your run the runtime wasn’t ready or the managed path failed, so we fall back to our static help:
+[help] 'help' requested; args='dumpheap'
+[help] using static help (runtime not ready or managed path failed)
+[help] using generated static block (29 lines)
+[help] soshelp static single-line for: dumpheap
+[help] no static entry; fallback to COMMAND_HELP for token='dumpheap'
+[help] one-liner for 'dumpheap' source=baked
+dumpheap -- Display GC heap statistics and objects (filterable).
+Note: You briefly saw both “generated static block …” and “baked static block …” traces; I fixed this so only one will print depending on which block is actually used.
+Quick rule of thumb:
+
+soshelp … = prefer native Help export (libsos). It may or may not have per‑command docs; when hr==0 we return immediately.
+sos help … = our “help” dispatcher. If managed help is available, we use it; else we use our static block and one‑liners.
+help sos … = GDB’s built‑in help index for the prefix; no SOS tracing.
+Generated vs baked: what are these blocks and how are they made?
+We have two data sources for help text to keep GDB aligned with LLDB while still working pre‑runtime:
+
+Generated data (preferred when present)
+
+GENERATED_STATIC_BLOCK: A list of LLDB‑style static lines like "modules, lm -- Displays the native modules …".
+Source: Captured from LLDB via our sync tooling and emitted into src/gdbplugin/sos/_generated_help.py.
+Use: Printed by “help”/“sos help” when managed help isn’t available, to mimic LLDB’s pre‑run soshelp block.
+GENERATED_COMMAND_HELP: Map of command → one‑liner, derived from the LLDB captures and overrides. We merge this into COMMAND_HELP and mark provenance as generated.
+GENERATED_EXPORTS: Optional map of command → native export symbol. If present, we merge into MANUAL_EXPORTS to improve symbol resolution.
+How they’re produced:
+lldb_capture.sh runs LLDB in batch to capture:
+Pre‑run soshelp and help listings
+Per‑command outputs
+Post‑run soshelp (after CLR load) list and per‑command outputs
+parse_and_manifest.py parses those logs and builds output/manifest.json (command lists, orders, and descriptions).
+generate_gdb_help.py reads the manifest plus overrides.json and writes _generated_help.py with:
+GENERATED_STATIC_BLOCK
+GENERATED_COMMAND_HELP
+GENERATED_EXPORTS
+We then import these in sos.py and prefer them when available.
+Baked data (fallback)
+
+The hardcoded LLDB‑like block in sos.py and the default COMMAND_HELP dictionary.
+Use: Only when the generated data isn’t available or a specific entry isn’t in the generated output.
+Tracing shows one‑liner provenance: source=baked vs generated.
+Where you saw it in your traces:
+
+[help] using generated static block (29 lines) means sos.py found and used _generated_help.GENERATED_STATIC_BLOCK.
+[help] one-liner for 'dumpheap' source=baked means that specific command’s description came from the built‑in COMMAND_HELP map (the generated map didn’t override it, or we fell back intentionally).
+What’s in _generated_help.py now
+
+GENERATED_COMMAND_HELP: The current set of one‑liners generated from the LLDB captures and overrides. Your file shows entries mostly for wrappers, logging, modules, and help—this set can be expanded by re‑running the sync toolchain.
+GENERATED_EXPORTS: Currently empty in your generated file; if we capture or decide to override export mappings, they’ll appear here and get merged into MANUAL_EXPORTS at import time.
+GENERATED_STATIC_BLOCK: The LLDB‑style pre‑run soshelp list. We print these lines verbatim to emulate LLDB’s pre‑run experience.
+How to update/regenerate
+
+Use the HOWTO under src/tools/syncsoshelp/HOWTO-sync.md:
+Run lldb_capture.sh.
+Run parse_and_manifest.py to produce output/manifest.json.
+Adjust overrides.json as needed.
+Run generate_gdb_help.py to update src/gdbplugin/sos/_generated_help.py.
+Re-source sos.py in GDB to pick up changes.
+A couple of observations from your run
+
+Native Help returned hr=0 even when it printed “Documentation … not found.” for dumpheap. That’s why soshelp dumpheap shows only that message. If you prefer our one‑liner in that case, we could detect the “not found” output and fall back to static one‑liners—say a heuristic like: when arg was provided and native Help returned hr==0 but contained “not found”, print our one‑liner as an addendum. If you want this, I can wire it up.
+
+I fixed the duplicate baked/static trace you spotted. Now you’ll see only one of:
+
+[help] using generated static block (…)
+[help] using baked static block (…)
+If you want, I can also:
+
+Extend GENERATED_COMMAND_HELP coverage by re-running the sync pipeline.
+Add a small “provenance” inspector command (e.g., sos help-sources) to list which commands come from generated vs baked one‑liners.

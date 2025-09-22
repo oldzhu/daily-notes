@@ -1,0 +1,6 @@
+(gdb) sos help maddress
+Managed hosting initialized.
+The memory region service does not exists. This command is only supported under windbg/cdb debuggers.
+(gdb) sos maddress
+This command is only supported under windbg/cdb currently
+
