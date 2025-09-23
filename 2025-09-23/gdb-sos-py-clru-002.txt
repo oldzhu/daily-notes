@@ -1,0 +1,36 @@
+The plan so far is good, please implement it in small PR-sized chunks (disasm safety + length first, then source mapping), with togglable traces and visible acceptance checks 1st. I know lldb and gdb are different debugger and has different api or ways operate on the target process or dump, but from the iplementaion and behavor and the result output, let us try our best to align with upstream submodule lldb. It is complex task so let us improve it step by step gradually not try done all things in 1 step.
+
+=====
+Kicking off the first chunk focused on clru’s disassembly safety and correct instruction length. I’ll keep this scoped and traceable; we’ll tackle source mapping next.
+
+actions taken
+Disassembly safety and sizing
+
+services.lldb_disassemble:
+Temporarily switches GDB to Intel flavor during the query, then restores it. This avoids %rax/%rsp which get mangled by printf downstream.
+Uses x/2i at the requested address to parse two instruction lines:
+Returns only the first instruction’s text.
+Computes endOffset from the second line’s address, so we advance by the true instruction length. Falls back to +1 if needed.
+Escapes % to %% as a defensive measure in case any stray percent signs remain.
+Adds traces under category disasm:
+[disasm] request addr=0x…
+[disasm] escaped percents in text
+[disasm] wrote=N adv=M rc=K
+Tracing docs
+
+tracing.py: Mentioned disasm in the “common cats” list so you can enable it via sostrace on disasm.
+how to validate (acceptance checks)
+Enable tracing:
+sostrace on disasm
+Run a clru that previously showed garbled registers:
+Expect instruction lines without float-like garbage; e.g., “sub rsp, 0x20” instead of “6.95e-310sp”.
+Confirm instruction stepping:
+The output should not repeat/overlap instructions; it should advance properly. You’ll see [disasm] wrote=… adv=… lines indicating non-1-byte advances for multi-byte ops.
+
+next patch (upcoming)
+Source mapping:
+Implement lldb_get_line_by_offset by parsing gdb “info line *ADDR” to populate file/line and displacement.
+Add traces under disasm for mapping results.
+Behavior: When mapping exists, clru prints “path/to/file.cs @ N:” blocks similar to LLDB.
+If you’re happy with this chunk, I’ll proceed with the source mapping implementation next.
+

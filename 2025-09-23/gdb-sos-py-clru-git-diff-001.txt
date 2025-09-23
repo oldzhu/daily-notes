@@ -1,0 +1,284 @@
+vscode ➜ /workspaces/gdbsos (main) $ git --no-pager grep -n "def lldb_get_thread_id_by_system_id" HEAD~1 -- src/gdbplugin/sos/services.py || true
+HEAD~1:src/gdbplugin/sos/services.py:2031:    def lldb_get_thread_id_by_system_id(self, this_ptr, sysId, id_ptr):
+vscode ➜ /workspaces/gdbsos (main) $ git --no-pager show HEAD~1:src/gdbplugin/sos/services.py | sed -n '2010,2050p'
+            if 0 <= id_value < len(threads):
+                threads[id_value].switch()
+                self._current_thread_sysid = self._thread_sysid(threads[id_value])
+        except Exception:
+            pass
+        return 0
+
+    def lldb_get_current_thread_system_id(self, this_ptr, sysId):
+        trace("call into lldb_get_current_thread_system_id")
+        if sysId:
+            sys_id = self._current_thread_sysid
+            if not sys_id:
+                try:
+                    cur = gdb.selected_thread()
+                    if cur is not None:
+                        sys_id = self._thread_sysid(cur)
+                except Exception:
+                    sys_id = 0
+            sysId.contents.value = sys_id or 0
+        return 0
+
+    def lldb_get_thread_id_by_system_id(self, this_ptr, sysId, id_ptr):
+        trace("call into lldb_get_thread_id_by_system_id")
+        try:
+            if id_ptr:
+                threads = self._get_threads()
+                for idx, t in enumerate(threads):
+                    if self._thread_sysid(t) == sysId:
+                        id_ptr.contents.value = idx
+                        return 0
+        except Exception:
+            pass
+        return 0x80004005
+
+    def lldb_get_thread_context_by_system_id(self, this_ptr, sysId, contextFlags, contextSize, context):
+        trace("call into lldb_get_thread_context_by_system_id")
+        if not context or contextSize < 128:
+            return 0x80004005
+        try:
+            thread = self._find_thread_by_sysid(sysId)
+            if thread is None:
+
+vscode ➜ /workspaces/gdbsos (main) $ git --no-pager diff --unified=0 HEAD~1 -- src/gdbplugin/sos/services.py
+diff --git a/src/gdbplugin/sos/services.py b/src/gdbplugin/sos/services.py
+index 2bde21d..6303f04 100644
+--- a/src/gdbplugin/sos/services.py
++++ b/src/gdbplugin/sos/services.py
+@@ -1757,2 +1757 @@ class GdbServices:
+-        # Goal: never hang the caller. Either return one instruction text and advance endOffset,
+-        # or return S_FALSE with endOffset advanced so the caller makes progress.
++        # Never hang the caller. Best-effort decode 1 instruction and advance endOffset.
+@@ -1759,0 +1759,5 @@ class GdbServices:
++            try:
++                trace_cat('disasm', f"[disasm] request addr=0x{int(offset):x}")
++            except Exception:
++                pass
++
+@@ -1761 +1765,21 @@ class GdbServices:
+-            # Try using gdb to disassemble a single instruction at the given address.
++            adv = 1
++            saved_flavor = None
++
++            # Save and temporarily switch to Intel flavor to avoid '%' registers (printf hazards)
++            try:
++                show = gdb.execute("show disassembly-flavor", to_string=True)
++                low = (show or "").lower()
++                if "intel" in low:
++                    saved_flavor = "intel"
++                elif "att" in low:
++                    saved_flavor = "att"
++                else:
++                    saved_flavor = None
++            except Exception:
++                saved_flavor = None
++            try:
++                if saved_flavor != "intel":
++                    gdb.execute("set disassembly-flavor intel", to_string=True)
++            except Exception:
++                pass
++
+@@ -1763,7 +1787,8 @@ class GdbServices:
+-                # Use x/1i to get one instruction; suppress pagination noise.
+-                out = gdb.execute(f"x/1i 0x{int(offset):x}", to_string=True)
+-                # Typical format: "0xADDRESS:\tOPCODE ...\n" – strip the leading address
+-                if out:
+-                    line = out.strip().splitlines()[0]
+-                    # Split at first tab or colon space
+-                    parts = line.split("\t", 1)
++                # Probe two instructions so we can compute the next address reliably
++                out2 = gdb.execute(f"x/2i 0x{int(offset):x}", to_string=True)
++                lines = [ln for ln in (out2 or '').splitlines() if ln.strip()]
++                if lines:
++                    first = lines[0].strip()
++                    sec = lines[1].strip() if len(lines) > 1 else None
++                    # Extract text for first instruction
++                    parts = first.split('\t', 1)
+@@ -1773,3 +1798,34 @@ class GdbServices:
+-                        # Fallback: after colon
+-                        cidx = line.find(":")
+-                        text = line[cidx+1:].strip() if cidx >= 0 else line
++                        cidx = first.find(':')
++                        text = first[cidx+1:].strip() if cidx >= 0 else first
++                    # Compute instruction length using numeric addresses
++                    try:
++                        faddr_str = first.split(':', 1)[0].strip()
++                        faddr = int(faddr_str, 16) if faddr_str.startswith('0x') else int(faddr_str, 16)
++                        if sec:
++                            saddr_str = sec.split(':', 1)[0].strip()
++                            saddr = int(saddr_str, 16) if saddr_str.startswith('0x') else int(saddr_str, 16)
++                            if saddr > faddr:
++                                adv = max(1, saddr - faddr)
++                    except Exception:
++                        adv = max(1, adv)
++                else:
++                    # Fallback to a single instruction
++                    out1 = gdb.execute(f"x/1i 0x{int(offset):x}", to_string=True)
++                    if out1:
++                        line = out1.strip().splitlines()[0]
++                        parts = line.split('\t', 1)
++                        if len(parts) == 2:
++                            text = parts[1]
++                        else:
++                            cidx = line.find(':')
++                            text = line[cidx+1:].strip() if cidx >= 0 else line
++            except Exception as ex:
++                try:
++                    trace_cat('disasm', f"[disasm] gdb disassemble error: {ex}")
++                except Exception:
++                    pass
++
++            # Restore disassembly flavor if we changed it
++            try:
++                if saved_flavor and saved_flavor != "intel":
++                    gdb.execute(f"set disassembly-flavor {saved_flavor}", to_string=True)
+@@ -1777 +1833 @@ class GdbServices:
+-                text = None
++                pass
+@@ -1779,2 +1835,2 @@ class GdbServices:
+-            written = 0
+-            if text and buffer and bufferSize and bufferSize > 1:
++            # Escape % to avoid downstream printf formatting in SOS
++            if text and ("%" in text):
+@@ -1781,0 +1838,11 @@ class GdbServices:
++                    esc = text.replace('%', '%%')
++                    if esc != text:
++                        trace_cat('disasm', "[disasm] escaped percents in text")
++                    text = esc
++                except Exception:
++                    pass
++
++            # Write text to caller's buffer
++            written = 0
++            try:
++                if text and buffer and bufferSize and bufferSize > 1:
+@@ -1790,2 +1857,2 @@ class GdbServices:
+-                except Exception:
+-                    written = 0
++            except Exception:
++                written = 0
+@@ -1794 +1861,9 @@ class GdbServices:
+-                disSize.contents.value = written
++                try:
++                    disSize.contents.value = written
++                except Exception:
++                    pass
++            if endOffset:
++                try:
++                    endOffset.contents.value = ctypes.c_uint64(int(offset) + max(1, int(adv))).value
++                except Exception:
++                    pass
+@@ -1796,2 +1871 @@ class GdbServices:
+-            # Always advance by at least 1 byte to ensure forward progress if we can't decode size.
+-            adv = 1
++            rc = 0 if written > 0 else 1
+@@ -1799,3 +1873 @@ class GdbServices:
+-                # Try to infer instruction size by looking up next address from gdb output
+-                # Not always available; keep minimal advancement.
+-                pass
++                trace_cat('disasm', f"[disasm] wrote={written} adv={adv} rc={rc}")
+@@ -1804,5 +1876,2 @@ class GdbServices:
+-            if endOffset:
+-                endOffset.contents.value = ctypes.c_uint64(int(offset) + adv).value
+-            # Return S_OK if we wrote text, otherwise S_FALSE
+-            return 0 if written > 0 else 1
+-        except Exception:
++            return rc
++        except Exception as ex:
+@@ -1814,0 +1884 @@ class GdbServices:
++                trace_cat('disasm', f"[disasm] exception: {ex}")
+@@ -1991,3 +2061 @@ class GdbServices:
+-        if id_ptr:
+-            threads = self._get_threads()
+-            cur = gdb.selected_thread()
++        try:
+@@ -1995,2 +2063,4 @@ class GdbServices:
+-            if cur is not None:
+-                try:
++            try:
++                cur = gdb.selected_thread()
++                threads = self._get_threads()
++                if cur and threads:
+@@ -1998 +2068 @@ class GdbServices:
+-                        if t.ptid == cur.ptid:
++                        if t == cur:
+@@ -2001,4 +2071,7 @@ class GdbServices:
+-                except Exception:
+-                    pass
+-            id_ptr.contents.value = engine_id
+-        return 0
++            except Exception:
++                engine_id = 0
++            if id_ptr:
++                id_ptr.contents.value = engine_id
++            return 0
++        except Exception:
++            return 0x80004005
+@@ -2008 +2080,0 @@ class GdbServices:
+-        threads = self._get_threads()
+@@ -2010,3 +2082,15 @@ class GdbServices:
+-            if 0 <= id_value < len(threads):
+-                threads[id_value].switch()
+-                self._current_thread_sysid = self._thread_sysid(threads[id_value])
++            threads = self._get_threads()
++            if threads is None:
++                return 0x80004005
++            if 0 <= int(id_value) < len(threads):
++                try:
++                    threads[int(id_value)].switch()
++                    # Update cached system id
++                    try:
++                        self._current_thread_sysid = self._thread_sysid(threads[int(id_value)])
++                    except Exception:
++                        pass
++                    return 0
++                except Exception:
++                    return 0x80004005
++            return 0x80004005
+@@ -2014,2 +2098 @@ class GdbServices:
+-            pass
+-        return 0
++            return 0x80004005
+@@ -2034,2 +2117,5 @@ class GdbServices:
+-            if id_ptr:
+-                threads = self._get_threads()
++            threads = self._get_threads()
++            engine_id = 0xFFFFFFFF
++            found = False
++            if threads:
++                sid = int(sysId)
+@@ -2037,6 +2123,24 @@ class GdbServices:
+-                    if self._thread_sysid(t) == sysId:
+-                        id_ptr.contents.value = idx
+-                        return 0
+-        except Exception:
+-            pass
+-        return 0x80004005
++                    try:
++                        if self._thread_sysid(t) == sid:
++                            engine_id = idx
++                            found = True
++                            break
++                    except Exception:
++                        continue
++            if id_ptr:
++                try:
++                    id_ptr.contents.value = engine_id if found else 0xFFFFFFFF
++                except Exception:
++                    pass
++            return 0 if found else 0x80004005
++        except Exception as ex:
++            try:
++                trace(f"lldb_get_thread_id_by_system_id error: {ex}")
++            except Exception:
++                pass
++            if id_ptr:
++                try:
++                    id_ptr.contents.value = 0xFFFFFFFF
++                except Exception:
++                    pass
++            return 0x80004005
+

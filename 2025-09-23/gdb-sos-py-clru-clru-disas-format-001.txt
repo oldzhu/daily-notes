@@ -1,0 +1,21 @@
+How to use
+Columns (defaults)
+Mnemonic starts at column 39 by default.
+Override via SOS_GDB_DISASM_MNEMONIC_COL and SOS_GDB_DISASM_OPERAND_COL.
+Optional columns
+SOS_GDB_DISASM_ADDR=1 to include address.
+SOS_GDB_DISASM_BYTES=1 to include contiguous raw bytes.
+RIP normalization
+Enabled by default: SOS_GDB_DISASM_CANONICAL_RIP=1
+Disable with SOS_GDB_DISASM_CANONICAL_RIP=0
+Example (like you used before):
+
+SOS_GDB_DISASM_ADDR=1 SOS_GDB_DISASM_BYTES=1 SOS_GDB_DISASM_MNEMONIC_COL=40 gdb …
+Quick checks
+Syntax: Python compile PASS for all modified files.
+Requirements coverage
+Change default SOS_GDB_DISASM_MNEMONIC_COL to 39: Done.
+Normalize RIP displacement: Done (env-togglable, default on).
+If you’re happy with the output, I can move on to source mapping next (lldb_get_line_by_offset via “info line ADDR”), adding minimal tracing and keeping it opt-in to avoid noise.
+
+

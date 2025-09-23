@@ -1,0 +1,44 @@
+
+I'll diff the current services.py against the previous commit to enumerate all changes and verify only the intended sections changed.
+
+
+git --no-pager diff --unified=0 HEAD~1 -- src/gdbplugin/sos/services.py
+I'll revert lldb_get_current_thread_id, lldb_set_current_thread_id, and lldb_get_thread_id_by_system_id to the previous commit's behavior to ensure only the intended changes remain, then run a syntax check and show a concise diff.
+
+services.py+13-47
+
+python3 -m py_compile /workspaces/gdbsos/src/gdbplugin/sos/services.py
+
+git --no-pager diff --unified=0 HEAD~1 -- src/gdbplugin/sos/services.py | sed -n '1752,2130p'
+Thanks for double-checking before testing. I compared the current services.py against the previous commit and ensured only the intended areas changed.
+
+What I verified and adjusted
+
+lldb_disassemble
+
+Updated as planned: Intel flavor switch, x/2i to compute instruction length, percent-escaping, safe buffer write, endOffset advancement, [disasm] traces, and flavor restoration.
+This is the primary intended change and remains.
+lldb_get_thread_id_by_system_id
+
+Confirmed it existed in the previous commit.
+Re-added using the same simple behavior as before (scan threads, match system id, return engine index). This prevents the AttributeError you saw.
+lldb_get_thread_context_by_system_id
+
+Not touched in this pass, aside from ensuring its presence is unchanged. It was present before and remains intact.
+lldb_get_current_thread_id and lldb_set_current_thread_id
+
+I initially made small defensive edits. To honor your request, I restored them to the exact previous-commit behavior:
+get_current_thread_id: finds the engine index by comparing ptid of the selected thread with the thread list.
+set_current_thread_id: switches to the thread by index and updates _current_thread_sysid, always returns 0 (as before).
+Stray or accidental changes
+
+Removed the accidental earlier splices; no unrelated logic should be changed now.
+Sanity checks
+
+Syntax: PASS (py_compile on the file).
+Minimal diff scope: After restoration, differences are limited to:
+The improved lldb_disassemble implementation.
+The re-added lldb_get_thread_id_by_system_id (matching prior commit semantics).
+No other behavior changes to thread selection methods.
+You can proceed to test. If any behavior deviates, we can pin it further with a targeted diff against your artifact copies, but the source now matches the prior commit’s behavior aside from the disassembly improvements and the re-addition of the missing method.
+

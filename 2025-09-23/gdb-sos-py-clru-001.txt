@@ -1,0 +1,64 @@
+Kicking off clru: here’s what I found from the code + your symptom, and a concrete plan to make it match LLDB output.
+
+What’s wrong today
+Symptoms you observed
+
+Corrupted operands like “6.952537e-310ax” and “6.952537e-310sp” instead of “%rax”, “%rsp”.
+Missing source line/file context that LLDB shows inline.
+Instruction stream looks fragmented/odd (advances byte-by-byte rather than instruction-by-instruction).
+Root causes in our plugin
+
+Printing percent-sign registers through a varargs path:
+Our disassembler currently asks gdb for one instruction via x/1i. GDB’s default AT&T syntax includes %rax, %rsp, etc.
+SOS prints via ILLDBServices.lldb_output_va_list, and our implementation uses vsnprintf(fmt, va_list). If fmt is the instruction text (containing %…), it gets interpreted as a printf format string, producing garbage like “6.952537e-310ax”.
+We don’t advance by instruction size:
+services.lldb_disassemble sets endOffset = offset + 1 regardless of actual instruction length. SOS then re-queries per byte, causing poor iteration and sometimes odd disassembly alignment.
+No source mapping implementation:
+lldb_get_line_by_offset, lldb_get_source_file_line_offsets, lldb_find_source_file return E_NOTIMPL, so clru can’t annotate source like LLDB.
+Disassembly parsing is minimal:
+We strip the address by splitting on tab/colon and keep the rest, but we don’t normalize syntax (AT&T vs Intel) or ensure consistent whitespace.
+Module/offset helpers are partial:
+lldb_get_module_by_offset returns E_NOTIMPL; not always required for clru, but some paths rely on it to qualify the address context.
+Plan to fix, in small, verifiable steps
+Make disassembly text safe and readable
+Switch to Intel syntax for disassembly requests (no %registers), or sanitize by stripping literal '%' characters from the instruction text before returning it. Intel flavor is preferred for parity and safety.
+Robustly parse the gdb output and return only “mnemonic operands” (no leading address).
+Acceptance:
+clru shows clean instructions like “sub rsp, 0x20” instead of corrupted “6.952537e-310sp”.
+Return correct instruction length
+Use a 2-instruction probe to compute the next address:
+Query x/2i <addr>, parse the first and second addresses, set endOffset = addr2, and return only the first instruction’s text.
+If second line isn’t present (EOF/invalid), fall back to a minimal length (1 byte) to keep forward progress.
+Acceptance:
+Disassembly advances per real instruction; no repeated or misaligned output.
+Add basic source mapping
+Implement lldb_get_line_by_offset by shelling out to “info line *0xADDR” and parsing “Line X of FILE starts at …” to fill line/file buffers and displacement.
+Optional v1: If mapping fails, return S_FALSE (no line info) without error spam.
+Acceptance:
+clru displays the source file path and line headers similar to LLDB for JITted code that has mapping.
+Normalize formatting to resemble LLDB
+Keep a short header block (method name, code kind, IL address, begin/size).
+If source available: print file:line headers between blocks like LLDB does.
+Keep instruction lines one per line; optionally include bytes later (nice-to-have).
+Acceptance:
+Visual parity: the structure of blocks and instruction lines is comparable to LLDB’s clru.
+Performance and safety
+Avoid permanently changing global disassembly flavor; temporarily set it for the query and restore (or use command-local override if supported).
+Add a disasm trace category to help debug the path without noise.
+Acceptance:
+No global GDB state drift; traces available when needed.
+Edge cases
+Invalid addresses or unreadable regions: return S_FALSE and advance by 1 to avoid infinite loops.
+Core dump sessions with partial symbol info: tolerate missing source; still print disassembly cleanly.
+Acceptance:
+clru doesn’t hang and prints a sensible minimal output.
+Optional polish (follow-up)
+Module-by-offset minimal implementation to help qualify addresses when needed.
+Byte dump / right column bytes if we want deeper parity.
+Caching last source mapping to avoid redundant lookups.
+Minimal “done” criteria
+“%”-garbling is gone; no more 6.95e-310 artifacts.
+Disassembly steps per instruction (not byte).
+When symbols are present, source file/line headers appear like LLDB.
+No regressions in other help/exec paths; tracing can be enabled with disasm category to diagnose.
+If this plan looks right, I’ll implement it tomorrow in small PR-sized chunks (disasm safety + length first, then source mapping), with togglable traces and visible acceptance checks.

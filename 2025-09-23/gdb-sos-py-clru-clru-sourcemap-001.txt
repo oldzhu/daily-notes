@@ -1,0 +1,29 @@
+Plan
+Implement lldb_get_line_by_offset using “info line *ADDR”.
+Fill outputs: file path, line number, and displacement to the start of that line’s range.
+Add tracing and keep it robust and non-blocking.
+Changes made
+Implemented lldb_get_line_by_offset in services.py
+
+Uses GDB: info line *0xADDR
+Parses: Line <num> of "file" starts at address 0x..., ends at ...
+Outputs:
+line: exact line number (UINT)
+fileBuffer/fileSize: UTF-8 path and required length (includes NUL)
+displacement: offset from the start address of that mapped line to the given offset (UINT64)
+Returns S_OK (0) on success; E_FAIL (0x80004005) when not found or on errors (with safe default outputs)
+Emits [line] traces (category “disasm”) for mapping success/failure and any write errors
+No changes applied to artifacts—per your instruction, you’ll handle syncing for testing.
+
+Contract details
+Inputs: offset (ULONG64)
+Outputs:
+line (ULONG*): set to 0 on failure
+fileBuffer (char*), fileBufferSize (ULONG), fileSize (ULONG*): size reported even if buffer is too small; NUL-terminated when written
+displacement (ULONG64*): 0 if unknown or before start
+Behavior: Attempts parsing a single “info line *ADDR” result; if absent or malformed, returns E_FAIL but never throws.
+Quick validation
+Syntax check: PASS for services.py.
+Try it
+You can now call commands that rely on lldb_get_line_by_offset; when you sync this file into your artifact locations, CLRU/source-related features will annotate with file:line when available.
+If you want, I can next wire a small helper in disassembly to optionally show a source header above each block (env-togglable), but I’ll pause here for your testing cycle.

@@ -1,0 +1,89 @@
+(gdb) clru 00007FFF792A18DA 
+Normal JIT generated code
+Simple.Main()
+ilAddr is 00007FFFF4373250 pImport is 000063E8EF99BA10
+Begin 00007FFF792A1860, size 8a
+push   rbp
+sub    rsp,0x20
+lea    rbp,[rsp+0x20]
+vxorps xmm8,xmm8,xmm8
+vmovdqu XMMWORD PTR [rbp-0x18],xmm8
+xor    eax,eax
+mov    QWORD PTR [rbp-0x8],rax
+cmp    DWORD PTR [rip+0xb5357],0x0        # 0x7fff79356bd8
+je     0x7fff792a1888
+call   0x7ffff76adbd0
+nop
+movabs rdi,0x7ffff43a7720
+call   QWORD PTR [rip+0xfffffffffff85ca7]        # 0x7fff79227540
+nop
+movabs rdi,0x7fff7935aeb0
+call   0x7ffff7800000
+mov    QWORD PTR [rbp-0x18],rax
+mov    rdi,QWORD PTR [rbp-0x18]
+call   QWORD PTR [rip+0xfffffffffff85ca1]        # 0x7fff79227558
+mov    rax,QWORD PTR [rbp-0x18]
+mov    QWORD PTR [rbp-0x8],rax
+mov    rdi,QWORD PTR [rbp-0x8]
+movabs r11,0x7fff78240018
+movabs rsi,0x7ffff43a7778
+call   QWORD PTR [r11]
+>>> nop
+xor    eax,eax
+mov    DWORD PTR [rbp-0xc],eax
+nop
+mov    eax,DWORD PTR [rbp-0xc]
+add    rsp,0x20
+pop    rbp
+ret
+
+(lldb) clru 00007FFF792B18DA
+Normal JIT generated code
+Simple.Main()
+ilAddr is 00007FFFF4373250 pImport is 000000002D657850
+Begin 00007FFF792B1860, size 8a
+
+/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/SimpleThrow.cs @ 9:
+00007fff792b1860 55                   push    rbp
+00007fff792b1861 4883ec20             sub     rsp, 0x20
+00007fff792b1865 488d6c2420           lea     rbp, [rsp + 0x20]
+00007fff792b186a c4413857c0           vxorps  xmm8, xmm8, xmm8
+00007fff792b186f c57a7f45e8           vmovdqu xmmword ptr [rbp - 0x18], xmm8
+00007fff792b1874 33c0                 xor     eax, eax
+00007fff792b1876 488945f8             mov     qword ptr [rbp - 0x8], rax
+00007fff792b187a 833d57530b0000       cmp     dword ptr [rip + 0xb5357], 0x0
+00007fff792b1881 7405                 je      0x7fff792b1888
+00007fff792b1883 e848c33f7e           call    0x7ffff76adbd0 (JitHelp: CORINFO_HELP_DBG_IS_JUST_MY_CODE)
+00007fff792b1888 90                   nop     
+
+/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/SimpleThrow.cs @ 10:
+00007fff792b1889 48bf20773af4ff7f0000 movabs  rdi, 0x7ffff43a7720
+00007fff792b1893 ff15a75cf8ff         call    qword ptr [rip - 0x7a359]
+00007fff792b1899 90                   nop     
+
+/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/SimpleThrow.cs @ 11:
+00007fff792b189a 48bfb0ae3679ff7f0000 movabs  rdi, 0x7fff7936aeb0
+00007fff792b18a4 e857e7547e           call    0x7ffff7800000 (JitHelp: CORINFO_HELP_NEWSFAST)
+00007fff792b18a9 488945e8             mov     qword ptr [rbp - 0x18], rax
+00007fff792b18ad 488b7de8             mov     rdi, qword ptr [rbp - 0x18]
+00007fff792b18b1 ff15a15cf8ff         call    qword ptr [rip - 0x7a35f]
+00007fff792b18b7 488b45e8             mov     rax, qword ptr [rbp - 0x18]
+00007fff792b18bb 488945f8             mov     qword ptr [rbp - 0x8], rax
+
+/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/SimpleThrow.cs @ 12:
+00007fff792b18bf 488b7df8             mov     rdi, qword ptr [rbp - 0x8]
+00007fff792b18c3 49bb18002578ff7f0000 movabs  r11, 0x7fff78250018
+00007fff792b18cd 48be78773af4ff7f0000 movabs  rsi, 0x7ffff43a7778
+00007fff792b18d7 41ff13               call    qword ptr [r11]
+>>> 00007fff792b18da 90                   nop     
+
+/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/SimpleThrow.cs @ 14:
+00007fff792b18db 33c0                 xor     eax, eax
+00007fff792b18dd 8945f4               mov     dword ptr [rbp - 0xc], eax
+00007fff792b18e0 90                   nop     
+
+/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/SimpleThrow.cs @ 15:
+00007fff792b18e1 8b45f4               mov     eax, dword ptr [rbp - 0xc]
+00007fff792b18e4 4883c420             add     rsp, 0x20
+00007fff792b18e8 5d                   pop     rbp
+00007fff792b18e9 c3                   ret     
