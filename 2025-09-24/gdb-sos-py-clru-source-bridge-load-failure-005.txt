@@ -1,0 +1,33 @@
+our gdb bridge also link to extensions,right?
+
+===========
+
+Yes—our GDB bridge links against the Diagnostics “extensions” library.
+
+Where it’s wired: CMakeLists.txt
+target_link_libraries(sosgdbbridge PRIVATE "${EXTENSIONS_LIB}" dl pthread)
+${EXTENSIONS_LIB} is the static extensions lib from Diagnostics that we locate via -DEXTENSIONS_LIB or by probing Diagnostics artifacts.
+Why we still see undefined Sys* in the bridge
+
+The undefined symbols are coming from the bridge itself, not from extensions.
+GetSourceLineFromAddress uses BSTR APIs:
+SysAllocStringLen, SysFreeString, SysStringLen
+On Linux these are provided by CoreCLR’s PAL, not glibc.
+Since our bridge DSO references Sys* directly and we don’t link PAL, dlopen fails with “undefined symbol: SysAllocStringLen,” even though we do link extensions.
+How LLDB’s plugin avoids this
+
+The LLDB plugin (libsosplugin.so) is built inside the Diagnostics native build, which sets up PAL for components that need it (either by static PAL objects being pulled in or via shared linkage managed by their add_library_clr/configure glue).
+It uses the same managed source mapping path (DAC → ISymbolService → file:line), but Sys* are satisfied by the PAL linkage baked into that build.
+If you want to double‑check locally
+
+Confirm our bridge links to extensions:
+readelf -d libsosgdbbridge.so | grep NEEDED
+Confirm the undefined Sys* are on the bridge, not on lldb plugin:
+nm -D --undefined-only libsosgdbbridge.so | egrep 'SysAllocStringLen|SysFreeString|SysStringLen'
+nm -D --undefined-only libsosplugin.so | egrep 'SysAllocStringLen|SysFreeString|SysStringLen' || true
+See what libsosplugin.so depends on:
+readelf -d libsosplugin.so | grep -E 'NEEDED|RPATH|RUNPATH'
+Next step aligned with Path 1
+
+When you give the word, I’ll remove BSTR/Sys* usage from GetSourceLineFromAddress and return UTF‑8 directly, keeping the rest of the logic the same. That eliminates the PAL dependency so the bridge dlopens cleanly.
+

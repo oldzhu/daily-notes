@@ -1,0 +1,22 @@
+I prefer Path1. 1 question before apply path 1, is libsosplugin.so linked to PAL? if it is not , how it handle the situation we now have when it try to reolve manaed source line and symbols? it is using different way?
+
+======
+
+Good question. Short answer: the LLDB plugin is built inside the diagnostics repo and is linked against the diagnostics PAL, so its BSTR/Sys* calls are resolved at load time. It doesn’t use a fundamentally different path for managed source mapping—it still goes native IP → IL offset via DAC, then asks ISymbolService for (file,line). The difference is linking.
+
+A bit more detail:
+
+Where the Sys* come from: The ISymbolService API is COM-flavored and returns file paths as BSTR on all platforms. On Linux, those BSTR helpers (SysAllocStringLen, SysFreeString, SysStringLen) are provided by the diagnostics/CoreCLR PAL (libcoreclrpal), not by glibc.
+How LLDB plugin avoids this issue: The plugin and the “extensions” code it uses are linked with the diagnostics PAL (static libcoreclrpal.a in artifacts), so the Sys* imports are satisfied. That’s why it can dlopen cleanly and resolve managed source lines using the same API we’re calling.
+Why our GDB bridge failed: We used the BSTR/A/Unicode path directly in the bridge but did not link PAL, so those Sys* remained undefined and dlopen failed immediately.
+For your chosen Path 1 (no PAL dependency for the bridge):
+
+We’ll change the bridge to stop using BSTR/Sys* entirely and return UTF-8 directly. Concretely, we’ll switch to an API path in diagnostics that gives us UTF-8 or wide chars without requiring us to call Sys* in the bridge. If a pure UTF-8 variant isn’t exposed, we’ll push the BSTR handling inside the already PAL-linked extensions/symbol-service layer (so the bridge only sees plain buffers/strings), and the bridge will just copy UTF-8 into the caller’s buffer.
+Net effect: the bridge won’t import SysAllocStringLen/SysFreeString/SysStringLen anymore, so it’ll load without needing PAL, and managed source mapping will still work.
+When you want me to proceed, I’ll implement that in one contained edit to the bridge function (no extra libraries), rebuild, and have you verify with:
+
+python3 -c 'import ctypes; p="/workspaces/gdbsos/artifacts/bin/current/libsosgdbbridge.so"; print(ctypes.CDLL(p))'
+In GDB: sos bridgestatus (and optionally with an address) to confirm line mapping shows “file:line”.
+If you’d like a faster temporary unblock instead, we can link the diagnostics PAL in CMake (mirroring the LLDB plugin) and keep the current code; but since you prefer Path 1, I’ll wait for your go-ahead to remove the BSTR usage.
+
+

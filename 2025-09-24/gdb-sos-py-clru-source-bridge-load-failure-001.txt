@@ -1,0 +1,73 @@
+Stil failed and pls hold on any new code changes before figure out the root cause
+os bridgestatus
+Bridge: NOT LOADED (libsosgdbbridge.so)
+GetSourceLineFromAddress: bridge not available
+How to debug why it failed to load using gdb or other tools?
+another quick way to troubleshoot is to back up our new gdbbridge.cpp to a backup file, then remove all code in GetSourceLineFromAddress and just return S_OK to see if something in the new added function cause the loading failure
+
+===========
+
+Got it—no more code changes for now. Let’s zero in on why the bridge fails to load and confirm whether it’s a dependency or symbol issue vs. something in the new function body.
+
+Quick diagnosis checklist
+Capture the exact dlopen error
+
+In GDB, enable misc tracing before sourcing sos.py:
+sostrace on misc
+source sos.py
+sos bridgestatus
+Or try a tiny Python snippet in the terminal to see the precise error:
+python3 -c 'import ctypes; import os; p="/workspaces/gdbsos/artifacts/bin/current/libsosgdbbridge.so"; print("loading:",p); print(ctypes.CDLL(p))'
+If it fails, Python prints the dlopen error (missing symbol/lib).
+Check dependencies and RPATH/RUNPATH
+
+ldd -r -v libsosgdbbridge.so
+Look for “not found” and versioned symbol errors.
+readelf -d libsosgdbbridge.so | grep -E 'RPATH|RUNPATH|NEEDED'
+Confirms which directories the loader will search and which libs are required.
+Trace the dynamic linker
+
+LD_DEBUG=libs,files gdb -q
+Then source sos.py as usual; stderr will show dlopen search paths and reasons.
+Redirect stderr to a file if too chatty:
+LD_DEBUG=libs,files gdb -q 2> /tmp/lddebug.txt
+strace focus on file opens:
+strace -f -e trace=openat,access -o /tmp/strace.txt gdb -q
+After reproducing, grep for libsosgdbbridge.so and its deps.
+Sanity check the path and build
+
+Confirm the exact file loaded by sos.py:
+It tries libsosgdbbridge.so from the same directory as sos.py you sourced.
+If you’re sourcing sos.py, the bridge must be in that same folder. Make sure there isn’t a mismatch between Debug/Release/current.
+Verify the .so isn’t stripped of required symbols:
+nm -D --defined-only /path/to/libsosgdbbridge.so | egrep 'InitGdbExtensions|GetHostForSos|InitManagedHosting|GetSourceLineFromAddress'
+If these aren’t present, the loader might still succeed, but our code would then fail to resolve symbols later. Your error is earlier (“Bridge: NOT LOADED”), so focus on dlopen first.
+Likely root causes to look for
+Missing dependency from diagnostics/runtime builds (e.g., libstdc++/libgcc_s mismatches, DAC dependencies, libdl/libpthread not linked).
+Incompatible GLIBCXX symbol versions due to different libstdc++ at runtime vs. build.
+RUNPATH not including where dependent libs are deployed.
+ABI mismatch due to compiler flags or C++ standard library differences.
+Minimal isolation: no-code-change approach
+You suggested stubbing the function; to honor “no changes now,” here’s how to quickly confirm if it’s about dependencies versus the new function body without editing our repo:
+
+Use LD_PRELOAD to force a tiny shim first (if you have one) or temporarily rename the bridge:
+mv libsosgdbbridge.so libsosgdbbridge.real.so
+Drop in a minimal trivial shared object with the same SONAME exporting no references (if you have a template). If that loads, the original bridge has unresolved deps. If even the trivial one doesn’t load from that path, it’s path/search related.
+Alternatively, copy previously working bridge (if you have an older known-good version) into the same folder and re-run sos bridgestatus. If that loads, the issue is in new deps/symbols; if not, it’s environment/path.
+If you do want to proceed with the stub experiment you proposed:
+
+Back up the file: cp gdbbridge.cpp src/gdbplugin/bridge/gdbbridge.cpp.bak
+Edit only the body of GetSourceLineFromAddress to immediately return S_OK, leaving other includes as-is.
+Rebuild and redeploy to artifacts/bin/current; re-run sos bridgestatus.
+If it loads now, the added code is pulling in a dependency/symbol that’s missing at runtime. The usual suspects: DAC headers pulling in C++/COM bits needing additional libs, or UTF conversion pulling in locale/ICU.
+What to share back
+The exact dlopen error from the Python CDLL test.
+ldd -r -v output (paste the “not found” or version conflict lines).
+readelf -d RPATH/RUNPATH and NEEDED entries.
+nm -D results for the expected exports, just to ensure build content is correct.
+Once we see those, we can fix it decisively:
+
+Add missing NEEDED libs or adjust link flags to include -Wl,-rpath,’$ORIGIN’/…,
+Reduce dependencies inside the bridge export to avoid pulling heavy libs,
+Or gate the problematic code behind dlopen of optional libs with graceful failure.
+

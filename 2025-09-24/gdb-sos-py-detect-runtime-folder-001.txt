@@ -1,0 +1,3 @@
+Another work item is that I want to remove the current requirement of our gdb sos - in order to work, we need to        put our all *.py files and libgdbsosbridge.so into the same folder of the diagnostics binaries or .net runtime binries. which means we can have ourselves folder for example /gdbsos and we can detect where dotnet-sos folder is or where .net runtime folder is? 
+
+===========

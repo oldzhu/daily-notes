@@ -1,0 +1,66 @@
+Thanks for the exact dlopen error—that pinpoints it. The bridge fails to load because it references COM BSTR helpers (SysAllocStringLen/SysFreeString/SysStringLen), which aren’t provided by glibc on Linux. In CoreCLR they’re implemented in the PAL (libcoreclrpal). Since our bridge doesn’t link that, these remain undefined at load time, causing dlopen to fail immediately.
+
+Here’s a focused plan to diagnose and fix without changing code yet, plus two viable fix options when you’re ready.
+
+what we know
+Python CDLL error: “undefined symbol: SysAllocStringLen”
+nm confirms undefined: SysAllocStringLen, SysFreeString, SysStringLen
+These come from using BSTR in GetSourceLineFromAddress:
+BSTR bstrFileName = SysAllocStringLen(…)
+SysFreeString(bstrFileName)
+SysStringLen(bstrFileName)
+On Linux, Sys* are supplied by CoreCLR PAL, not the system. Our CMakeLists.txt links ${EXTENSIONS_LIB} dl pthread only—no PAL.
+
+confirm with quick checks
+Please run these to double-confirm environment and dependencies (no code changes):
+
+ldd relocations:
+
+ldd -r -v libsosgdbbridge.so
+Expect unresolved Sys* reported.
+Show symbol expectations:
+
+nm -D libcoreclr.so | grep -i 'SysAllocStringLen\|SysFreeString\|SysStringLen' || true
+Typically these are resolved via PAL in the core runtime, but we shouldn’t rely on libcoreclr.so being present/loaded when dlopen’ing our bridge.
+Check RUNPATH/RPATH:
+
+readelf -d libsosgdbbridge.so | grep -E 'RPATH|RUNPATH|NEEDED'
+Share the key lines if anything looks off.
+
+two fix paths (pick one)
+I’ll hold code changes until you say go. Here are the options:
+
+Remove PAL dependency (recommended)
+Replace BSTR usage in GetSourceLineFromAddress with a local UTF-16 buffer or a small vector and have ISymbolService::GetLineByILOffset fill a UTF-16 string we manage (if the interface allows), or call a variant that fills a char buffer (UTF-8) if available.
+If GetLineByILOffset requires BSTR, we can:
+Allocate a temporary UTF-16 buffer ourselves (no BSTR), and add a thin shim to ISymbolService usage that returns UTF-16 via an out param we control, or
+Call into Diagnostics’ helper that returns UTF-8 directly if exposed.
+Then convert to UTF-8 with our existing converter and drop SysAllocStringLen/SysFreeString/SysStringLen completely.
+Result: no libcoreclrpal dependency, bridge loads cleanly in any environment.
+Link PAL into the bridge (works but couples us to runtime bits)
+Link against libcoreclrpal to satisfy Sys*:
+Add libcoreclrpal.a (or libcoreclrpal.so if present) from diagnostics/runtime artifacts:
+e.g., libcoreclrpal.a
+In CMakeLists.txt, add it to target_link_libraries(sosgdbbridge PRIVATE <path to libcoreclrpal.a>).
+Potential downsides:
+Increases size and introduces ABI coupling with PAL.
+If PAL expects specific link or init contexts, we may need additional flags/defs.
+Upside:
+Minimal code change—just CMake link—fastest to validate.
+If you want a super-quick isolation before applying a fix:
+
+Temporarily change only the body of GetSourceLineFromAddress to return S_OK (as you suggested) and rebuild/deploy. That will prove the undefined symbol is exactly from the BSTR code path (it is).
+But since we already see undefined Sys* in nm, this is confirmed.
+suggested next move
+Since you asked to pause code changes, choose the preferred path:
+If you want the least coupling and portability: we’ll remove BSTR usage (Path 1).
+If you want a quick unblock to test everything else now: we’ll link PAL (Path 2).
+I can implement whichever you prefer as a single, contained change:
+
+Path 1: Edit only gdbbridge.cpp to eliminate Sys*/BSTR usage, keeping all logic intact and returning the same outputs.
+Path 2: Edit only CMakeLists.txt to link PAL; no source edits.
+Once applied, we’ll rebuild and you can immediately re-run:
+
+python3 -c 'import ctypes; import os; p="/workspaces/gdbsos/artifacts/bin/current/libsosgdbbridge.so"; print(ctypes.CDLL(p))'
+sos bridgestatus
+If you want me to proceed with one of these fixes now, tell me which path to take and I’ll make just that minimal change.

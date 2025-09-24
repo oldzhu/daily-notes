@@ -1,0 +1,46 @@
+Before apply path 1, could u show me in which Cmake file libsosplugin.so is linked to PAL or any other way to check? I just want to double confirm that
+===========
+
+You’re right to double-check. Here’s where the LLDB plugin picks up PAL and why its Sys* use works.
+
+lldb plugin CMake: CMakeLists.txt
+
+It defines add_library_clr(sosplugin SHARED …) and links extensions:
+target_link_libraries(sosplugin ${LIBRARIES})
+where LIBRARIES initially contains extensions (and optionally LLDB lib).
+The PAL linkage isn’t listed here directly. It’s pulled in transitively via the extensions library.
+extensions CMake: CMakeLists.txt
+
+Builds a static library: add_library(extensions STATIC …)
+Includes include(configure.cmake), which is Diagnostics’ native build system glue.
+Where PAL gets wired in:
+
+Diagnostics’ top-level native build enables PAL:
+In CMakeLists.txt you can see add_definitions(-DFEATURE_PAL) on non-Windows.
+The shared PAL configuration is set up in:
+configure.cmake
+And generally via functions.cmake and related configure files.
+Those configure scripts arrange for PAL sources/libs (coreclrpal/palrt) to be built and linked into Diagnostics native components that need them.
+As a concrete reference where PAL libraries are named in Diagnostics:
+CMakeLists.txt explicitly links palrt and coreclrpal:
+target_link_libraries(dbgshim … palrt coreclrpal …)
+The extensions target doesn’t list pal explicitly in its CMake, but the Diagnostics build system provides the platform glue so that anything using PAL APIs (like BSTR/Sys*) is satisfied when linking or at load time.
+The net effect: libsosplugin.so links against extensions which is built with FEATURE_PAL and resolves Sys* via PAL. That’s why LLDB’s plugin loads fine and can return BSTR-based results.
+How to verify in your tree:
+
+Inspect LLDB plugin and extensions linkage:
+Look at CMakeLists.txt (we found it) and CMakeLists.txt.
+The explicit PAL libs are not in the plugin’s CMake, but are handled by the overall Diagnostics build system when add_library_clr and native config are applied.
+Check the built libsosplugin.so NEEDED entries:
+readelf -d libsosplugin.so | grep -E 'NEEDED|RPATH|RUNPATH'
+You should see it depends on components that in turn pull PAL or it may be statically satisfied (PAL often built static, e.g., libcoreclrpal.a).
+Confirm the Sys* aren’t undefined in libsosplugin.so:
+nm -D --undefined-only /…/libsosplugin.so | egrep 'SysAllocStringLen|SysFreeString|SysStringLen' || true
+Expect no undefined Sys* there; they’re either resolved or not referenced directly.
+Summary:
+
+LLDB plugin doesn’t use a different source mapping algorithm; it still uses DAC + ISymbolService and BSTR.
+It loads because PAL is part of its build environment, satisfying Sys* at link/load time.
+Our GDB bridge didn’t link PAL, so dlopen fails on those Sys* (hence your error).
+Given you prefer Path 1, I’ll remove BSTR/Sys* usage from GetSourceLineFromAddress and return UTF-8 directly, so the bridge won’t need PAL and will dlopen cleanly. When you give the go-ahead, I’ll make that one targeted edit only.
+
