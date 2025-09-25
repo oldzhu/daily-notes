@@ -1,0 +1,30 @@
+On it—I removed the “deploy to diagnostics” behavior and marked the old deploy script obsolete so we can keep bridge next to the Python files and load libsos from SOS_ROOT or ~/.dotnet/sos.
+
+actions taken
+build.sh: deprecated deploy-to-diagnostics
+
+Added a clear note at the top explaining the change in loading behavior.
+Removed deploy-to-diagnostics as a default; set DEPLOY_TO_DIAG=0.
+Hid and no-op’ed these options:
+--deploy-to-diagnostics
+--no-deploy-to-diagnostics
+--deploy-dir
+Commented out the CMake arguments for BRIDGE_DEPLOY_TO_DIAGNOSTICS and BRIDGE_DEPLOY_DIAG_DIR.
+src/scripts/deploy-all.sh: marked obsolete and removed execute bit
+
+Added an OBSOLETE header block explaining why it’s no longer needed and what changed.
+Removed the executable permission so it won’t be used accidentally.
+libsos lookup (already completed earlier)
+
+sos.py now looks in $SOS_ROOT, then ~/.dotnet/sos, then co-location with sos.py.
+repo state
+Modified:
+.gitignore
+build.sh (deploy logic deprecated)
+sos.py (libsos search order added earlier)
+deploy-all.sh (marked obsolete; execute bit removed)
+test logs and test script (your edits retained)
+what’s next
+If you want similar env-var flexibility for the bridge later, we can add SOS_BRIDGE with a fallback to the sos.py directory. For now, per your requirement, the bridge stays next to the Python files.
+If you want, I can add a small “sos locs” command that prints where libsos and the bridge were loaded from, to make troubleshooting easy.
+

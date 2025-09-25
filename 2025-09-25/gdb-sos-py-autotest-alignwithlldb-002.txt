@@ -1,0 +1,25 @@
+The failing scenarios all died before they could even run SOS commands because the target process crashed with an unhandled exception (SIGABRT) immediately after hitting coreclr_execute_assembly. That means our current GDB test assembly (SimpleThrow.dll) throws right away and exits before we can reach Test.Main from the LLDB-oriented test design. As a result:
+
+Problem summary:
+
+We breakpoint only on coreclr_execute_assembly, then continue into a program that quickly terminates due to an exception.
+Scenarios relying on post-start managed state (name2ee, dso extraction for object addresses, dumpmt, gcroot, dumpobj) never get valid output, hence the null/empty parsing failures.
+The logs show the thrown exception from SimpleThrow.dll, not the test methods we expected from the lldb plugin’s TestDebuggee.
+Next step choices:
+
+Switch to the same style of debuggee used by LLDB tests (the Test.cs program) so Test.Main exists and we can stop there reliably. That would require building/publishing that assembly into our artifacts and updating ASSEMBLY.
+Adjust bpmd planting logic to set a managed breakpoint (bpmd assembly Test.Main) before running, and ignore early exception termination by continuing after the first exception break (might be less stable).
+Temporarily relax scenarios to not depend on runtime state requiring Test.Main; instead pick commands that can run at early runtime phases (less coverage though).
+Provide a small new “stable” test assembly dedicated to GDB tests that does not immediately throw.
+Recommended path: Implement (1): build and use TestDebuggee assembly similar to LLDB tests. Then:
+
+Set ASSEMBLY to that built DLL.
+Keep our new scenarios; they should start passing once the debuggee runs normally.
+If you’d like, I can proceed to:
+
+Locate/build the TestDebuggee project under lldbplugin.tests/TestDebuggee.
+Update test runner invocation to point to its DLL.
+Re-run scenarios and then tweak assertions if any still fail.
+Let me know if you want me to proceed with building and switching to the TestDebuggee assembly (reply with “proceed”) or prefer a different approach.
+
+

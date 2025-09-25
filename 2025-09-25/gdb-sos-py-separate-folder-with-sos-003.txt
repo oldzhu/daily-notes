@@ -1,0 +1,7 @@
+Great—now that we’ve confirmed the hosting failure disappears when the bridge is co-located with libsos.so, we can treat this as a real dependency/policy rather than an incidental behavior.
+
+Why co-location fixes it (likely causes)
+A 0x80070002 (ERROR_FILE_NOT_FOUND) during “create hosting delegate” usually means something in the managed hosting bootstrap couldn’t be resolved: runtimeconfig, assembly, or probing base path. Co-locating the bridge with libsos.so changes a few things:
+
+Relative path assumptions:
+The bridge (or SOS native hosting path) may compute probing paths or pass “application base” using the directory of the bridge (or the first module it controls). When the bridge and libsos differ, relative loads (managed assets or satellite

@@ -1,0 +1,35 @@
+let us temporarily hold on source mapping before we figure out how lldb plugin clru source mapping works. Let us begin to work on the new work item which is to remove the requirement which is our py files and libsosgdbbridge.so have to be in the same folder as libsos.so and SOS debugger extenstion. Now what I want to is they can be in different folder. I mean our py files and libsosgdbbridge.so can be in one folder e.g gdbsos or in our repo artifacts/bin/linux.x64.[config] and libsos.so and SOS extensions can be in other folder e.g ~/.dotnet/sos(seems like the default folder which dotnet-sos installed) or in a folder pointed by environment variable SOS_ROOT .  so we can try to search ~/.dotnet/sos to locate the file libsos.so, if no found, we can say no found and suggest the user to install dotnet-so and give the url link of dotnet-sos or ask the customer to export SOS_ROOT to the folder which sos is installed.
+
+=====
+
+Got it—pausing source mapping and starting the folder separation work. I updated the libsos loader in the source plugin (not artifacts) to support finding SOS outside the plugin’s directory.
+
+changes made
+Updated libsos discovery in sos.py:
+
+New search order in _find_libsos():
+$SOS_ROOT/libsos.so (if SOS_ROOT is set)
+~/.dotnet/sos/libsos.so (default dotnet-sos location)
+The folder containing sos.py (legacy co-location)
+Improved error messaging if not found:
+Explains the search paths
+Suggests installing dotnet-sos or setting SOS_ROOT
+Links to dotnet-sos instructions
+No changes were made to artifacts/; work is confined to sos.
+
+how to use
+If you installed dotnet-sos:
+No action needed if it lives in ~/.dotnet/sos
+If you keep SOS elsewhere:
+Export SOS_ROOT to its directory:
+export SOS_ROOT=/path/to/your/sos/dir
+Re-source the plugin in GDB:
+source sos.py
+Run any SOS command; the loader will search in the order above.
+notes and next steps
+Currently, the bridge libsosgdbbridge.so is still probed next to the Python files. If you want the bridge to be discoverable similarly (e.g., in the same folder as the plugin or via an env var), I can add:
+SOS_BRIDGE for an explicit path
+Fallbacks to the plugin directory and/or ~/.dotnet/sos
+If you’d like, I can also add a small status command (e.g., “sos locs”) to print which paths were used to load libsos/bridge for easier troubleshooting.
+Want me to extend the bridge lookup in the same spirit (SOS_BRIDGE env var, ~/.dotnet/sos, etc.)?
+

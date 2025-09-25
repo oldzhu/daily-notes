@@ -1,0 +1,77 @@
+Thanks this task can be complete now. Let us move to next small issue:
+some command works with address parameter withour 0x prefix but some not work, for example: 
+in our gdb, dumpobj wont work without prefix 0x but clru work fine.
+(gdb) dumpobj 7fbf66813bb0
+[New Thread 0x7fff9d5ff700 (LWP 3742)]
+Invalid parameter 7fbf66813bb0
+Command 'dumpobj' failed with HRESULT -2147024809.
+(gdb) dumpobj 0x7fbf66813bb0
+Name:        UserObject
+MethodTable: 00007fff7935aeb0
+Canonical MethodTable: 00007fff7935aeb0
+Tracked Type: false
+Size:        24(0x18) bytes
+....
+(gdb))clru 00007FFF792A18DA
+Normal JIT generated code
+Simple.Main()
+ilAddr is 00007FFFF4373250 pImport is 0000555556D60610
+Begin 00007FFF792A1860, size 8a
+push   rbp
+...
+in lldb, dumpobj works fine wthout and with prefix like the clru as the below:
+
+(lldb) dumpobj 7fbf6e813bb0
+[New Thread 0x7fffc8cf9700 (LWP 2824)]
+Name:        UserObject
+MethodTable: 00007fff7937aeb0
+Canonical MethodTable: 00007fff7937aeb0
+[Thread 0x7fffc8cf9700 (LWP 2824) exited]
+Tracked Type: false
+Size:        24(0x18) bytes
+File:        /workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net10.0/SimpleThrow.dll
+Fields:
+None
+(lldb) clru 0792C3CEC
+Normal JIT generated code
+UserObject.UseObject(System.String)
+ilAddr is 00007FFFF403A28C pImport is 00000000012B9040
+Begin 00007FFF792C3C40, size b4
+[New Thread 0x7fffc8cf9700 (LWP 3073)]
+
+/workspaces/gdbsos/src/diagnostics/src/SOS/SOS.UnitTests/Debuggees/SimpleThrow/UserObject.cs @ 14:
+00007fff792c3c40 55                   push    rbp
+00007fff792c3c41 4883ec30             sub     rsp, 0x30
+00007fff792c3c45 488d6c2430           lea     rbp, [rsp + 0x30]
+00007fff792c3c4a c4413857c0           vxorps  xmm8, xmm8, xmm8
+
+pls investigate why and  make our commands behavior align with the lldb.
+
+===============
+
+Added automatic address normalization so commands like dumpobj now accept raw hex without 0x (LLDB parity).
+
+Changes Made
+Introduced _ADDRESS_FIRST_ARG_CMDS set and _normalize_address_token helper in sos.py.
+Normalization heuristics:
+Only for known address-first commands (dumpobj, dumpmt, dumpclass, dumpmd, dumpvc, ip2md, gcroot, gcwhere, printexception/pe, dumpdelegate, dumparray).
+If the first token is all hex chars and (has any a-f/A-F OR length > 8) and lacks 0x prefix, we prefix it.
+Optional override: set SOS_GDB_FORCE_HEX=1 to force-prefix even shorter purely numeric hex-like tokens.
+Leaves small decimal-like numbers (e.g., 1234) untouched.
+Applied normalization in both SOSCommand.invoke and SosExecUmbrellaCommand.invoke.
+Added trace message (when tracing enabled) showing normalization decisions.
+Expected Behavior
+Before: dumpobj 7fbf66813bb0 failed with invalid parameter. After: It will internally convert to dumpobj 0x7fbf66813bb0 and succeed, matching LLDB behavior.
+
+How to Verify
+In GDB (with updated plugin loaded):
+
+dumpobj 7fbf66813bb0 should now work the same as dumpobj 0x7fbf66813bb0.
+Try a shorter decimal-y value (e.g., dumpobj 1234)—should not be prefixed.
+Enable tracing (if you have sostrace on) to see [sos] normalized address arg ... messages.
+Notes / Follow-ups
+If there are additional commands needing this (e.g., bpmd when given an address form) we can extend the set.
+Let me know if you’d prefer a stricter or looser heuristic (e.g., always prefix any all-hex token longer than, say, 6 chars).
+Want to include any other commands in the normalization list or adjust the heuristic? Just say the word.
+
+

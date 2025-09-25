@@ -1,0 +1,44 @@
+All remaining LLDB test scenarios have been scaffolded under scenarios as placeholder GDB scenarios (lightweight assertions). I did not attempt to fix the current failures or adjust bpmd_and_continue; the intent was only to add coverage files so you can commit and then debug.
+
+Added scenario files (new):
+
+t_cmd_dumpclass.py
+t_cmd_dumpil.py
+t_cmd_dumplog.py
+t_cmd_dumpmd.py
+t_cmd_dumpmodule.py
+t_cmd_dumpstack.py
+t_cmd_eeheap.py
+t_cmd_eestack.py
+t_cmd_histclear.py
+t_cmd_histinit.py
+t_cmd_histobj.py
+t_cmd_histobjfind.py
+t_cmd_histroot.py
+t_cmd_ip2md.py
+t_cmd_clru.py
+t_cmd_sos.py
+t_cmd_bpmd_module_function.py
+t_cmd_bpmd_clear.py
+t_cmd_bpmd_clearall.py
+t_cmd_bpmd_methoddesc.py
+t_cmd_bpmd_module_function_iloffset.py
+t_cmd_bpmd_nofuturemodule_module_function.py
+Previously added (earlier batch):
+
+t_cmd_clrstack.py
+t_cmd_clrthreads.py
+t_cmd_dso.py
+t_cmd_dumpheap.py
+t_cmd_dumpmt.py
+t_cmd_dumpobj.py
+t_cmd_gcroot.py
+t_cmd_name2ee.py
+t_cmd_pe.py
+t_cmd_soshelp.py
+Next (when you’re ready to debug):
+
+Confirm correct test assembly (auto-detect now points to TestDebuggee; ensure we invoke with CONFIG=Debug and leave ASSEMBLY unset so auto-detect path picks TestDebuggee.dll).
+Enhance bpmd_and_continue to handle assembly naming and runtime load timing.
+Then refine assertions (many are intentionally lenient placeholders).
+Let me know when you want me to proceed with the bpmd/runtime load fix or tighten assertions.

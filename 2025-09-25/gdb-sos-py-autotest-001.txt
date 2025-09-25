@@ -1,0 +1,33 @@
+Updated the test harness to look for sos.py in the publish folders (artifacts/bin/linux.x64.[Debug|Release]), added configurable CONFIG, and adjusted the Python harness default path. Re-ran the tests with the Debug publish sos.py; all three scenarios passed (clrstack, dso, soshelp).
+
+Actions taken
+Modified test.sh to auto-detect sos.py in:
+artifacts/bin/linux.x64.$CONFIG/sos.py (default CONFIG=Debug)
+Fallbacks: Debug then Release if CONFIG not found
+Emits a clear error if not found
+Updated test_gdbsos.py default --plugin resolution to prefer new publish locations
+Executed the harness with valid ASSEMBLY and new path logic
+Verified all scenario tests succeeded
+Test results
+All suites: Success
+No timeouts, no failures.
+
+How to run (optional)
+To repeat (Debug build):
+
+
+CONFIG=Debug ASSEMBLY=/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Debug/net10.0/SimpleThrow.dll bash /workspaces/gdbsos/src/tests/gdb/test.sh
+For Release:
+
+
+CONFIG=Release ASSEMBLY=/workspaces/gdbsos/src/diagnostics/artifacts/bin/SimpleThrow/Release/net10.0/SimpleThrow.dll bash /workspaces/gdbsos/src/tests/gdb/test.sh
+Override plugin explicitly (if needed):
+
+
+PLUGIN_PATH=/workspaces/gdbsos/artifacts/bin/linux.x64.Debug/sos.py ... bash src/tests/gdb/test.sh
+Follow-ups (optional)
+Consider adding a small README in gdb documenting the new discovery logic.
+Add a test ensuring address normalization (raw hex vs 0x-prefixed) to lock in that feature.
+Optionally add a negative test to confirm graceful behavior when libsos.so missing.
+Let me know if you’d like those extras added.
+
