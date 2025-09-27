@@ -1,0 +1,118 @@
+(gdb) setb pagination off
+Undefined command: "setb".  Try "help".
+(gdb) set pagination off
+(gdb) set breakpoint pending on
+(gdb) source artifacts/bin/linux.x64.Debug/sos.py 
+(gdb) sostrace on bpmd
+sostrace: on
+(gdb) sostrace status
+sostrace: on; categories: bpmd
+(gdb) bpmd TestDebuggee.dll Test.Main
+[new-objfile] connected (early)
+[sos][warn] Native host not available; proceeding with NULL host (no Python fallback).
+SOS GDB Python extension loaded (NO native host; NULL host path).
+call into lldb2_set_runtime_loaded_callback
+runtime-loaded cb registered
+Function "coreclr_execute_assembly" not defined.
+Temporary breakpoint 1 (coreclr_execute_assembly) pending.
+(gdb) r
+Starting program: /workspaces/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee 
+[Detaching after vfork from child process 99468]
+[Detaching after fork from child process 99469]
+[Detaching after fork from child process 99471]
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[new-objfile] detected /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libcoreclr.so
+[New Thread 0x7fffa4200700 (LWP 99604)]
+[New Thread 0x7fff9b9ff700 (LWP 99605)]
+[New Thread 0x7fffa39ff700 (LWP 99606)]
+[New Thread 0x7fffa31fe700 (LWP 99607)]
+[New Thread 0x7fffa29fd700 (LWP 99608)]
+[New Thread 0x7fffa21fc700 (LWP 99609)]
+[New Thread 0x7fffa19fb700 (LWP 99610)]
+[New Thread 0x7fff9b1fe700 (LWP 99670)]
+[Thread 0x7fff9b1fe700 (LWP 99670) exited]
+[New Thread 0x7fff9b1fe700 (LWP 99746)]
+[Thread 0x7fff9b1fe700 (LWP 99746) exited]
+[New Thread 0x7fff9b1fe700 (LWP 99802)]
+[Thread 0x7fff9b1fe700 (LWP 99802) exited]
+[New Thread 0x7fff9b1fe700 (LWP 99806)]
+[Thread 0x7fff9b1fe700 (LWP 99806) exited]
+[New Thread 0x7fff9b1fe700 (LWP 99808)]
+[Thread 0x7fff9b1fe700 (LWP 99808) exited]
+[New Thread 0x7fff9b1fe700 (LWP 99809)]
+[Thread 0x7fff9b1fe700 (LWP 99809) exited]
+[New Thread 0x7fff9b1fe700 (LWP 99810)]
+[Thread 0x7fff9b1fe700 (LWP 99810) exited]
+[New Thread 0x7fff9b1fe700 (LWP 99812)]
+[update] UpdateManagedTarget(pid=99468) => 0x00000000
+[New Thread 0x7ffff6a8b700 (LWP 99813)]
+[New Thread 0x7fffee28a700 (LWP 99814)]
+[New Thread 0x7ffff628a700 (LWP 99815)]
+[New Thread 0x7ffff5a80700 (LWP 99816)]
+[New Thread 0x7ffff526f700 (LWP 99817)]
+[New Thread 0x7ffff4a6a700 (LWP 99818)]
+[New Thread 0x7fffeffff700 (LWP 99819)]
+[Thread 0x7fff9b1fe700 (LWP 99812) exited]
+[New Thread 0x7fff9b1fe700 (LWP 99836)]
+[update] UpdateManagedTarget(pid=99468) => 0x00000000
+[Thread 0x7fff9b1fe700 (LWP 99836) exited]
+call into lldb_set_exception_callback
+exception cb registered
+Breakpoint 2 at 0x7ffff7e73c20
+[exception-bp] installed '__cxa_throw' breakpoint
+Breakpoint 3 at 0x7ffff7e73c70
+[exception-bp] installed '__cxa_rethrow' breakpoint
+[stop-hook] connected
+RuntimeLoaded callback HR=0x00000000
+
+Thread 1 "gdb" hit Breakpoint 1, ClrDataMethodDefinition::SetCodeNotification (this=0x555556630410, flags=1) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/task.cpp:3435
+3435        DAC_ENTER_SUB(m_dac);
+(gdb) c
+Continuing.
+[exception-bp] Exception callback HR=0x00000000
+(gdb) [exception-bp] Exception callback HR=0x00000000
+JITTED TestDebuggee!Test.Main()
+Setting breakpoint: breakpoint set --address 0x00007FFF7841D470 [Test.Main()]
+[exception-bp] Exception callback HR=0x00000000
+Warning:
+Cannot insert breakpoint 4.
+Cannot access memory at address 0x7fff7841d470
+
+=====================
+
+Adding pending breakpoints...
+Breakpoint 2 at 0x7ffff7e73c20
+Breakpoint 3 at 0x7ffff7e73c70
+(gdb) [Thread 0x7fff999fe700 (LWP 14757) exited]
+sostrace on bpmd
+sostrace: on
+(gdb) c
+Continuing.
+[exception-bp] skip: runtime-loaded not fired
+[exception-bp] skip: runtime-loaded not fired
+[exception-bp] skip: runtime-loaded not fired
+[New Thread 0x7fffeda89700 (LWP 14885)]
+[exception-bp] skip: runtime-loaded not fired
+[exception-bp] skip: runtime-loaded not fired
+[Thread 0x7fffeda89700 (LWP 14885) exited]
+[New Thread 0x7fffeda89700 (LWP 14900)]
+[exception-bp] skip: runtime-loaded not fired
+[New Thread 0x7fffecf82700 (LWP 14901)]
+[Thread 0x7fffeda89700 (LWP 14900) exited]
+[New Thread 0x7fffeda89700 (LWP 14902)]
+[exception-bp] skip: runtime-loaded not fired
+[exception-bp] skip: runtime-loaded not fired
+test dumpil
+I would like to be inlined
+I would not like to be inlined
+[Thread 0x7fffeda89700 (LWP 14902) exited]
+[Thread 0x7fffecf82700 (LWP 14901) exited]
+[Thread 0x7fffeffff700 (LWP 14572) exited]
+[Thread 0x7ffff4a6a700 (LWP 14571) exited]
+[Thread 0x7ffff5a80700 (LWP 14569) exited]
+[Thread 0x7ffff628a700 (LWP 14568) exited]
+[Thread 0x7fffee28a700 (LWP 14563) exited]
+[Thread 0x7ffff6a8b700 (LWP 14562) exited]
+[Thread 0x7ffff7a97740 (LWP 14536) exited]
+[Inferior 1 (process 14536) exited normally]

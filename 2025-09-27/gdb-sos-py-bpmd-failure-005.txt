@@ -1,0 +1,32 @@
+Let us restore the change in lldb_set_exception_callback to detect the runtime and call runtime_loaded_cb_once as I think it does not make sense as the below:
+bpmd could be called many times and runtime_loaded_cb will be only called once when the runtime is loaded - actually internally from the dianostics lldb plugin source code, we could see it is breakpoint callback of the runtime loaded bp coreclr_execute_assembly, it is set by bpmd command when it is executed before the runtime is loaded and why the callback is set because it will call setexceptionclalback to set up the CLRN c++ exception callback for managed functions breakpoint set in that runtime loaded callback. so I think we can safely assume when lldb_set_exception_cb is called, the runtime is aeady loaded and no need to adding such detect logic to set the runtime_loaded_fired in the function and the same, we can safely assume in when _CppExceptionBP stop method is called, the runtime is already loade and no need to detect if _runtime_loaded_fired is true or false.
+
+I think the simple direct fix is to comment out this _runtime_loaded _fired checking in the _CppExceptionBP stop.
+BY the way, do not modify the py files under artfacts and u only need to work on files under src/gdbplugin and I will be responsible to sync before the testing.
+
+===========
+
+Thanks for the clear direction—I'll simplify the flow exactly as you described.
+
+changes made
+services.py
+lldb_set_exception_callback
+Removed the “immediate runtime-loaded” detection and firing. No more _scan_coreclr() or _invoke_runtime_loaded_cb_once() here. The function now just registers the exception callback and hooks.
+_CppExceptionBP.stop
+Removed the guard that skipped when _runtime_loaded_fired was False. We now assume runtime is loaded when the exception callback is registered, so the exception callback is always invoked if present.
+No changes were made under artifacts/ as requested.
+
+rationale
+Matches the LLDB behavior you outlined: the runtime-loaded callback is tied to the runtime entry breakpoint installed by bpmd, and setexceptioncallback is called in that path. Therefore, by the time lldb_set_exception_callback is invoked, runtime is effectively loaded.
+Keeps exception-bp simple and avoids unnecessary conditions. It will always call the managed exception callback if set.
+quality gates
+Lint/type: No syntax issues reported after edits.
+Scope: Only touched services.py lines in the exception callback registration and its local breakpoint class.
+next steps
+You’ll sync artifacts as mentioned. After sync, please retry your manual flow:
+Hit coreclr_execute_assembly, then source sos.py.
+Run bpmd for a non-jitted method.
+Continue and verify binding/hits.
+If you want, I can also remove any residual traces related to the previous guard (“skip: runtime-loaded not fired”), but right now they’re fully removed from this path.
+
+

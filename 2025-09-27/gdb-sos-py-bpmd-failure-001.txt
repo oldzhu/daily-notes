@@ -1,0 +1,74 @@
+lldb:
+
+(lldb) bt
+* thread #1, name = 'TestDebuggee', stop reason = breakpoint 3.1
+  * frame #0: 0x00007ffff7572025 libcoreclr.so`RtlpRaiseException(ExceptionRecord=0x000055555564c8b0, ContextRecord=0x000055555564bc90) at seh-unwind.cpp:884:5
+    frame #1: 0x00007ffff7572006 libcoreclr.so`::RaiseException(dwExceptionCode=3762569539, dwExceptionFlags=0, nNumberOfArguments=2, lpArguments=0x00007fffffffc2e0) at seh-unwind.cpp:951:5
+    frame #2: 0x00007ffff6eedf2c libcoreclr.so`DACRaiseException(this=0x00007fffffffc258, pParam=0x00007fffffffc268)::$_1::operator()(DACRaiseException(unsigned long*, unsigned int)::Param*) const at util.cpp:1464:9
+    frame #3: 0x00007ffff6eedddd libcoreclr.so`DACRaiseException(args=0x00007fffffffc2e0, argCount=2) at util.cpp:1466:5
+    frame #4: 0x00007ffff6eee098 libcoreclr.so`DACNotifyExceptionHelper(args=0x00007fffffffc2e0, argCount=2) at util.cpp:1493:9
+    frame #5: 0x00007ffff6eee249 libcoreclr.so`DACNotify::DoModuleLoadNotification(ModulePtr=0x00007fff785fada0) at util.cpp:1574:9
+    frame #6: 0x00007ffff6d4bbb4 libcoreclr.so`DomainAssembly::FinishLoad(this=0x000055555564d660) at domainassembly.cpp:557:5
+    frame #7: 0x00007ffff6d4b58d libcoreclr.so`DomainAssembly::DoIncrementalLoad(this=0x000055555564d660, level=FILE_LOADED) at domainassembly.cpp:436:9
+    frame #8: 0x00007ffff6c97e48 libcoreclr.so`AppDomain::TryIncrementalLoad(this=0x0000555555612080, pFile=0x000055555564d660, workLevel=FILE_LOADED, lockHolder=0x00007fffffffc648)), &(FileLoadLock::HolderLeave(FileLoadLock*)), 0ul, &(int CompareDefault<FileLoadLock*>(FileLoadLock*, FileLoadLock*)), true>&) at appdomain.cpp:2947:31
+    frame #9: 0x00007ffff6c96ab8 libcoreclr.so`AppDomain::LoadDomainAssembly(this=0x0000555555612080, pLock=0x000055555562a820, targetLevel=FILE_LOADED) at appdomain.cpp:2881:21
+    frame #10: 0x00007ffff6c97217 libcoreclr.so`AppDomain::LoadDomainAssemblyInternal(this=0x0000555555612080, pIdentity=0x00007fffffffce88, pPEAssembly=0x0000555555654730, targetLevel=FILE_LOADED) at appdomain.cpp:2778:40
+    frame #11: 0x00007ffff6c90308 libcoreclr.so`AppDomain::LoadDomainAssembly(this=0x0000555555612080, pSpec=0x00007fffffffce88, pPEAssembly=0x0000555555654730, targetLevel=FILE_LOADED) at appdomain.cpp:2652:19
+    frame #12: 0x00007ffff6f15965 libcoreclr.so`AssemblyNative::LoadFromPEImage(pBinder=0x0000555555616630, pImage=0x0000555555658f20, excludeAppPaths=true) at assemblynative.cpp:172:51
+    frame #13: 0x00007ffff6f25ed3 libcoreclr.so`AssemblySpec::LoadAssembly(pFilePath=u"/workspaces/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee.dll") at assemblyspec.cpp:514:12
+    frame #14: 0x00007ffff6d34618 libcoreclr.so`CorHost2::ExecuteAssembly(this=0x00005555555ca280, dwAppDomainId=1, pwzAssemblyPath=u"/workspaces/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee.dll", argc=0, argv=0x0000000000000000, pReturnValue=0x00007fffffffd6b0) at corhost.cpp:322:27
+    frame #15: 0x00007ffff6c88be8 libcoreclr.so`::coreclr_execute_assembly(hostHandle=0x00005555555ca280, domainId=1, argc=0, argv=0x0000000000000000, managedAssemblyPath="/workspaces/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee.dll", exitCode=0x00007fffffffd6b0) at exports.cpp:504:24
+    frame #16: 0x00007ffff7a25a6e libhostpolicy.so`___lldb_unnamed_symbol213$$libhostpolicy.so + 910
+    frame #17: 0x00007ffff7a26b89 libhostpolicy.so`corehost_main + 345
+    frame #18: 0x00007ffff7a666db libhostfxr.so`___lldb_unnamed_symbol68$$libhostfxr.so + 1531
+    frame #19: 0x00007ffff7a65212 libhostfxr.so`___lldb_unnamed_symbol66$$libhostfxr.so + 1042
+    frame #20: 0x00007ffff7a5fbb7 libhostfxr.so`hostfxr_main_startupinfo + 263
+    frame #21: 0x0000555555564b4b TestDebuggee`___lldb_unnamed_symbol143$$TestDebuggee + 1179
+    frame #22: 0x0000555555564e6f TestDebuggee`___lldb_unnamed_symbol145$$TestDebuggee + 175
+    frame #23: 0x00007ffff7abfd7a libc.so.6`__libc_start_main + 234
+    frame #24: 0x000055555555b159 TestDebuggee`___lldb_unnamed_symbol1$$TestDebuggee + 41
+(lldb) f 5
+frame #5: 0x00007ffff6eee249 libcoreclr.so`DACNotify::DoModuleLoadNotification(ModulePtr=0x00007fff785fada0) at util.cpp:1574:9
+   1571     if ((g_dacNotificationFlags & CLRDATA_NOTIFY_ON_MODULE_LOAD) != 0)
+   1572     {
+   1573         TADDR Args[2] = { MODULE_LOAD_NOTIFICATION, (TADDR) ModulePtr};
+-> 1574         DACNotifyExceptionHelper(Args, 2);
+   1575     }
+   1576 }
+   1577
+(lldb) br set -r DACNotify::DoModuleLoadNotification
+Breakpoint 4: where = libcoreclr.so`DACNotify::DoModuleLoadNotification(Module*) + 25 at util.cpp:1571:10, address = 0x00007ffff6eee219
+
+(lldb) c
+Process 29773 resuming
+[New Thread 0x7fffc9510700 (LWP 35011)]
+warning: Temporarily disabling breakpoints for unloaded shared library "/workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libmscordaccore.so"
+[Thread 0x7fffc9510700 (LWP 35011) exited]
+[New Thread 0x7fffc9510700 (LWP 35016)]
+[Switching to Thread 0x7fffed0c5700 (LWP 28673)]
+
+Thread 3 "dbg.evt-handler" hit Breakpoint 1, ClrDataMethodDefinition::SetCodeNotification (this=0x7fffe808ee90, flags=1) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/task.cpp:3435
+3435        DAC_ENTER_SUB(m_dac);
+(gdb) bt
+#0  ClrDataMethodDefinition::SetCodeNotification (this=0x7fffe808ee90, flags=1) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/task.cpp:3435
+#1  0x00007fffe485de3e in Breakpoints::ResolveMethodInstances (pMeth=0x7fffe808ee90, ilOffset=0) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5403
+#2  0x00007fffe485daae in Breakpoints::ResolvePendingBreakpoint (this=0x7fffe4ad2300 <g_bpoints>, addr=140735212924320, pCur=0x7fffe80995f0) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5533
+#3  0x00007fffe484b00a in Breakpoints::Update (this=0x7fffe4ad2300 <g_bpoints>, mod=140735212924320, isNewModule=1) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5147
+#4  0x00007fffe485c63c in CNotification::OnModuleLoaded (this=0x7fffed0c4598, mod=0x7fffe807a4e0) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5701
+#5  0x00007fffaf08c002 in ClrDataAccess::TranslateExceptionRecordToNotification (this=0x7fffe8076b20, record=0x7fffed0c45a8, notify=0x7fffed0c4598) at /workspaces/gdbsos/src/runtime/src/coreclr/debug/daccess/daccess.cpp:4537
+#6  0x00007fffe4847fd1 in HandleCLRNotificationEvent () at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5900
+#7  0x00007fffe484841f in HandleExceptionNotification (client=0x669610) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:5958
+#8  0x00007fffec89182f in ExceptionBreakpointCallback (baton=0x7fffe4848220 <HandleExceptionNotification(ILLDBServices*)>, process=..., thread=..., location=...) at /workspaces/gdbsos/src/diagnostics/src/SOS/lldbplugin/services.cpp:292
+#9  0x00007ffff72353e9 in PrivateBreakpointHitCallback () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/API/SBBreakpointOptionCommon.cpp:72
+#10 0x00007ffff76d75fc in PerformAction () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Target/StopInfo.cpp:501
+#11 0x00007ffff76b0d60 in ShouldStop () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Target/Process.cpp:4086
+#12 0x00007ffff76b10b3 in DoOnRemoval () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Target/Process.cpp:4150
+#13 0x00007ffff774ea6a in FindNextEventInternal () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Utility/Listener.cpp:309
+#14 0x00007ffff774efc5 in GetEventInternal () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Utility/Listener.cpp:357
+#15 0x00007ffff774f0c7 in lldb_private::Listener::GetEvent(std::shared_ptr<lldb_private::Event>&, lldb_private::Timeout<std::ratio<1l, 1000000l> > const&) () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Utility/Listener.cpp:399
+#16 0x00007ffff756327a in DefaultEventHandler () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Core/Debugger.cpp:1423
+#17 0x00007ffff7563676 in lldb_private::Debugger::EventHandlerThread(void*) () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Core/Debugger.cpp:1476
+#18 0x00007ffff7609489 in ThreadCreateTrampoline () at /build/llvm-toolchain-11-HMpQvg/llvm-toolchain-11-11.0.1/lldb/source/Host/common/HostNativeThreadBase.cpp:68
+#19 0x00007ffff7fa8ea7 in start_thread () from /lib/x86_64-linux-gnu/libpthread.so.0
+#20 0x00007fffeee71adf in clone () from /lib/x86_64-linux-gnu/libc.so.6
+(gdb) 

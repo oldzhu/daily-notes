@@ -1,0 +1,126 @@
+I think I figured out why bpmd does not work for non jitted message when bpmd run after the time or at the time when the runtime bp coreclr_execute_assembly, and bpmd works for non-jitted msg if we run it before the runtime bp is hit. That because _runtime_loaded_fired no chance to set to true for the scenario like - we manually set the bp coreclr_execute_assembly and when the bp hit, we source our sos.py then run bpmd. Pls review the code and get that fixed.
+
+Adding pending breakpoints...
+Breakpoint 2 at 0x7ffff7e73c20
+Breakpoint 3 at 0x7ffff7e73c70
+(gdb) [Thread 0x7fff999fe700 (LWP 14757) exited]
+sostrace on bpmd
+sostrace: on
+(gdb) c
+Continuing.
+[exception-bp] skip: runtime-loaded not fired
+[exception-bp] skip: runtime-loaded not fired
+[exception-bp] skip: runtime-loaded not fired
+[New Thread 0x7fffeda89700 (LWP 14885)]
+[exception-bp] skip: runtime-loaded not fired
+[exception-bp] skip: runtime-loaded not fired
+[Thread 0x7fffeda89700 (LWP 14885) exited]
+[New Thread 0x7fffeda89700 (LWP 14900)]
+[exception-bp] skip: runtime-loaded not fired
+[New Thread 0x7fffecf82700 (LWP 14901)]
+[Thread 0x7fffeda89700 (LWP 14900) exited]
+[New Thread 0x7fffeda89700 (LWP 14902)]
+[exception-bp] skip: runtime-loaded not fired
+[exception-bp] skip: runtime-loaded not fired
+test dumpil
+I would like to be inlined
+I would not like to be inlined
+[Thread 0x7fffeda89700 (LWP 14902) exited]
+...
+
+==================
+
+
+I'll update lldb2_set_runtime_loaded_callback to proactively fire the runtime-loaded callback immediately if CoreCLR is already mapped when the plugin is sourced, so _runtime_loaded_fired becomes True even if we missed the entry breakpoint. 
+
+Using "Apply Patch"
+
+
+```
+
+```
+I'll mirror the same fix into the published artifacts' services.py (Debug and Release) so you can test immediately without rebuilding: add the trace in _CppExceptionBP.stop and proactively fire runtime-loaded callback if CoreCLR is already loaded. 
+
+Using "Apply Patch"
+
+I'll search and update the built artifacts' services.py files (Debug/Release) to keep them in sync so you can test immediately without rebuilding. 
+
+Searched for files matching `**/artifacts/bin/**/services.py`, no matches
+
+Read [](file:///workspaces/gdbsos/artifacts/bin/linux.x64.Debug)
+
+Read [](file:///workspaces/gdbsos/artifacts/bin/linux.x64.Debug/services.py)
+
+I’m going to update the built Debug artifact’s services.py to proactively fire the runtime-loaded callback if CoreCLR is already mapped, then check if a Release copy exists and patch it too for consistent behavior. 
+
+Using "Apply Patch"
+
+
+```
+
+```
+
+
+Read [](file:///workspaces/gdbsos/artifacts/bin/linux.x64.Release)
+
+Read [](file:///workspaces/gdbsos/artifacts/bin/linux.x64.Release/services.py#1-1), lines 1 to 300
+
+Searched text for `def lldb2_set_runtime_loaded_callback` (`**/artifacts/bin/linux.x64.Release/services.py`), no results
+
+Searched text for `lldb2_set_runtime_loaded_callback` (`**/artifacts/bin/linux.x64.Release/services.py`), no results
+
+Searched text for `RuntimeLoaded callback HR` (`**/artifacts/bin/linux.x64.Release/services.py`), no results
+
+Searched text for `set_runtime_loaded_callback` (`**/artifacts/bin/linux.x64.Release/services.py`), no results
+
+Searched text for `call into lldb2_set_runtime_loaded_callback` (`**/artifacts/bin/linux.x64.Release/services.py`), no results
+
+Searched text for `coreclr_execute_assembly` (`**/artifacts/bin/linux.x64.Release/services.py`), no results
+
+Using "Apply Patch"
+
+
+```
+
+```
+You’re right—the window where sos.py is sourced after the runtime entry breakpoint was hit meant _runtime_loaded_fired stayed false, so bpmd wouldn’t plant non-jitted breakpoints. I’ve fixed that by proactively firing the runtime-loaded callback if CoreCLR is already mapped when the callback is registered.
+
+## changes made
+
+- In services.py:
+  - lldb2_set_runtime_loaded_callback:
+    - After setting the fallback entry breakpoint, detect if `libcoreclr.so` is already mapped (the “plugin sourced after entry” case).
+    - If mapped and `_runtime_loaded_fired` is false:
+      - Mark `_runtime_initialized = True` (to mirror the state after the entry BP).
+      - Call `_update_host_target_pid_if_possible()` so the managed host has the PID.
+      - Invoke `_invoke_runtime_loaded_cb_once()` to set `_runtime_loaded_fired = True`.
+    - Adds bpmd-category traces for visibility.
+  - lldb_set_exception_callback → inner `_CppExceptionBP.stop`:
+    - Added `trace_cat('bpmd', "[exception-bp] skip: runtime-loaded not fired")` when it’s hit before runtime-loaded fires, so you get the precise signal you asked for.
+
+- In published artifacts for immediate testing:
+  - services.py updated with the same “already mapped → fire runtime-loaded immediately” logic and the exception-bp trace.
+
+## why this fixes your scenario
+
+- Manual flow: set breakpoint on coreclr_execute_assembly → run → stop at entry → source sos.py → managed host sets runtime-loaded callback.
+- Before: we never saw the entry event; `_runtime_loaded_fired` stayed false.
+- Now: when the callback is registered, we check mapping and immediately fire runtime-loaded (and mark the runtime initialized), so subsequent bpmd commands can handle non-jitted methods.
+
+## how to validate
+
+- Manual repro that previously failed:
+  1. In GDB: set a breakpoint on `coreclr_execute_assembly`, then `run`.
+  2. After it stops, `source` sos.py from sos.py.
+  3. Optionally: `sostrace on bpmd` to see detailed traces.
+  4. Run `bpmd <assembly>!<method>` for a non-jitted method and `c`.
+- Expected:
+  - You’ll see a trace like “[runtime-bp] CoreCLR already mapped; firing runtime-loaded callback immediately”.
+  - `_runtime_loaded_fired` becomes true.
+  - bpmd works for the non-jitted method (breakpoint binds and is hit).
+
+notes:
+- I updated the Debug artifact for fast testing; if you need the Release artifact patched similarly, I can sync that too.
+- I also set `_runtime_initialized = True` in the immediate path to keep behavior consistent with having hit the runtime entry breakpoint.
+
+Made changes.

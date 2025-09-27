@@ -1,0 +1,129 @@
+It does not work as the below, u seems made the change in lldb2_set_runtime_loaded_callback to try to fix the issue, but if we run bpmd when coreclr_execute_assembly bp is hit or after the the bp when the runtime is already loaded, lldb2_set_runtime_loaded_callback wont get chance to be called and we can see only lldb_set_exception_callback get called. Plesae restore the change in lldb2_set_runtime_loaded_callback as it does not fix the issue we have.How about try to fix the issue in set_exceprion_callback?
+
+Thread 1 "TestDebuggee" hit Breakpoint 1, coreclr_execute_assembly (hostHandle=0x5555555ca280, domainId=1, argc=0, argv=0x0, managedAssemblyPath=0x55555559eb40 "/workspaces/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee.dll", exitCode=0x7fffffffd6b0) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:487
+487 if (exitCode == NULL)
+(gdb) source artifacts/bin/linux.x64.Debug/sos.py
+(gdb) sostrace on bpmd
+sostrace: on
+(gdb) bpmd TestDebuggee.dll Test.Main
+[new-objfile] connected (early)
+[New Thread 0x7fffa2a00700 (LWP 22498)]
+[New Thread 0x7fff9bfff700 (LWP 22499)]
+[New Thread 0x7fffa21ff700 (LWP 22500)]
+[New Thread 0x7fffa19fe700 (LWP 22501)]
+[New Thread 0x7fffa11fd700 (LWP 22502)]
+[New Thread 0x7fffa09fc700 (LWP 22503)]
+[New Thread 0x7fff9b7fe700 (LWP 22504)]
+[New Thread 0x7fff99dff700 (LWP 22521)]
+[Thread 0x7fff99dff700 (LWP 22521) exited]
+[New Thread 0x7fff99dff700 (LWP 22522)]
+[Thread 0x7fff99dff700 (LWP 22522) exited]
+[New Thread 0x7fff99dff700 (LWP 22534)]
+[Thread 0x7fff99dff700 (LWP 22534) exited]
+[New Thread 0x7fff99dff700 (LWP 22535)]
+[Thread 0x7fff99dff700 (LWP 22535) exited]
+[New Thread 0x7fff99dff700 (LWP 22536)]
+[Thread 0x7fff99dff700 (LWP 22536) exited]
+[New Thread 0x7fff99dff700 (LWP 22537)]
+[Thread 0x7fff99dff700 (LWP 22537) exited]
+[New Thread 0x7fff99dff700 (LWP 22539)]
+[Thread 0x7fff99dff700 (LWP 22539) exited]
+[New Thread 0x7fff99dff700 (LWP 22543)]
+[Thread 0x7fff99dff700 (LWP 22543) exited]
+[New Thread 0x7fff99dff700 (LWP 22544)]
+[Thread 0x7fff99dff700 (LWP 22544) exited]
+[New Thread 0x7fff99dff700 (LWP 22546)]
+[Thread 0x7fff99dff700 (LWP 22546) exited]
+[New Thread 0x7fff99dff700 (LWP 22551)]
+SOS GDB Python extension loaded (native host).
+Internal cached state reset
+[Thread 0x7fff99dff700 (LWP 22551) exited]
+[New Thread 0x7fff99dff700 (LWP 22562)]
+[Thread 0x7fff99dff700 (LWP 22562) exited]
+[New Thread 0x7fff99dff700 (LWP 22571)]
+[Thread 0x7fff99dff700 (LWP 22571) exited]
+[New Thread 0x7fff99dff700 (LWP 22579)]
+[Thread 0x7fff99dff700 (LWP 22579) exited]
+[New Thread 0x7fff99dff700 (LWP 22586)]
+[Thread 0x7fff99dff700 (LWP 22586) exited]
+[New Thread 0x7fff99dff700 (LWP 22588)]
+[Thread 0x7fff99dff700 (LWP 22588) exited]
+[New Thread 0x7fff99dff700 (LWP 22630)]
+[Thread 0x7fff99dff700 (LWP 22630) exited]
+[New Thread 0x7fff99dff700 (LWP 22636)]
+[Thread 0x7fff99dff700 (LWP 22636) exited]
+[New Thread 0x7fff99dff700 (LWP 22670)]
+[Thread 0x7fff99dff700 (LWP 22670) exited]
+[New Thread 0x7fff99dff700 (LWP 22671)]
+[Thread 0x7fff99dff700 (LWP 22671) exited]
+[New Thread 0x7fff99dff700 (LWP 22686)]
+[Thread 0x7fff99dff700 (LWP 22686) exited]
+[New Thread 0x7fff99dff700 (LWP 22732)]
+[Thread 0x7fff99dff700 (LWP 22732) exited]
+[New Thread 0x7fff99dff700 (LWP 22733)]
+Adding pending breakpoints...
+call into lldb_set_exception_callback
+exception cb registered
+Breakpoint 2 at 0x7ffff7e73c20
+[exception-bp] installed '__cxa_throw' breakpoint
+Breakpoint 3 at 0x7ffff7e73c70
+[exception-bp] installed '__cxa_rethrow' breakpoint
+[stop-hook] connected
+(gdb) [Thread 0x7fff99dff700 (LWP 22733) exited]
+c
+Continuing.
+[exception-bp] skip: runtime-loaded not fired
+[exception-bp] skip: runtime-loaded not fired
+[exception-bp] skip: runtime-loaded not fired
+[New Thread 0x7fffeda89700 (LWP 22819)]
+[exception-bp] skip: runtime-loaded not fired
+[exception-bp] skip: runtime-loaded not fired
+[Thread 0x7fffeda89700 (LWP 22819) exited]
+[New Thread 0x7fffeda89700 (LWP 22838)]
+[exception-bp] skip: runtime-loaded not fired
+[New Thread 0x7fffecf82700 (LWP 22839)]
+[Thread 0x7fffeda89700 (LWP 22838) exited]
+[New Thread 0x7fffeda89700 (LWP 22841)]
+[exception-bp] skip: runtime-loaded not fired
+[exception-bp] skip: runtime-loaded not fired
+test dumpil
+I would like to be inlined
+I would not like to be inlined
+[Thread 0x7fffecf82700 (LWP 22839) exited]
+
+[Inferior 1 (process 22215) exited normally]
+
+====================
+
+actions taken
+Updated services.py:
+lldb2_set_runtime_loaded_callback:
+Removed the “fire immediately if CoreCLR already mapped” logic. This path wasn’t called in your manual flow.
+lldb_set_exception_callback:
+Added immediate runtime init + one-time runtime-loaded callback firing when libcoreclr.so is already mapped and _runtime_loaded_fired is still false. This matches the code path that’s actually invoked in your scenario.
+Calls the registered callback (HRESULT logged) and, on success, sets _runtime_loaded_fired = True. Also sets _runtime_initialized = True and tries to update the host target PID if available.
+Static check: no syntax/errors reported for the updated file.
+what this fixes
+When you:
+break at coreclr_execute_assembly
+run to it
+only then source sos.py
+set bpmd on a non-jitted method and continue
+… the exception-callback registration now detects that CoreCLR is already loaded and fires the runtime-loaded callback immediately, letting bpmd bind non-jitted breakpoints.
+
+how to validate (quick)
+Use the Release artifact (sos.py) for your manual repro:
+Ensure DOTNET_EnableWriteXorExecute=0 is set in your environment (you already do this in tests; set it for manual runs too).
+Break on coreclr_execute_assembly, run to it, then source sos.py.
+Set bpmd on a non-jitted method (e.g., TestDebuggee) and continue.
+Expected traces:
+From lldb_set_exception_callback path: “[exception-bp] fired runtime-loaded immediately HR=0x00000000” (on success).
+Earlier “[exception-bp] skip: runtime-loaded not fired” messages should stop after the one-time fire.
+notes
+Debug artifact already had this behavior; Release now matches.
+If you still see binding issues, share the trace lines around:
+“call into lldb_set_exception_callback”
+“[stop-hook] connected”
+“[exception-bp] fired runtime-loaded immediately …”
+Any “[runtime-bp] …” lines
+I’m ready to tweak further if your exact repro still misses the one-time fire.

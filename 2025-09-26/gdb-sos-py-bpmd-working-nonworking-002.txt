@@ -1,0 +1,170 @@
+
+non-working trace:
+
+(gdb) set pagination off
+(gdb) set breakpoint pending on
+(gdb) source artifacts/bin/linux.x64.Debug/sos.py
+(gdb) br coreclr_execute_assembly
+Function "coreclr_execute_assembly" not defined.
+Breakpoint 1 (coreclr_execute_assembly) pending.
+(gdb) r
+Starting program: /workspaces/gdbsos/src/diagnostics/.dotnet/dotnet src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee.dll
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff6a8b700 (LWP 5767)]
+[New Thread 0x7ffff628a700 (LWP 5768)]
+[New Thread 0x7ffff5a89700 (LWP 5769)]
+[New Thread 0x7ffff527f700 (LWP 5770)]
+[New Thread 0x7ffff4a5f700 (LWP 5772)]
+[New Thread 0x7fffe7fff700 (LWP 5773)]
+[New Thread 0x7fffe77fe700 (LWP 5774)]
+
+Thread 1 "dotnet" hit Breakpoint 1, coreclr_execute_assembly (hostHandle=0x5555555c9270, domainId=1, argc=0, argv=0x0, managedAssemblyPath=0x55555559ebf0 "/workspaces/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee.dll", exitCode=0x7fffffffd670) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:487
+487         if (exitCode == NULL)
+(gdb) bpmd TestDebuggee.dll Test.Main
+[sos] Loading bridge from '/home/vscode/.dotnet/sos/libsosgdbbridge.so' (co-location enforced)
+[sos] Loading libsos from '/home/vscode/.dotnet/sos/libsos.so'...
+[sos] Creating GdbServices...
+[new-objfile] connected (early)
+[sos] Resolving SOSInitializeByHost...
+QueryInterface called for IID B4640016-6CA0-468E-BA2C-1FFF28DE7B72
+QI -> IDebuggerServices
+QueryInterface called for IID CD6A0F22-8BCF-4297-9366-F440C2D1C781
+QI -> E_NOINTERFACE
+[sos] InitManagedHosting retry hr=0x00000000
+[sos] Native IHost acquired after retry: 0x5fbab2c5a6e0
+[sos] Calling SOSInitializeByHost(native host, IDebuggerServices=0x7e1ed8150d10) ...
+SOS GDB Python extension loaded (native host).
+QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+Internal cached state reset
+[sos] UpdateManagedTarget(pid=5734) => 0x00000000
+[sos] Dispatching SOS command with ILLDBServices client
+QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+Adding pending breakpoints...
+call into lldb_set_exception_callback
+exception cb registered
+Breakpoint 2 at 0x7ffff7e73c20
+[exception-bp] installed '__cxa_throw' breakpoint
+Breakpoint 3 at 0x7ffff7e73c70
+[exception-bp] installed '__cxa_rethrow' breakpoint
+[stop-hook] connected
+(gdb) c
+Continuing.
+[New Thread 0x7fff769ff700 (LWP 6120)]
+[Thread 0x7fff769ff700 (LWP 6120) exited]
+[New Thread 0x7fff769ff700 (LWP 6125)]
+[New Thread 0x7fbed34ce700 (LWP 6126)]
+[Thread 0x7fff769ff700 (LWP 6125) exited]
+[New Thread 0x7fff769ff700 (LWP 6127)]
+test dumpil
+I would like to be inlined
+I would not like to be inlined
+[Thread 0x7fbed34ce700 (LWP 6126) exited]
+[Thread 0x7fffe77fe700 (LWP 5774) exited]
+[Thread 0x7fffe7fff700 (LWP 5773) exited]
+[Thread 0x7ffff4a5f700 (LWP 5772) exited]
+[Thread 0x7ffff527f700 (LWP 5770) exited]
+[Thread 0x7ffff5a89700 (LWP 5769) exited]
+[Thread 0x7ffff628a700 (LWP 5768) exited]
+[Thread 0x7ffff6a8b700 (LWP 5767) exited]
+[Thread 0x7ffff7a97740 (LWP 5734) exited]
+[Inferior 1 (process 5734) exited normally]
+(gdb) q
+
+working trace
+
+vscode ➜ /workspaces/gdbsos (main) $ gdb --args dotnet src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee.dll 
+GNU gdb (Debian 10.1-1.7) 10.1.90.20210103-git
+Copyright (C) 2021 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Type "show copying" and "show warranty" for details.
+This GDB was configured as "x86_64-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<https://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+    <http://www.gnu.org/software/gdb/documentation/>.
+
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+Reading symbols from dotnet...
+(No debugging symbols found in dotnet)
+(gdb) set pagination off
+(gdb) set breakpoint pending on
+(gdb) source artifacts/bin/linux.x64.Debug/sos.py 
+(gdb) bpmd TestDebuggee.dll Test.Main
+[sos] Loading bridge from '/home/vscode/.dotnet/sos/libsosgdbbridge.so' (co-location enforced)
+[sos] Loading libsos from '/home/vscode/.dotnet/sos/libsos.so'...
+[sos] Creating GdbServices...
+[new-objfile] connected (early)
+[sos] Resolving SOSInitializeByHost...
+[sos][warn] Native host not available; proceeding with NULL host (no Python fallback).
+[sos] Calling SOSInitializeByHost(NULL host, IDebuggerServices=0x7388680a1290) ...
+SOS GDB Python extension loaded (NO native host; NULL host path).
+[sos] Dispatching SOS command with ILLDBServices client
+QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+call into lldb2_set_runtime_loaded_callback
+runtime-loaded cb registered
+Function "coreclr_execute_assembly" not defined.
+Temporary breakpoint 1 (coreclr_execute_assembly) pending.
+(gdb) r
+Starting program: /workspaces/gdbsos/src/diagnostics/.dotnet/dotnet src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee.dll
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[new-objfile] detected /workspaces/gdbsos/src/diagnostics/.dotnet/shared/Microsoft.NETCore.App/8.0.15/libcoreclr.so
+QueryInterface called for IID B4640016-6CA0-468E-BA2C-1FFF28DE7B72
+QI -> IDebuggerServices
+QueryInterface called for IID CD6A0F22-8BCF-4297-9366-F440C2D1C781
+QI -> E_NOINTERFACE
+[update] UpdateManagedTarget(pid=6551) => 0x00000000
+[New Thread 0x7ffff6a8b700 (LWP 6625)]
+[New Thread 0x7ffff628a700 (LWP 6626)]
+[New Thread 0x7ffff5a89700 (LWP 6627)]
+[New Thread 0x7ffff527f700 (LWP 6628)]
+[New Thread 0x7ffff4a5f700 (LWP 6629)]
+[New Thread 0x7fffe7fff700 (LWP 6630)]
+[New Thread 0x7fffe77fe700 (LWP 6631)]
+[update] UpdateManagedTarget(pid=6551) => 0x00000000
+QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+call into lldb_set_exception_callback
+exception cb registered
+Breakpoint 2 at 0x7ffff7e73c20
+[exception-bp] installed '__cxa_throw' breakpoint
+Breakpoint 3 at 0x7ffff7e73c70
+[exception-bp] installed '__cxa_rethrow' breakpoint
+[stop-hook] connected
+RuntimeLoaded callback HR=0x00000000
+QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+[ILLDBServices.Execute] process continue
+[exception-bp] Exception callback HR=0x00000000
+(gdb) QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+[ILLDBServices.Execute] process continue
+[exception-bp] Exception callback HR=0x00000000
+QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+JITTED TestDebuggee!Test.Main()
+Setting breakpoint: breakpoint set --address 0x00007FFF7841D470 [Test.Main()]
+[ILLDBServices.Execute] breakpoint set --address 0x00007FFF7841D470
+[ILLDBServices.Execute] process continue
+[exception-bp] Exception callback HR=0x00000000
+Warning:
+Cannot insert breakpoint 4.
+Cannot access memory at address 0x7fff7841d470
+
+0x00007ffff7e73c20 in __cxa_throw () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+[stop-hook] handling C++ throw; invoking exception callback
+QueryInterface called for IID 012F32F0-33BA-4E8E-BC01-037D382D8A5E
+QI -> ILLDBServices2 (stub)
+JITTED TestDebuggee!Test.Main()
+[ILLDBServices.Execute] process continue
+[stop-hook] Exception callback HR=0x00000000
+
+(gdb) q
