@@ -1,0 +1,40 @@
+It still failed even when I set the timeout to 20 seconds, see the below trace. Is it possibe to print out the gdb outout at thecontinue returned? is it possile to query the state iof gdb to see if it is stopped and what output it is if it is sopped for further troubleshooting? now we know manual testing works just auto test scneario failed on bpmd_and_continue...
+Thread 1 "dotnet" hit Breakpoint 1, coreclr_execute_assembly (hostHandle=0x5555555c9330, domainId=1, argc=0, argv=0x0, managedAssemblyPath=0x55555559e450 "/workspaces/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee.dll", exitCode=0x7fffffffd650) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:487
+487 if (exitCode == NULL)
+[test] bpmd: using assembly='TestDebuggee.dll' method='Test.Main'
+[test] bpmd output: Adding pending breakpoints...
+[test] continue...
+[test] continue returned.
+[test] timeout waiting for managed bp hit after auto-continue (attempts=990)
+[test] last newest_frame error: Selected thread is running.
+Traceback (most recent call last):
+
+===============
+
+ou’re right—the polling didn’t help, so I instrumented the continue path to capture concrete state.
+
+what I added
+File: gdbtestutils.py (bpmd_and_continue)
+Capture and print the output of continue:
+“[test] continue output:” followed by the raw output or “(no output)”
+Snapshot GDB state right after continue returns:
+“[test] info program:” → output of “info program” (shows whether the program is running/stopped, why, etc.)
+“[test] info breakpoints (first 40 lines):” → shows all breakpoints and their states/resolution
+We still do the polling for newest_frame, but now we’ll have rich context explaining why no stop was observed.
+This will tell us:
+
+Did continue immediately return because the process exited, or stopped on some other event?
+Are the bpmd breakpoints bound, pending, disabled, or already hit?
+Is GDB reporting “It stopped with signal …” vs “Program running” in “info program”?
+next step
+Re-run:
+
+REGEX=t_cmd_pe.py test.sh
+
+Share the new “[test] continue output”, “[test] info program”, and “info breakpoints” sections. With that we can pinpoint whether:
+
+the exception callback failed to issue the second continue,
+the bp didn’t bind (pending forever),
+the process is still running (no stop), or
+the program hit a different stop (signal, another bp, etc.).
+If it’s a binding issue, we’ll try forcing name2ee to get MethodDesc earlier or tweak scenario to ensure Test.Main is invoked so the bp can bind. If it’s a stop-state issue (GDB still running), we can insert a controlled wait-for-stop by looping on “info program” and “continue” with a bounded timeout.

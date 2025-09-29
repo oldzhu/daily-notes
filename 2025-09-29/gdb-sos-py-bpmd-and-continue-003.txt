@@ -1,0 +1,56 @@
+I reviewed the latest log  as the below we could see hang and blocking on selected thread is running occurred after 
+[exception-bp] Exception callback HR=0x00000000
+which is in function _CppExceptionBP.stop and I could see the next line of the code it will excute is services_self._schedule_safe_continue(), could u remporarily comment this line of the code and replace it with one line of the trace so I can test it if it block there, by the way, it may be safe without this _self_schedule_safe_continue() here as I see bpmd command executed in SOS side HandleCLRNotificationEvent() will call our lldb_execute to ask process continue.
+
+....
+Adding pending breakpoints...
+call into lldb_set_exception_callback
+exception cb registered
+Breakpoint 2 at 0x7ffff7e73c20
+[exception-bp] installed '__cxa_throw' breakpoint
+Breakpoint 3 at 0x7ffff7e73c70
+[exception-bp] installed '__cxa_rethrow' breakpoint
+[stop-hook] connected
+
+[trace] exec: continue
+[trace] continue output:
+[exception-bp] Exception callback HR=0x00000000
+
+[trace] newest_frame exception: Selected thread is running.
+
+===========
+Good call—that auto-continue inside the exception breakpoint is likely the culprit. I’ve made the requested change and added tracing so we can see exactly what happens at that point.
+
+what I changed
+In services.py, inside the persistent C++ exception breakpoint class _CppExceptionBP.stop, I disabled the auto-continue and added a trace:
+Before:
+Called services_self._schedule_safe_continue() after invoking SOS’s exception callback.
+Now:
+It emits: “[exception-bp] auto-continue suppressed for diagnostics”
+It does not call _schedule_safe_continue().
+This will let the inferior stay stopped after the exception notification so our helper’s newest_frame() has a chance to succeed.
+
+In gdbtestutils.py’s bpmd_and_continue:
+Enabled SOS tracing at the start: sostrace on bpmd,stop,newobj.
+Wrapped each GDB command (bpmd and continue) with detailed trace logging (command, output, and exceptions).
+Logs a first-seen newest_frame exception and whether a stop was observed with a poll count.
+what to look for in the log
+When you re-run t_cmd_pe, the log should show something like:
+
+“[trace] exec: sostrace on bpmd,stop,newobj”
+“[trace] exec: bpmd <assembly> Test.Main”
+“[trace] exec: continue”
+“[exception-bp] Exception callback HR=0x00000000”
+“[exception-bp] auto-continue suppressed for diagnostics”
+If the thread was previously running, you may see:
+“[trace] newest_frame exception: Selected thread is running.”
+Then ideally:
+“[trace] stop observed after N poll attempts”
+If it still doesn’t stop, we’ll at least see that the exception hook ran and that we are no longer resuming from that spot, narrowing the race. Given your note that bpmd’s SOS side will continue the process after binding, this change should be safe for testing.
+
+next step
+Please run the scenario to capture the new traces:
+
+bash src/tests/gdb/test.sh t_cmd_pe
+Share the key lines around the exception callback and the “[exception-bp] auto-continue suppressed for diagnostics” message. That will tell us whether the block was due to our auto-continue or another resume path.
+

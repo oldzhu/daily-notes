@@ -1,0 +1,107 @@
+After I think more, I think the workaround wont work, let me eexplain why.
+I picked up the gdb command line from the proc/pid/cmdline and run it directly as the below, run this way I can interactive with the hang gdb directly.  I could see the same hang when we run test.sh with the scenario t_cmd_pe after continue issued, if I run kill -s SIGINT to the gdb process, I can see it break out from the hang with KeyboardInterrupt, I originally think that could be workaround as while we are waiting for stop in bpmd_and_cotniue and seeing newest_frame exception is Selected thread is running, we could try to send SIGINT to our gdb process to break it out which is the same as we observed at the below. But then I realized it wont work as 
+1. If we don't handle the KeyboardInterrupt, then SIGINT wont break the whole python code and we will lost control to our tesing scenario code.
+2. If handle the KeyboardInterrupt and cotninute the processing in our testing python code, that may still not given the control back to gdb so gdb still has no chance to run another continue command issued by exception callback.
+so the cause is after bpmd command and continue, if we stay in our python testing code and wait for stop, then gdb wont get chance to run another continue issued by sos exception callback. I think the solution should be someting asynchnous, after bpmd and continue issued by our python code, we need somehow give the control back to gdb and then  continue to run  our other python code whenever the bpmd bp stop occurs after continue command issusued by sos command get change to execute.
+oldzhu@oldzhu-box-999:~/gdbsos$ gdb -q -nx -ex "set confirm off" -ex "set pagination off" -ex "python open('/home/oldzhu/gdbsos/src/tests/gdb/logs/fail_flag.gdb', 'a').close()" -ex "python import sys; sys.path.insert(0, '/home/oldzhu/gdbsos/src/tests/gdb')" -ex "source /home/oldzhu/gdbsos/artifacts/bin/linux.x64.Debug/sos.py" -ex "python import gdbtestutils as test" -ex "python test.fail_flag = '/home/oldzhu/gdbsos/src/tests/gdb/logs/fail_flag'" -ex "python test.summary_file = '/home/oldzhu/gdbsos/src/tests/gdb/logs/summary'" -ex "python test.run('/home/oldzhu/gdbsos/src/diagnostics/.dotnet/dotnet', '/home/oldzhu/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee.dll', 'scenarios.t_cmd_pe')"
+
+Thread 1 "dotnet" hit Breakpoint 1, coreclr_execute_assembly (hostHandle=0x55555558a2e0, domainId=1, argc=0, argv=0x0, managedAssemblyPath=0x555555584c10 "/home/oldzhu/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee.dll", exitCode=0x7fffffffd390) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:487
+[trace] exec: sostrace on bpmd,stop,newobj
+[trace] sostrace output:
+sostrace: on
+
+[trace] exec: bpmd TestDebuggee.dll Test.Main
+[trace] bpmd output:
+[new-objfile] connected (early)
+SOS GDB Python extension loaded (native host).
+Internal cached state reset
+Adding pending breakpoints...
+call into lldb_set_exception_callback
+exception cb registered
+Breakpoint 2 at 0x7ffff7cae490
+[exception-bp] installed '__cxa_throw' breakpoint
+Breakpoint 3 at 0x7ffff7cae4e0
+[exception-bp] installed '__cxa_rethrow' breakpoint
+[stop-hook] connected
+
+[trace] exec: continue
+[trace] continue output:
+[continue] _schedule_safe_continue: invoking synchronous 'continue'
+[exception-bp] Exception callback HR=0x00000000
+[exception-bp] auto-continue suppressed for diagnostics
+
+[trace] newest_frame exception: Selected thread is running.
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/home/oldzhu/gdbsos/src/tests/gdb/gdbtestutils.py", line 137, in run
+    result = mod.runScenario(assembly_name)
+  File "/home/oldzhu/gdbsos/src/tests/gdb/scenarios/t_cmd_pe.py", line 5, in runScenario
+    bpmd_and_continue(assemblyName)
+  File "/home/oldzhu/gdbsos/src/tests/gdb/gdbtestutils.py", line 105, in bpmd_and_continue
+    time.sleep(0.05)
+KeyboardInterrupt
+Error while executing Python code.
+(gdb) [continue] _schedule_safe_continue: invoking synchronous 'continue'
+[exception-bp] Exception callback HR=0x00000000
+[exception-bp] auto-continue suppressed for diagnostics
+JITTED TestDebuggee!Test.Main()
+Setting breakpoint: breakpoint set --address 0x00007FFF7820D470 [Test.Main()]
+[continue] _schedule_safe_continue: invoking synchronous 'continue'
+[exception-bp] Exception callback HR=0x00000000
+[exception-bp] auto-continue suppressed for diagnostics
+
+Thread 1 "dotnet" hit Breakpoint 4, 0x00007fff7820d470 in ?? ()
+pe
+There is no current managed exception on this thread
+(gdb)
+
+oldzhu@oldzhu-box-999:~/gdbsos$ gdb -q -nx -ex "set confirm off" -ex "set pagination off" -ex "python open('/home/oldzhu/gdbsos/src/tests/gdb/logs/fail_flag.gdb', 'a').close()" -ex "python import sys; sys.path.insert(0, '/home/oldzhu/gdbsos/src/tests/gdb')" -ex "source /home/oldzhu/gdbsos/artifacts/bin/linux.x64.Debug/sos.py" -ex "python import gdbtestutils as test" -ex "python test.fail_flag = '/home/oldzhu/gdbsos/src/tests/gdb/logs/fail_flag'" -ex "python test.summary_file = '/home/oldzhu/gdbsos/src/tests/gdb/logs/summary'" -ex "python test.run('/home/oldzhu/gdbsos/src/diagnostics/.dotnet/dotnet', '/home/oldzhu/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee.dll', 'scenarios.t_cmd_pe')"
+
+Thread 1 "dotnet" hit Breakpoint 1, coreclr_execute_assembly (hostHandle=0x55555558a2e0, domainId=1, argc=0, argv=0x0, managedAssemblyPath=0x555555584c10 "/home/oldzhu/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee.dll", exitCode=0x7fffffffd390) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:487
+[trace] exec: sostrace on bpmd,stop,newobj
+[trace] sostrace output:
+sostrace: on
+
+[trace] exec: bpmd TestDebuggee.dll Test.Main
+[trace] bpmd output:
+[new-objfile] connected (early)
+SOS GDB Python extension loaded (native host).
+Internal cached state reset
+Adding pending breakpoints...
+call into lldb_set_exception_callback
+exception cb registered
+Breakpoint 2 at 0x7ffff7cae490
+[exception-bp] installed '__cxa_throw' breakpoint
+Breakpoint 3 at 0x7ffff7cae4e0
+[exception-bp] installed '__cxa_rethrow' breakpoint
+[stop-hook] connected
+
+[trace] exec: continue
+[trace] continue output:
+[exception-bp] Exception callback HR=0x00000000
+[exception-bp] auto-continue suppressed for diagnostics
+[continue] _schedule_safe_continue: invoking 'continue' (async posted)
+
+[trace] newest_frame exception: Selected thread is running.
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/home/oldzhu/gdbsos/src/tests/gdb/gdbtestutils.py", line 137, in run
+    result = mod.runScenario(assembly_name)
+  File "/home/oldzhu/gdbsos/src/tests/gdb/scenarios/t_cmd_pe.py", line 5, in runScenario
+    bpmd_and_continue(assemblyName)
+  File "/home/oldzhu/gdbsos/src/tests/gdb/gdbtestutils.py", line 105, in bpmd_and_continue
+    time.sleep(0.05)
+KeyboardInterrupt
+Error while executing Python code.
+(gdb) [exception-bp] Exception callback HR=0x00000000
+[exception-bp] auto-continue suppressed for diagnostics
+[continue] _schedule_safe_continue: invoking 'continue' (async posted)
+JITTED TestDebuggee!Test.Main()
+Setting breakpoint: breakpoint set --address 0x00007FFF781FD470 [Test.Main()]
+[exception-bp] Exception callback HR=0x00000000
+[exception-bp] auto-continue suppressed for diagnostics
+[continue] _schedule_safe_continue: invoking 'continue' (async posted)
+
+Thread 1 "dotnet" hit Breakpoint 4, 0x00007fff781fd470 in ?? ()
+
+(gdb)

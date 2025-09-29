@@ -1,0 +1,45 @@
+You’re on the right track—since you’re debugging the gdb process (which embeds libpython), you can use the CPython GDB helpers to print the Python stack:
+
+quick recipe
+Attach to the GDB PID (2442 in your example):
+
+gdb -p 2442
+Allow auto-load scripts (so the Python helpers can load):
+
+set auto-load safe-path /
+Check if the Python helpers are available:
+
+help py-bt
+If you see help text, you’re good. Run:
+
+py-btpy-bt-full      # includes locals
+If py-bt isn’t found, source the helper manually (paths vary by distro):
+Common Debian/Ubuntu paths:
+
+source /usr/share/gdb/auto-load/usr/lib/x86_64-linux-gnu/libpython3.10.so.1.0-gdb.py# or (older layout)source /usr/share/gdb/python/libpython.py
+Then run:
+
+py-btpy-bt-full
+Run it on the thread that’s in libpython (your bt shows Thread 1 inside __select → libpython):
+
+thread 1py-bt
+You can also try all threads:
+
+thread apply all py-bt
+tips and troubleshooting
+Install the Python debug helpers if missing:
+Debian/Ubuntu: python3.10-dbg (or the matching python3.x-dbg) often includes the GDB helper scripts and better symbols.
+Verify the libpython version to match the helper you source:
+
+info sharedlibrary | grep libpython
+If auto-load is blocked, GDB will say so on start; set auto-load safe-path / allows system scripts.
+If py-bt still isn’t available after sourcing, your libpython version may differ; list likely candidates:
+
+shell ls -1 /usr/share/gdb/auto-load/usr/lib/*/libpython*-gdb.py
+related commands
+Navigate Python frames:
+
+py-uppy-downpy-list         # show source around the current Python framepy-locals       # print Python locals
+This will give you a clean Python-level backtrace of the code running inside GDB’s embedded interpreter right where it’s hung.
+
+

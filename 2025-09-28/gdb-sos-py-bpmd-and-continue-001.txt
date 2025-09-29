@@ -1,0 +1,66 @@
+the below is my manual testing to simulate the auto testing.
+I can see after bpmd command and cotinue command, in fact there are two breaks, 1st breaks with msg JITTED msg and the real bpmd bp was set by the sos bpmd c++ exception callback and then this callback issued another continue to continue the proess until the bp was hit - this is the second stop which we can run bt to get the call stack. I guess the problem is our test function bpmd_and_continue try to call gdb.newest_frame at the 1st break stop which wll continue quickly by bpmd exception call back so that the gdb.newest_frame got the thread is stil running error. What we expect is after bpmd_and_continue. the gdb is break stop at the bpmd bp Test.Main so that the next reald test scenaro command such as pe,clrstack can be executed and tested.
+(gdb) set pagination off
+(gdb) set breakpoint pending on
+(gdb) source artifacts/bin/linux.x64.Debug/sos.py
+(gdb) br coreclr_execute_assembly
+Function "coreclr_execute_assembly" not defined.
+Breakpoint 1 (coreclr_execute_assembly) pending.
+(gdb) r
+Starting program: /workspaces/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff6a8b700 (LWP 16783)]
+[New Thread 0x7fffee28a700 (LWP 16784)]
+[New Thread 0x7ffff628a700 (LWP 16785)]
+[New Thread 0x7ffff5a80700 (LWP 16786)]
+[New Thread 0x7ffff526f700 (LWP 16787)]
+[New Thread 0x7ffff4a6a700 (LWP 16788)]
+[New Thread 0x7fffeffff700 (LWP 16789)]
+
+Thread 1 "TestDebuggee" hit Breakpoint 1, coreclr_execute_assembly (hostHandle=0x5555555ca2c0, domainId=1, argc=0, argv=0x0, managedAssemblyPath=0x55555559eb40 "/workspaces/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee.dll", exitCode=0x7fffffffd680) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:487
+487 if (exitCode == NULL)
+(gdb) bpmd TestDebuggee.dll Test.Main
+SOS GDB Python extension loaded (native host).
+Internal cached state reset
+Adding pending breakpoints...
+Breakpoint 2 at 0x7ffff7e73c20
+Breakpoint 3 at 0x7ffff7e73c70
+(gdb) continue
+Continuing.
+(gdb) JITTED TestDebuggee!Test.Main()
+Setting breakpoint: breakpoint set --address 0x00007FFF783FD470 [Test.Main()]
+
+Thread 1 "TestDebuggee" hit Breakpoint 4, 0x00007fff783fd470 in ?? ()
+bt
+#0 0x00007fff783fd470 in ?? ()
+#1 0x00007ffff72bf363 in CallDescrWorkerInternal () at /workspaces/gdbsos/src/runtime/src/coreclr/vm/amd64/calldescrworkeramd64.S:97
+....
+==========
+
+Thanks for the detailed repro—that aligns with what I suspected: there’s an intermediate stop where SOS logs “JITTED …” and immediately auto-continues via the exception callback, and only the second stop is the actual bpmd breakpoint on Test.Main.
+
+To make the test robust, I updated the helper to wait briefly for that second stop before inspecting the frame.
+
+what I changed
+File: gdbtestutils.py
+
+In bpmd_and_continue:
+After continue returns, added a short polling loop (up to 5s, 20ms intervals) calling gdb.newest_frame() until a frame is available.
+Logs “[test] stopped with a frame after N polls.” when it stabilizes.
+If it times out, logs a helpful message and fails as before.
+Kept the earlier diagnostics:
+
+Which bpmd path is used (-md vs. assembly/method)
+First line of bpmd output
+“continue...” and “continue returned” markers
+why this fixes your case
+The first stop is transient—SOS auto-continues to plant the breakpoint at the JITted address. Immediately trying to read a frame can race with that continue and produce “Selected thread is running”.
+Polling for a valid frame gives the second stop time to occur, so the subsequent scenario commands (pe, clrstack, etc.) have a stable stop to run at.
+next step
+Re-run:
+
+REGEX=t_cmd_pe.py test.sh
+
+You should now see the “[test] stopped with a frame after … polls.” line, and the scenario can proceed. If you want a shorter or longer wait, I can make the polling window configurable.
+

@@ -1,0 +1,85 @@
+trace] exec: set pagination off
+[trace] set pagination output: (no output)
+[trace] exec: set confirm off
+[trace] set confirm output: (no output)
+[trace] exec: set breakpoint pending on
+[trace] set pending output: (no output)
+[trace] exec: break coreclr_execute_assembly
+[trace] break entry output:
+No symbol table is loaded. Use the "file" command.
+Breakpoint 1 (coreclr_execute_assembly) pending.
+
+[trace] exec: file /workspaces/gdbsos/src/diagnostics/.dotnet/dotnet
+[trace] file output: (no output)
+[trace] exec: set args /workspaces/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee.dll
+[trace] set args output: (no output)
+[trace] exec: run
+
+Thread 1 "dotnet" hit Breakpoint 1, coreclr_execute_assembly (hostHandle=0x5555555c9330, domainId=1, argc=0, argv=0x0, managedAssemblyPath=0x55555559e450 "/workspaces/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee.dll", exitCode=0x7fffffffd650) at /workspaces/gdbsos/src/runtime/src/coreclr/dlls/mscoree/exports.cpp:487
+487 if (exitCode == NULL)
+[trace] run output:
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff6a8b700 (LWP 24814)]
+[New Thread 0x7fffee28a700 (LWP 24815)]
+[New Thread 0x7ffff628a700 (LWP 24816)]
+[New Thread 0x7ffff5a80700 (LWP 24817)]
+[New Thread 0x7ffff526f700 (LWP 24818)]
+[New Thread 0x7ffff4a6a700 (LWP 24819)]
+[New Thread 0x7fffeffff700 (LWP 24820)]
+
+[trace] exec: sostrace on bpmd,stop,newobj
+[trace] sostrace output:
+sostrace: on
+
+[trace] exec: bpmd TestDebuggee.dll Test.Main
+[trace] bpmd output:
+[new-objfile] connected (early)
+SOS GDB Python extension loaded (native host).
+Internal cached state reset
+Adding pending breakpoints...
+call into lldb_set_exception_callback
+exception cb registered
+Breakpoint 2 at 0x7ffff7e73c20
+[exception-bp] installed '__cxa_throw' breakpoint
+Breakpoint 3 at 0x7ffff7e73c70
+[exception-bp] installed '__cxa_rethrow' breakpoint
+[stop-hook] connected
+
+[trace] exec: continue
+[trace] continue output:
+[exception-bp] Exception callback HR=0x00000000
+[exception-bp] auto-continue suppressed for diagnostics
+[continue] _schedule_safe_continue: invoking 'continue' (async posted)
+
+[trace] [handler] connected to gdb.events.stop
+see abobe log, seems the event-driven flow also not work as we didn't see stop handler get called after registered and seems gdb quit after schedule_and_run end, let us remove -batch option in gdb cmd in test_gdbsos,py to see how is the testing going?
+
+============
+
+Good call—GDB was likely exiting as soon as it finished processing the -ex commands because of -batch. I’ve removed -batch from the harness so the session stays alive and the Python stop handler can fire.
+
+What I changed
+
+In test_gdbsos.py inside TestSuite.do_test, I changed the constructed command:
+Before: {gdb} -q -nx -batch ...
+Now: {gdb} -q -nx ... (no -batch)
+What to expect
+
+The session will remain active after python test.schedule_and_run(...) runs.
+Our handler is now heavily instrumented; you should see:
+“[handler] connected to gdb.events.stop”
+On stop(s): “[handler] on_stop: entered”, PC, thread, CLI-style bp list, and match decisions.
+If it matches the bpmd JIT bp: logs disconnect, scenario run/finish, and quit.
+Next step
+
+Re-run only the t_cmd_pe scenario and share the updated log:
+REGEX=t_cmd_pe.py test.sh
+If it still doesn’t run the scenario:
+We’ll see whether the handler isn’t firing or is firing but ignoring stops.
+If ignoring, I’ll refine matching to the exact address reported by SOS bpmd trace.
+If not firing, we’ll adjust connect/continue ordering or add a brief delay to ensure connect precedes the next stop.
+Note
+
+The harness still uses a timeout guard from the outer Python runner, so it won’t hang indefinitely even without -batch.
+

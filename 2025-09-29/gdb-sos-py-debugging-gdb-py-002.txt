@@ -1,0 +1,46 @@
+Good — thanks for checking. If the distro helper script isn’t present, there are three practical options to get Python-level backtraces from the stuck GDB process. Pick the one you prefer; I’ll run the commands if you want.
+
+High-level plan
+
+Try to find any existing libpython* GDB helper on the machine.
+If not present, either install the distro package that provides it (recommended) or download the CPython gdb helper (quick), then source it in the attached GDB and run py-bt/py-bt-full.
+Option A — (recommended) install the package that ships the helpers
+
+On Debian/Ubuntu the helpers come from the python debug package (names vary by distro / Python version). Installing the matching debug package installs the libpython-gdb script and better symbols.
+Commands:
+
+
+# show candidate packages (pick the version that matches /lib/.../libpython3.x.so)apt-cache search python3 | egrep -i 'dbg|debug'# install the debug package for your Python (requires sudo)sudo apt-get updatesudo apt-get install python3-dbg# or a specific version if available:sudo apt-get install python3.10-dbg
+After install the helper is usually under:
+
+/usr/share/gdb/auto-load/usr/lib/<arch>/libpython3.X.so.Y-gdb.py or
+/usr/share/gdb/auto-load/usr/lib/x86_64-linux-gnu/libpython3.10.so.1.0-gdb.py
+Then, in your attached gdb (gdb -p 2442):
+
+
+set auto-load safe-path /help py-btpy-btpy-bt-full
+Option B — download CPython’s helper and source it locally (no sudo)
+
+The CPython repo includes Tools/gdb/libpython.py which works across versions in many cases. Download and source it in the attached debugger.
+Commands (run on host; requires network):
+
+
+# fetch CPython helper into /tmpcurl -fsSL -o /tmp/libpython.py https://raw.githubusercontent.com/python/cpython/main/Tools/gdb/libpython.py# attach to gdb PID in new terminal:gdb -p 2442# then in the attached gdb:set auto-load safe-path /source /tmp/libpython.pypy-btpy-bt-full
+Notes:
+
+The helper needs to match the libpython ABI as closely as possible. If libpython in the gdb process is libpython3.10, the CPython helper should still usually work, but installing the exact debug package (Option A) is safer.
+If sourcing fails, try listing candidate helper files on your system:
+
+ls -1 /usr/share/gdb/auto-load/**/libpython*.py 2>/dev/null || true
+Option C — run a minimal Python inspection inside the attached GDB
+
+If neither A nor B is possible, you can still inspect Python state by running Python code inside the attached GDB (the attached GDB's embedded Python runs in the debugged GDB process). Example (in the attached gdb):
+
+pythonimport sys, gc, traceback, inspect# collect frame objects reachable from gc (best-effort)frames = []for obj in gc.get_objects():    if inspect.isframe(obj):        frames.append(obj)for f in frames:    print("Frame:", f.f_code.co_filename, f.f_code.co_name, f.f_lineno)    traceback.print_stack(f)end
+This is a bit ad-hoc but can show where the Python interpreter is blocked. It runs inside the target GDB process (which is what you want). Use thread 1 first to select the thread that’s blocked if needed.
+If you want, I can:
+
+search the system for any existing helper file,
+download and drop libpython.py into the workspace and show the exact source ... command to use, or
+produce a short one-off Python snippet you can paste into the attached GDB to print Python stacks (Option C).
+Which do you want me to do next?

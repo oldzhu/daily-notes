@@ -1,0 +1,30 @@
+I’ll add verbose tracing around the helper so the pe log shows exactly what ran and what happened.
+
+plan
+Turn on SOS trace early: sostrace on bpmd,stop,newobj
+Wrap every gdb.execute in bpmd_and_continue with logging:
+Log the command, any output, and any exception raised
+Keep the minimal LLDB-like logic intact
+actions taken
+Updated bpmd_and_continue in gdbtestutils.py:
+Added _trace() and _exec_with_trace() helpers.
+Execute and trace:
+sostrace on bpmd,stop,newobj
+bpmd {assembly} {method}
+continue (with one short retry if needed)
+Poll newest_frame, log first exception if it occurs, and report whether a stop was observed and after how many polls.
+This preserves the simplified flow you requested while giving detailed, structured logs. You’ll see lines prefixed with “[trace] …” in the scenario’s log.
+
+try it
+Run the single scenario to confirm traces appear and the stop is observed:
+
+bash src/tests/gdb/test.sh t_cmd_pe
+Inspect t_cmd_pe.log for:
+“[trace] exec: sostrace on bpmd,stop,newobj”
+“[trace] exec: bpmd <assembly> Test.Main”
+“[trace] exec: continue”
+Optional “[trace] newest_frame exception: Selected thread is running”
+“[trace] stop observed after N poll attempts”
+If you want, I can run it and paste the key snippets from the log here.
+
+

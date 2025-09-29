@@ -1,0 +1,33 @@
+pls remove the below two in bpmd_and_continue
+
+Late MethodDesc resolution after the first continue (name2ee → bpmd -md)
+Bounded “drive with continues” loop to reach a real stop, with the original info snapshots.
+let us back to the original behavior (with additionla traces) which is nam2ee -> bpmd -> cotinue->newest_frame.
+
+===========
+
+Acknowledged. I’ve reverted the test helper to the original behavior you asked for and kept only the extra traces.
+
+changes made
+gdbtestutils.py
+
+bpmd_and_continue now follows the original flow:
+name2ee → bpmd → continue → newest_frame
+Removed:
+Late MethodDesc rebinding (name2ee after continue → bpmd -md)
+The bounded “drive with continues” loop
+Kept helpful traces:
+Which bpmd path (-md vs assembly/method)
+First line of bpmd output
+Continue output
+“info breakpoints” snapshot
+On failure: final “info program” and “info breakpoints”
+services.py
+
+Confirmed the earlier “immediate runtime-loaded on registration” experiment is rolled back.
+what’s next
+No further code changes until we pinpoint the root cause. If you run the single test again, we’ll get clean logs with minimal influence from the helper. Once you have that log, share it and I’ll propose focused diagnostics (still non-invasive) to isolate whether:
+
+Test.Main isn’t being JITted/executed in this path,
+The managed bp bound but isn’t reflected in GDB’s breakpoint list,
+Or we raced past the stop due to the plugin’s auto-continue behavior.

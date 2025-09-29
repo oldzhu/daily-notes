@@ -1,0 +1,48 @@
+Thanks and it still hang on the selected thread is runnning with the below new log, now let us do quick change in _schedule_safe_continue function in rc/gdbplugin/sos/services.py to see if the blokcing is cuased by async continue. let us comment out post_event(_do_continue) and replace it with call _do_continue directly and one more trace outout in gdb to see if the blocking or hang can be fixed.
+
+[trace] continue output:
+[exception-bp] Exception callback HR=0x00000000
+[exception-bp] auto-continue suppressed for diagnostics
+
+[trace] newest_frame exception: Selected thread is running.
+
+============
+
+I’ll make _schedule_safe_continue run the continue synchronously with a clear trace so we can see if async posting is the cause of the “Selected thread is running” state.
+
+actions taken
+Disabled async posting and invoked continue synchronously in _schedule_safe_continue with a diagnostic trace:
+
+Files updated:
+services.py
+services.py
+services.py
+Change:
+Add trace: “[continue] _schedule_safe_continue: invoking synchronous 'continue'”
+Replace gdb.post_event(_do_continue) with direct _do_continue() invocation.
+Earlier change (still in effect): Disabled auto-continue in the C++ exception notification breakpoint (_CppExceptionBP.stop) and added trace:
+
+It now logs “[exception-bp] auto-continue suppressed for diagnostics” and does not call _schedule_safe_continue() there.
+what to expect in the next run
+In t_cmd_pe.log, around the exception callback point, you should now see:
+
+“[exception-bp] Exception callback HR=0x00000000”
+“[exception-bp] auto-continue suppressed for diagnostics”
+If any site still calls _schedule_safe_continue (e.g., stop-hook path), you’ll see:
+“[continue] _schedule_safe_continue: invoking synchronous 'continue'”
+Then either:
+“[trace] stop observed after N poll attempts” (ideal), or
+“[trace] newest_frame exception: Selected thread is running.”
+This will confirm whether switching to synchronous continue eliminates the running-thread race.
+
+try it
+Run just the pe scenario:
+
+bash src/tests/gdb/test.sh t_cmd_pe
+Check t_cmd_pe.log for the new “[continue] _schedule_safe_continue: …” line and whether we now observe a stop.
+notes
+The test harness typically loads the plugin from artifacts/bin/linux.x64.<Config>/sos.py. Updating the mirrored services.py in both Debug/Release artifact folders ensures your run uses these changes without a rebuild.
+Follow-up once confirmed:
+If this fixes the hang, we can decide whether to keep sync continue or find a safe async approach.
+If it still hangs, we’ll instrument the other callers of _schedule_safe_continue (stop-hook path) more, or temporarily suppress those as well for diagnostics.
+
