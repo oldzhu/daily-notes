@@ -1,0 +1,40 @@
+Good catch. The StressLog.txt is coming from the SOS “dumplog” command, which writes to the current working directory if no filename is provided. Your scenarios like t_cmd_dumplog.py call dumplog without an argument, and since the harness runs from the repo root, the file ends up there.
+
+Here are safe options to control where StressLog.txt lands and ignore it:
+
+Recommended options (no plugin changes)
+
+Change GDB’s working directory to the logs folder
+
+Add a cd to the GDB exec list so all relative outputs (like “StressLog.txt”) go to src/tests/gdb/logs.
+Where: in TestSuite.do_test in test_gdbsos.py, insert early:
+-ex "cd {logdir}"
+Pros: One-line change, applies to all scenarios automatically.
+Cons: None significant; we use absolute paths for host and assembly, so cd won’t break those.
+Pass an explicit path in the dumplog scenario
+
+Update t_cmd_dumplog.py to run dumplog with a target path inside the logs dir:
+You can get the logs directory from gdbtestutils.summary_file:
+import os, gdbtestutils as test
+logdir = os.path.dirname(test.summary_file)
+gdb.execute(f"dumplog {os.path.join(logdir, 'StressLog.txt')}", to_string=True)
+Pros: Scoped to the one scenario that writes the file.
+Cons: Requires touching each scenario that could write a stress log if you add more later.
+Optional (more involved)
+
+Add an environment-configurable default path in the plugin for dumplog
+For example, support SOS_STRESSLOG_DIR and prepend it when dumplog runs without a path.
+Pros: Centralized control.
+Cons: Requires plugin changes and re-publish.
+Git ignore
+
+Add StressLog.txt to .gitignore so it won’t show up as untracked:
+Either just StressLog.txt (ignores it anywhere in the repo)
+Or StressLog.txt (only ignores at repo root)
+I suggest StressLog.txt to catch it anywhere.
+Let me know which approach you’d like:
+
+I can add -ex "cd {logdir}" in test_gdbsos.py (recommended), and/or
+Update t_cmd_dumplog.py to write to the logs dir explicitly, and
+Append StressLog.txt to .gitignore.
+

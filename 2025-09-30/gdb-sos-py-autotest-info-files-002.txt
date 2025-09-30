@@ -1,0 +1,28 @@
+What I changed
+
+Option A: Filter scenario logging to only scenario-issued commands
+
+In gdbtestutils.py wrappers (both legacy run() and the stop handler path), I now check the Python call stack and only log “[scenario] exec …/output …” when the call originates from the active scenario file under tests/gdb/scenarios/.
+Outcome: plugin-internal gdb.execute calls (like “info files”) will no longer appear with the “[scenario] …” prefix unless the scenario itself invoked them.
+Option B: Cache core-dump detection with opt-out
+
+In services.py _is_core_dump_session():
+Added a small cache (self._cached_is_core_dump) so we don’t run info files repeatedly.
+The cache is enabled by default.
+You can disable caching by setting env var SOS_COREDUMP_DETECT_NO_CACHE=1 (or “true”).
+Mirrored this in the published copies used by tests:
+services.py
+services.py
+services.py
+How to verify
+
+Run a couple of scenarios and check logs:
+“[scenario] exec: info files” should disappear unless a scenario explicitly runs it.
+You should see at most one plugin info files call reflected in SOS traces (if enabled), thanks to caching.
+To test without caching:
+Export SOS_COREDUMP_DETECT_NO_CACHE=1 before running the test script, and you’ll see the previous behavior (multiple detections).
+Follow-ups (optional)
+
+If you’d like, we can add a small “[sos] core-dump detection: live/core (cached=…)” trace when TRACE is on to make the detection source clearer in logs, but I didn’t add extra trace to keep noise down.
+Let me know if you want me to gate the scenario logging filter behind an env var as well, or if you’d like to roll back the artifact copies and rely solely on the source file.
+

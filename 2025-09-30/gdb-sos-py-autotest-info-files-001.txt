@@ -1,0 +1,48 @@
+Got it. Here’s what’s happening and how to proceed without changing code yet.
+
+What executed “info files”
+
+It’s not the scenario. Your scenario files (e.g., t_cmd_bpmd_clear.py) don’t call it.
+It’s the plugin:
+services.py runs gdb.execute('info files', to_string=True) in _is_core_dump_session() to detect whether the session is a real core dump.
+That function is called from:
+_dt_write_virtual (guards against writing in dump sessions)
+lldb_get_debuggee_type (reports dump vs live to SOS)
+sos.py calls info files inside the “modules/lm” command implementation, but only if you run modules/lm.
+Why it shows as “[scenario] exec: info files”
+
+In gdbtestutils.py we temporarily override gdb.execute during runScenario(...) to trace every command executed while the scenario runs.
+That wrapper logs plugin-originated gdb.execute(...) calls too, not just scenario-issued ones. So plugin calls to info files appear with the “[scenario] exec” prefix even though the scenario didn’t issue them.
+How to confirm (no code changes)
+
+Enable extra SOS traces so the call context is visible in logs:
+In your current flow, we already enable “bpmd,stop,newobj”. Add these in the same place (manually) for a run:
+sostrace on write,read
+Then check the log around “[scenario] exec: info files” for plugin traces like:
+“call into lldb_get_debuggee_type”
+“_dt_write_virtual enter …”
+If you see these near the “info files” calls, that’s the smoking gun: _is_core_dump_session() ran, which executes info files.
+Ways to fix or reduce noise (pick one, we won’t apply changes until you approve)
+
+Keep scenario logs focused on test commands only:
+Filter the scenario wrapper to only log when the Python caller is a scenario file under tests/gdb/scenarios/ (use inspect.stack() to check the filename). This keeps plugin-internal gdb.execute calls (like info files) out of “[scenario] …” logs unless the scenario explicitly calls them.
+Cache core dump detection:
+Add a simple memoization in services.py for _is_core_dump_session() (first call runs info files, subsequent calls return the cached value). This reduces repeated info files calls across a run.
+Suppress specific noise in scenario wrapper:
+Keep the wrapper but skip logging for cmd == 'info files' (and any other known plugin-probing commands) unless a scenario explicitly runs them. Minimal change but less precise than caller filtering.
+Leave as-is:
+The info files executions are harmless and sometimes useful context. If the extra lines aren’t disruptive, we can just acknowledge them as plugin probes.
+Suggested troubleshooting sequence for one failing log
+
+Rerun one scenario with:
+sostrace on bpmd,stop,newobj,write,read
+Inspect the log at the first “[scenario] exec: info files” occurrence:
+If preceded by “call into lldb_get_debuggee_type” → source is debuggee type query.
+If near “_dt_write_virtual enter …” → source is write guard path.
+Tell me which option you prefer:
+
+A) Filter logging to only scenario frames
+B) Cache _is_core_dump_session() results
+C) Suppress “info files” in wrapper logs
+D) Keep current behavior
+I’ll implement the chosen approach and we can rerun.

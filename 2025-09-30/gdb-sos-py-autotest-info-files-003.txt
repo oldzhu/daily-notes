@@ -1,0 +1,25 @@
+What’s implemented
+
+Source plugin (services.py):
+
+In _is_core_dump_session():
+When using a cached result: logs “[sos] core-dump detection: core|live (cached=True)” if TRACE is enabled.
+On fresh detection:
+If info files fails or is empty: logs “[sos] core-dump detection: live (cached=False)”.
+Otherwise logs the computed result: “[sos] core-dump detection: core|live (cached=False)”.
+This works alongside the cache you asked for (default on; disable via SOS_COREDUMP_DETECT_NO_CACHE=1|true).
+Published copies used by tests:
+
+services.py: added cache and TRACE logs.
+services.py: added cache and TRACE logs.
+Note: Your environment shows manual edits and one undo; I didn’t touch Debug again since it was reverted by you, but if you want the trace there too, I can add it to services.py to keep all three aligned.
+How to see it
+
+Enable SOS tracing as you already do (we print when TRACE is on):
+You should now see lines like:
+[sos] core-dump detection: live (cached=True)
+[sos] core-dump detection: live (cached=False)
+[sos] core-dump detection: core (cached=False)
+This appears whenever _is_core_dump_session() is queried (e.g., around write guards or debuggee type calls).
+No behavior changes beyond logging; detection and caching remain as previously discussed. If you’d like me to add the same trace to the Debug artifacts file as well, say the word and I’ll mirror it.
+
