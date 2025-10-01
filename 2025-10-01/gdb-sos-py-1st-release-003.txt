@@ -1,0 +1,56 @@
+before we create the github action, just want to confirm the action will be triggered automatically whenever we push a v* tag from loal and all actions like run build.sh to build and package and upload will all be done in github server side, am I right? in case I want to modify the notes of the same v* tag or modify some files and rebuild/repackag and want to replace the .tar.gz for the same tag v, and this v* tag which we already pushed previously, how?
+
+===========
+
+You’re spot on. Here’s how it works and what to do in the “replace notes/assets” cases.
+
+Yes: GitHub Actions on tag push
+
+If your workflow has: on: push: tags: - 'v*'
+Then pushing a tag like v0.1.0 will automatically trigger the workflow on GitHub’s servers. It will run your build steps (e.g., build.sh -c Release --skip-diagnostics), package, and upload release assets—no local build needed.
+Best practice: also include workflow_dispatch so you can re-run the release job manually without re-tagging.
+Editing notes vs. replacing assets for the same tag
+
+Edit release notes (no rebuild):
+UI: Open the release page → Edit → update the text.
+CLI: gh release edit v0.1.0 --notes-file RELEASE_NOTES.md (or --notes "…").
+Rebuild/repackage with the same tag:
+If code didn’t change (you just need to re-upload assets): delete old assets in the release and upload new ones.
+UI: On the release page, remove old assets, upload new tar.gz files and checksums.
+CLI: gh release upload v0.1.0 path/to/file --clobber to overwrite assets.
+Actions: add a workflow_dispatch path that accepts a tag input, rebuilds at that tag, and replaces assets (use gh release upload --clobber or a release action that supports overwrite).
+If code DID change and you want the tag to point to new commits:
+Prefer bumping version (v0.1.1) and release again. It’s the cleanest for consumers.
+If you must reuse the same tag (not recommended): move the tag to the new commit and force-push it:
+git tag -fa v0.1.0 -m "update"
+git push -f origin v0.1.0
+Then rerun the workflow (either via tag push trigger if enabled for updates, or via workflow_dispatch). Be aware this rewrites history for that tag and may confuse consumers who already pulled it.
+Trigger details and recommendations
+
+Triggers to include:
+push on tags: v* → auto “publish on tag”
+workflow_dispatch → manual rebuild/replace without retagging
+Example header: on: push: tags: - 'v*' workflow_dispatch: inputs: tag: description: 'Tag to build (e.g., v0.1.0)' required: false
+In the job:
+If workflow_dispatch with tag input: git fetch --tags && git checkout tags/${{ inputs.tag }}
+Else (push event): use $GITHUB_REF_NAME as the tag (e.g., v0.1.0).
+Uploading assets:
+With gh CLI: gh release create/edit/upload; use --clobber for replacement.
+With actions: softprops/action-gh-release@v2 supports creating/updating releases; if re-running for the same tag, ensure you delete/overwrite old assets. If the action doesn’t support overwrite, delete assets first via gh CLI or the REST API step.
+Packaging naming (aligned with your plan)
+
+Runtime: artifacts/gdbsos-linux-$ARCH-$CONFIG-$TAG.tar.gz
+Symbols: artifacts/gdbsos-linux-$ARCH-$CONFIG-$TAG.symbols.tar.gz
+Checksum: artifacts/gdbsos-linux-$ARCH-$CONFIG-$TAG.sha256
+Docs checklist
+
+Before: README “How to use” (source sos.py, supported platform), quick verify.
+After: Add release link; optionally a short “verify” one-liner.
+Bottom line
+
+Yes, actions run server-side on v* tag push.
+You can edit release notes anytime without rebuilding.
+To replace assets for the same tag:
+Without code changes: delete and re-upload assets (UI/CLI/Action).
+With code changes: strongly prefer a new tag (v0.1.1); only force-move a tag if you fully control consumers and accept the risks.
+

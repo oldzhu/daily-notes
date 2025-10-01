@@ -1,0 +1,50 @@
+$ git tag -a v0.1.0 -m "gdbsos v0.1.0: let gdb do .n
+et managed debugging"
+$ git push origin v0.1.0
+assume I use the above commands to push v* tag and it triggered the github build/package/release action, but failed at some step, then I troubelshoot and fix the issue, how to retriggered the action to run?
+
+===========
+
+You’ve got a few good options to re-run the release workflow after fixing things:
+
+Fastest options
+Re-run the failed run (same commit/workflow version):
+GitHub UI: Actions → the failed “Release” run → Re-run all jobs (or Re-run failed jobs).
+CLI:
+List runs and re-run:
+
+gh run list --workflow Release --limit 5gh run rerun <run-id>
+Watch:
+
+gh run watch <run-id> --exit-status
+Note: Re-run uses the workflow file version from the original run’s commit. If you changed the workflow file, those changes won’t apply with a simple re-run.
+
+Use your updated workflow (recommended after workflow fixes)
+Manually dispatch the workflow with the tag input:
+GitHub UI: Actions → Release → Run workflow → enter tag v0.1.0 → Run.
+CLI:
+
+gh workflow run Release -f tag=v0.1.0gh run list --workflow Release --limit 1gh run watch <new-run-id> --exit-status
+This triggers the workflow on the latest main (or default branch) version of the workflow file while building artifacts for the specified tag.
+
+Retagging (only if you really need another tag push)
+If you prefer to trigger via push again, create a new tag (recommended):
+
+git tag -a v0.1.1 -m "gdbsos v0.1.1"git push origin v0.1.1
+Avoid force-moving a published tag; if you must, delete and recreate:
+
+git tag -d v0.1.0git push origin :refs/tags/v0.1.0git tag -a v0.1.0 -m "gdbsos v0.1.0 (re-tag)"git push origin v0.1.0
+Heads-up about release assets
+Your workflow uploads tarballs to the same tag release. If a previous failed run already created assets, re-runs may fail on “file already exists” unless you:
+
+Delete existing assets from the GitHub release page before re-running, or
+Set overwrite in the workflow’s release step (softprops/action-gh-release):
+Add this under “Upload release assets”:
+
+overwrite: true
+Or bump the tag (v0.1.1) to change asset names.
+Pick the method that fits your change: quick “Re-run” for transient failures; “Run workflow” with tag input to pick up updated workflow logic.- Or bump the tag (v0.1.1) to change asset names.
+
+Pick the method that fits your change: quick “Re-run” for transient failures; “Run workflow” with tag input to pick up updated workflow logic.
+
+

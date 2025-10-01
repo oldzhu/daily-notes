@@ -1,0 +1,26 @@
+pls add a minimal README “How to use” section with a release link placeholder.
+==========
+
+I'll read the current README to see where and how to add a concise "How to use" section with a releases link placeholder.
+
+Read README.md
+
+README.md+18-0
+I’ll add a concise “How to use” section to the README with a Releases link and minimal steps for extracting and sourcing the plugin.
+
+Changes made
+Updated README.md with:
+A new “How to use” section that:
+Points to Releases: https://github.com/oldzhu/gdbsos/releases (placeholder link, ready for your first tag).
+Explains extracting the runtime tar to a chosen folder and optionally extracting the symbols tar into the same folder.
+Shows the minimal GDB steps: source sos.py and run a couple of commands.
+Brief notes on libsos.so discovery and bridge co-location to set expectations.
+Quick start (copiable)
+Download the latest runtime tar (and optionally the symbols tar) from Releases.
+Extract to your preferred folder (e.g., ~/.dotnet/sos).
+In GDB:
+source /path/to/sos.py
+sos help
+sos clrstack
+If you want the README to reference a specific version once you tag (e.g., v0.1.0), I can update the Releases line to a deep link right after you cut the release.
+

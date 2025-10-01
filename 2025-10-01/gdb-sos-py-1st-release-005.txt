@@ -1,0 +1,69 @@
+if we Packaging uses the full install dir (same as your previous single-tar behavior) to simplify runtime consumption, it will also packagg *.dbg files into the same *.tar.gz, but we dould like to separate the *.dbg into another *.symbols.tar.gz, os pls only package non *.dbg files into *.tar.gz
+======
+
+I'm going to refine the symbol packaging to include all *.dbg files anywhere under the install directory (not just top-level), while keeping the main tarball excluding them. This ensures full separation of runtime and symbols.
+
+build.sh+15-8
+I’ll update packaging so the main tarball excludes all .dbg files, and the symbols go into a separate .symbols.tar.gz.
+
+Actions taken
+Updated build.sh:
+Runtime tar now excludes symbols:
+tar -C "
+𝐵
+𝐼
+𝑁
+𝐷
+𝐼
+𝑅
+"
+−
+−
+𝑒
+𝑥
+𝑐
+𝑙
+𝑢
+𝑑
+𝑒
+=
+′
+∗
+.
+𝑑
+𝑏
+𝑔
+′
+−
+𝑐
+𝑧
+𝑓
+"
+BIN 
+D
+​
+ IR"−−exclude= 
+′
+ ∗.dbg 
+′
+ −czf"{PKG_DIR}/${PKG_NAME}" .
+Symbols tar now includes all .dbg files under the install tree (any depth) using a file list:
+find . -type f -name "*.dbg" > list and tar -C "${BIN_DIR}" -czf ... -T list
+This keeps runtime consumption simple (it’s still the full install dir minus the .dbg files), and symbols are fully separated.
+
+Files changed
+build.sh — exclude .dbg from runtime tar; bundle all .dbg into .symbols.tar.gz.
+How to verify
+Build and package (Release shown; Debug also works):
+This will produce artifacts/gdbsos-linux-<arch>-Release-<tag>.tar.gz without .dbg, and ...symbols.tar.gz with only .dbg files.
+
+```bash -c Release --package --tag v0.1.0
+Inspect contents (optional):
+
+tar -tzf artifacts/gdbsos-linux-*-Release-*.tar.gz | grep -i '\.dbg' || echo "No .dbg in runtime tar (expected)"tar -tzf artifacts/gdbsos-linux-*-Release-*.symbols.tar.gz
+Release workflow
+No workflow changes needed; release.yml already uploads both the runtime and symbols tarballs and their checksums.
+Completion summary:
+
+Main tar now excludes *.dbg; symbol tar includes all *.dbg recursively. Checksums are generated as before. Let me know if you also want to exclude other debug artifacts (e.g., .pdb on Windows) using a similar pattern.
+

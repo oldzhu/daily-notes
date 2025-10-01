@@ -1,0 +1,73 @@
+basically what I understand and would like the steps is
+
+"build.sh -c Release --skip-diagnostics" to build the latest files to artifacts/bin/linux.{ARCH}.{CONFIG}
+package all files under artifacts/bin/linux.{ARCH}.{CONFIG} to artifacts folder as gdbsos-linux-{ARCH}-{CONFIG}-{TAGVERSION}.tar.gz -
+also separate symbol as gdbsos-linux-{ARCH}-{CONFIG}-{TAGVERSION}.symbols.tar.gz
+create tag and push
+Using Option A, or Option B or GitHub Actions to upload and release in github.
+Before the above steps, it would be better to Ensure README has quick “How to use” instructions (source sos.py in GDB) and the current status.
+After the steps, downlaod and quick test and update README with the release link.
+Is my abobe understanding correct?
+another question is upload and release in github, Option A and Option B I need do something through git hub page or run gh command locally, but gibhub action will automatizally trigger the action in github server side when there is v* git push from locall side. is my understanding correc?
+
+==============
+
+
+You’ve got it right. Here’s a crisp, end-to-end flow with clarifications and ready-to-run packaging commands.
+
+Summary confirmation
+
+Build: Yes — run build.sh with Release and --skip-diagnostics to produce artifacts under artifacts/bin/linux.{ARCH}.{CONFIG}.
+Package: Yes — create two tarballs in artifacts/: runtime and symbols, with a versioned name.
+Tag & push: Yes — annotate and push the vX.Y.Z tag.
+Release: Yes — use either:
+Option A (GitHub web UI), or
+Option B (GitHub CLI from your machine), or
+GitHub Actions (auto on tag push to build/package/upload server-side).
+Docs: Yes — ensure README has quick “How to use” before, and link/verify after.
+Packaging (suggested commands)
+
+Assumptions:
+TAG=v0.1.0
+CONFIG=Release
+ARCH inferred by build.sh (x64/arm64/etc.)
+Build (skipping diagnostics if they’re already built):
+build.sh -c Release --skip-diagnostics
+Compute variables:
+REPO_ROOT=$(pwd)
+OUT_DIR=$REPO_ROOT/artifacts/bin/linux.$ARCH.$CONFIG
+DEST_DIR=$REPO_ROOT/artifacts
+Create tarballs (runtime + symbols, with version in filename):
+tar -C "$OUT_DIR" -czf "$DEST_DIR/gdbsos-linux-$ARCH-$CONFIG-$TAG.tar.gz" sos.py services.py abi.py tracing.py _generated_help.py libsosgdbbridge.so
+if [ -f "$OUT_DIR/libsosgdbbridge.so.dbg" ]; then tar -C "$OUT_DIR" -czf "$DEST_DIR/gdbsos-linux-$ARCH-$CONFIG-$TAG.symbols.tar.gz" libsosgdbbridge.so.dbg; fi
+sha256sum "$DEST_DIR"/gdbsos-linux-$ARCH-$CONFIG-$TAG*.tar.gz > "$DEST_DIR/gdbsos-linux-$ARCH-$CONFIG-$TAG.sha256"
+Note: this bypasses the build.sh --package naming and gives you your exact desired filenames.
+Tag and push
+
+git tag -a v0.1.0 -m "gdbsos v0.1.0: event-driven runner, scenario tracing, stability fixes"
+git push origin v0.1.0
+Create the GitHub Release
+
+Option A (Web UI): Draft a release for tag v0.1.0, upload the two tar.gz files and the .sha256, add release notes.
+Option B (GitHub CLI):
+gh release create v0.1.0 artifacts/gdbsos-linux-$ARCH-$CONFIG-$TAG.tar.gz artifacts/gdbsos-linux-$ARCH-$CONFIG-$TAG.symbols.tar.gz artifacts/gdbsos-linux-$ARCH-$CONFIG-$TAG.sha256 --title "gdbsos v0.1.0" --notes "First release..."
+GitHub Actions: Your understanding is correct. A workflow (on: push: tags: [v*]) will run automatically on GitHub’s runners when you push the tag. It can build, package, and upload the assets to the release without any local steps beyond the tag push.
+README checklist (before/after)
+
+Before:
+Quick start:
+Build requirements (gdb, Python)
+How to source: “In GDB: source /path/to/sos.py”
+Minimal scenario run example (or pointer to src/tests)
+Current status / supported platform (Linux x64 initial)
+After:
+Add link to the release artifact
+Optional: a short “Verify” snippet (gdb -q -ex "source .../sos.py" -ex "help sos" -ex quit)
+Known issues / caveats
+Small notes
+
+If diagnostics submodule changed, run the full build once (without --skip-diagnostics) to refresh libextensions.a before packaging.
+Keep the symbols tarball optional but it’s a good practice for debugging.
+If you want, I can drop in a ready-to-use .github/workflows/release.yml that builds and packages on tag push exactly as above—just say the word and your preferred artifact file set.
+
+

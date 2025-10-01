@@ -1,0 +1,54 @@
+I’m going to install GitHub CLI (gh) inside the dev container via the official apt repository for Debian 11, then verify the installation.
+
+
+sudo apt-get update
+Continue waiting for sudo apt-get update?
+This will continue to poll for output to determine when the terminal becomes idle for up to 2 minutes.
+
+
+type -p curl >/dev/null || sudo apt-get install -y curl
+
+sudo mkdir -p -m 755 /etc/apt/keyrings && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg >/dev/null
+
+sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+
+sudo apt-get update && sudo apt-get install -y gh
+
+gh --version | head -n 1
+Here’s a quick, reliable way to install GitHub CLI (gh) inside your devcontainer on Debian 11 and verify it works. I’ve already run these steps in your container and confirmed the install.
+
+What I did
+Added GitHub’s apt repo and keyring.
+Installed gh via apt.
+Verified the version (gh 2.80.0).
+Authenticate and test
+Login (one-time):
+
+gh auth login
+When prompted:
+GitHub.com
+HTTPS
+Open a browser (or use a token if browser is not convenient)
+Verify auth:
+
+gh auth status
+Common local tests
+List your repos:
+
+gh repo list --limit 10
+Create a release draft in this repo (dry-run-ish example):
+
+gh release create v0.1.0 --title "v0.1.0" --notes "Test release from devcontainer" --draft
+Upload an artifact to that release:
+
+gh release upload v0.1.0 artifacts/gdbsos-linux-*-Release-v0.1.0.tar.gz --clobber
+Notes:
+
+If your devcontainer doesn’t have a browser, choose “Paste an authentication token” during gh auth login (create one with repo scope).
+You can remove gh later with:
+
+sudo apt-get remove -y gh
+All set—gh is installed and ready to use in this container.
+

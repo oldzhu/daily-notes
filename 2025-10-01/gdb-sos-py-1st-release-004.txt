@@ -1,0 +1,66 @@
+Thanks. Our build.sh spports packae cuurently but not fully meet the current requitrements
+
+no tag version invovled.
+PKG_DIR is not at artifacts folder.
+not separate the symbol package.
+Pls review and modify our build.sh accordingly and then create github actions as discussed.
+
+=================
+
+I’m going to update the packaging logic in build.sh to support a --tag option, package into the artifacts folder with versioned names, and split symbols into a separate tarball; then I’ll add a GitHub Actions workflow that builds on tag push and uploads the packaged assets.
+
+build.sh+42-4
+release.yml
+Great plan. I updated the packaging flow to match your requirements and added a GitHub Actions workflow that builds, packages, and uploads on tag push or manual dispatch.
+
+What I changed
+
+build.sh packaging
+New --tag option to embed a version in filenames (e.g., v0.1.0). If omitted:
+Uses exact git tag when available, otherwise a timestamp like local-YYYYmmddHHMMSS.
+Packages go to artifacts/ (not artifacts/bin):
+Runtime: artifacts/gdbsos-linux-{ARCH}-{CONFIG}-{TAG}.tar.gz
+Symbols: artifacts/gdbsos-linux-{ARCH}-{CONFIG}-{TAG}.symbols.tar.gz (only if *.dbg present)
+SHA256 checksums are generated alongside tarballs.
+Backward-compatible build behavior unchanged; only the packaging block changed.
+GitHub Actions release workflow
+File: release.yml
+Triggers:
+push on tags v*
+workflow_dispatch (manual run) with optional tag input
+Steps:
+Checkout (with submodules)
+Install clang and ninja
+Determine tag: from ref on tag push, or from manual input
+Run: build.sh -c Release --package --tag "$TAG"
+Upload assets:
+artifacts/gdbsos-linux-*-Release-$TAG.tar.gz (+ .sha256)
+artifacts/gdbsos-linux-*-Release-$TAG.symbols.tar.gz (+ .sha256; optional)
+How to use
+
+Local build & package
+
+Build only:
+build.sh -c Release --skip-diagnostics
+Build + package with tag:
+build.sh -c Release --skip-diagnostics --package --tag v0.1.0
+Results: artifacts/gdbsos-linux-x64-Release-v0.1.0.tar.gz and .symbols.tar.gz (+ .sha256)
+GitHub release
+
+Option A (Web): Push tag v0.1.0, then the action will run automatically and create a release with assets; you can edit notes on the release page.
+Option B (CLI): Push tag, or run manually:
+From the Actions tab, run the “Release” workflow with tag input v0.1.0.
+Replace assets for same tag:
+Re-run the workflow via workflow_dispatch for the same tag to regenerate and re-upload (the job allows missing symbol files and won’t fail on unmatched patterns).
+Alternatively, use gh release upload v0.1.0 <files> --clobber to overwrite manually.
+If you need code changes:
+Recommended: bump to a new tag (e.g., v0.1.1), push, and let the action run.
+Not recommended: force-move an existing tag; if you must, force-push tag and rerun workflow.
+Notes
+
+The action installs clang/ninja to keep builds consistent with your script’s preferences.
+Symbols packaging picks up any *.dbg in the install folder.
+Packaging uses the full install dir (same as your previous single-tar behavior) to simplify runtime consumption; if you want to restrict contents, we can list explicit files instead.
+If you’d like me to also add a Release Notes template or a minimal README “How to use” section with a release link placeholder, I can add that next.
+
+

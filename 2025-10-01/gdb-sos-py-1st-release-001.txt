@@ -1,0 +1,78 @@
+Awesome—congrats on getting to a first release. Here’s a clean, repeatable way to publish v0.1.0 on GitHub, including building/uploading artifacts and optional CI automation.
+
+High-level plan
+
+Pick a version and tag it (e.g., v0.1.0)
+Build Release artifacts
+Package the plugin files per platform
+Create a GitHub Release and upload artifacts
+Optionally automate builds/uploads via GitHub Actions
+Prep and version
+Decide on a tag: v0.1.0 (semantic versioning is a good default)
+Ensure README has quick “How to use” instructions (source sos.py in GDB) and the current status
+Optionally add a CHANGELOG.md summarizing this milestone
+Build Release artifacts
+From repo root, produce Release outputs (based on your tree, Release binaries land under artifacts/bin/linux.x64.Release):
+
+# From repo root./build.sh Release
+Verify the output directory contains:
+linux.x64.Release
+sos.py
+services.py
+abi.py
+tracing.py
+_generated_help.py
+libsosgdbbridge.so
+libsosgdbbridge.so.dbg (symbols; optional to ship separately)
+Package artifacts
+Create a self-contained zip/tar for Linux x64:
+
+# From repo rootcd artifacts/bin/linux.x64.Releasezip -r ../../../gdbsos-linux-x64-v0.1.0.zip sos.py services.py abi.py tracing.py _generated_help.py libsosgdbbridge.socd -  # back to repo rootsha256sum artifacts/gdbsos-linux-x64-v0.1.0.zip > artifacts/gdbsos-linux-x64-v0.1.0.zip.sha256
+Notes:
+
+Keep symbols separate (optional): zip libsosgdbbridge.so.dbg as gdbsos-linux-x64-v0.1.0.symbols.zip
+If you have other platforms later, repeat with platform-specific names
+Create tag and push
+
+git pullgit tag -a v0.1.0 -m "gdbsos v0.1.0: event-driven runner, scenario tracing, stability fixes"git push origin v0.1.0
+Create the GitHub Release Option A: GitHub UI
+Go to your repo → Releases → Draft a new release
+Choose tag v0.1.0
+Title: gdbsos v0.1.0
+Notes: bullet the highlights (what’s new, how to use, known issues)
+Upload artifacts:
+artifacts/gdbsos-linux-x64-v0.1.0.zip
+artifacts/gdbsos-linux-x64-v0.1.0.zip.sha256
+optional symbols zip
+Option B: GitHub CLI (if gh is installed locally)
+
+
+gh release create v0.1.0 \  artifacts/gdbsos-linux-x64-v0.1.0.zip \  artifacts/gdbsos-linux-x64-v0.1.0.zip.sha256 \  --title "gdbsos v0.1.0" \  --notes "First release: event-driven GDB plugin runner, per-scenario tracing, stability fixes."
+Suggested Release notes (example)
+Event-driven test runner (schedule_and_run) with robust stop handling
+Per-scenario command tracing (exec + output; filtered to scenario frames)
+Stability: async continues, no -batch, extended wait, clarified SOS core-dump detection
+Artifacts: Linux x64 plugin (sos.py + services.py + bridge .so)
+Install:
+unzip somewhere, then in GDB: source sos.py
+optional: add folder to your GDB init or run scripts
+Optional: Automate with GitHub Actions If you want releases built on tag automatically, add a workflow like:
+.github/workflows/release.yml (for your repo to add later)
+
+On tag push v*:
+Checkout
+Run build.sh Release
+Package zip
+Upload as release asset
+Example skeleton (adjust as needed):
+
+
+name: Releaseon:  push:    tags:      - 'v*'jobs:  build-linux-x64:    runs-on: ubuntu-latest    steps:      - uses: actions/checkout@v4      - name: Build Release        run: |          chmod +x ./build.sh          ./build.sh Release      - name: Package        run: |          cd artifacts/bin/linux.x64.Release          zip -r ../../gdbsos-linux-x64-${{ github.ref_name }}.zip sos.py services.py abi.py tracing.py _generated_help.py libsosgdbbridge.so          cd -           sha256sum artifacts/gdbsos-linux-x64-${{ github.ref_name }}.zip > artifacts/gdbsos-linux-x64-${{ github.ref_name }}.zip.sha256      - name: Upload Release Assets        uses: softprops/action-gh-release@v2        with:          files: |            artifacts/gdbsos-linux-x64-${{ github.ref_name }}.zip            artifacts/gdbsos-linux-x64-${{ github.ref_name }}.zip.sha256        env:          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+Quick post-release checklist
+Download artifact from the release page; verify sha256
+Smoke test:
+gdb -ex "source /path/to/sos.py" -ex "help sos" -ex "quit"
+Update README with the release link
+If you want, I can generate the release.yml in the repo and wire it to package exactly the files we decided on—just say the word and the target version (v0.1.0 or what you prefer).
+
+
