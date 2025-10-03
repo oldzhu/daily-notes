@@ -1,0 +1,43 @@
+I read your above plan, basically I agree to avoid cross-compile/qemu to keep native depes and building commands atrightward. My physical host is WSL 2 ubuntu x86_64, now have x64 container which is ubuntu-latest, can we have arm64 container which is ubuntu-22.04 of newer latest got srm64 which is running on my WSL2 x86_64 host? I mean we have two container(x64 and arm64) and we can choose which one we want open with.
+================
+
+Yes—you can open either an x64 or an arm64 dev container on your WSL2 x86_64 host. For arm64 you’ll run via QEMU emulation (binfmt). It’s slower than native but great for parity checks.
+
+1) Enable arm64 emulation on your Docker engine
+Register binfmt (one-time):
+
+docker run --privileged --rm tonistiigi/binfmt --install arm64
+Sanity check:
+
+docker run --rm --platform linux/arm64 alpine uname -m# Expect: aarch64
+Docker Desktop for Windows often pre-enables this; the above is safe to re-run.
+
+2) Easiest way to switch between x64 and arm64 in VS Code
+Use a docker-compose-based dev container with two services: one amd64, one arm64, and pick the service you want when reopening in container.
+
+.devcontainer/docker-compose.yml
+
+services:  dev-x64:    image: mcr.microsoft.com/devcontainers/base:ubuntu-22.04    platform: linux/amd64    volumes:      - ..:/workspaces/gdbsos:cached    working_dir: /workspaces/gdbsos  dev-arm64:    image: mcr.microsoft.com/devcontainers/base:ubuntu-22.04    platform: linux/arm64    volumes:      - ..:/workspaces/gdbsos:cached    working_dir: /workspaces/gdbsos
+devcontainer.json
+
+{  "name": "gdbsos",  "dockerComposeFile": "docker-compose.yml",  "service": "dev-x64",  "workspaceFolder": "/workspaces/gdbsos",  "postCreateCommand": "sudo apt-get update && sudo apt-get install -y ninja-build clang lldb liblldb-dev liblttng-ust-dev"}
+How to use:
+
+“Reopen in Container” → choose service “dev-x64” (default).
+To use arm64: change "service" to "dev-arm64" in devcontainer.json (or use the VS Code command “Dev Containers: Reopen in Container” and pick the arm64 service if prompted).
+Notes:
+
+Those base images are multi-arch; Docker pulls the right architecture automatically.
+Your build.sh already maps uname -m to ARCH, so inside the arm64 container it will produce arm64 artifacts.
+3) Alternative (single devcontainer.json, no compose)
+If you don’t want compose, you can point to a multi-arch image and pass a run arg:
+
+
+{  "name": "gdbsos (arm64)",  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",  "runArgs": ["--platform=linux/arm64"],  "workspaceFolder": "/workspaces/gdbsos",  "postCreateCommand": "sudo apt-get update && sudo apt-get install -y ninja-build clang lldb liblldb-dev liblttng-ust-dev"}
+To switch, keep two files (e.g., devcontainer.x64.json and devcontainer.arm64.json) and use “Dev Containers: Open Folder in Container…” → “From a ‘devcontainer.json’ file” to pick one. Compose is usually more convenient.
+
+4) Caveats
+Performance: arm64 under QEMU is slower—fine for debugging and light builds; for heavy builds, consider a self-hosted arm64 machine.
+GDB/LLDB availability: we install the same packages in both containers; they exist on arm64 Ubuntu.
+CI remains native per-arch (no emulation), as we discussed.
+If you want, I can wire up the compose/devcontainer files for you in a follow-up.

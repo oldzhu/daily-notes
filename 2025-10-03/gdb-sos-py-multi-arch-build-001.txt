@@ -1,0 +1,68 @@
+
+After read your analysis, I decide to keep native nridge at the current stage and let me consider on the below stafs u mentioned.
+....
+Reducing the cost of multi-arch builds
+If the main concern is packaging/build matrix rather than code:
+
+Matrix builds in GitHub Actions: add arm64 (self-hosted or via Graviton runner) and optionally riscv64 (self-hosted).
+Consider prebuilt release assets only for the archs you care about. Add more later.
+For portability: compile the bridge with conservative glibc and no exotic deps. You’re already splitting symbols and keeping the runtime tar lean.
+Longer-term: publish prebuilt wheels (manylinux/musllinux) on PyPI bundling the tiny .so next to the Python files; users pip install gdbsos and get the right native blob for their platform.
+....
+Extend the CI to an arch matrix (x64 + arm64) and keep packaging consistent.
+....
+could u list plan how to do but do not apply any real change. I will review and check, will ask if there are any questions.
+==============
+Great call. Here’s a clear, no-change plan you can review before we implement anything.
+
+Multi-arch release plan (x64 + arm64)
+Choose ARM64 runner strategy
+Prefer GitHub-hosted arm64 if available (e.g., ubuntu-22.04-arm64). If not:
+Self-hosted arm64 on local hardware or cloud (AWS Graviton).
+Label it (e.g., self-hosted, linux, arm64) and target via runs-on.
+Avoid cross-compile/QEMU for now to keep native deps (LLDB, lttng) straightforward.
+Extend workflow with arch matrix
+Add strategy.matrix: arch: [x64, arm64].
+Map matrix to runs-on:
+x64 → ubuntu-latest (or ubuntu-20.04 if you want older glibc).
+arm64 → ubuntu-22.04-arm64 (hosted) or self-hosted label.
+Keep inputs/tag handling as-is so both matrix jobs build the same tag.
+Install dependencies per-arch
+In the install step, apt-get for:
+ninja-build, clang, liblttng-ust-dev, lldb, liblldb-dev
+These packages exist for both x64 and arm64 on Ubuntu.
+Optional: add basic retry or use -yq to reduce flakiness.
+Build and package per-arch
+Run: build.sh -c Release --package --tag "$TAG"
+Script already maps arch via uname -m (x86_64→x64, aarch64→arm64).
+Artifacts:
+artifacts/gdbsos-linux-{ARCH}-Release-{TAG}.tar.gz (no .dbg)
+artifacts/gdbsos-linux-{ARCH}-Release-{TAG}.symbols.tar.gz (only .dbg)
+sha256 files for both
+Upload release assets
+Single upload step with globs covering both arches:
+artifacts/gdbsos-linux--Release-${TAG}.tar.gz
+artifacts/gdbsos-linux--Release-${TAG}.tar.gz.sha256
+artifacts/gdbsos-linux--Release-${TAG}.symbols.tar.gz
+artifacts/gdbsos-linux--Release-${TAG}.symbols.tar.gz.sha256
+To simplify re-runs, set overwrite: true on the gh-release step.
+Optional per-arch smoke test
+After build, quick sanity:
+gdb --version
+gdb -q -ex "python import sys" -ex "quit"
+Optionally: gdb -q -ex "source ./src/gdbplugin/sos/sos.py" -ex "quit" just to ensure it loads without running libsos.
+Stability and caching
+Consider caching diagnostics’ .dotnet toolset to speed builds:
+actions/cache keyed by OS+arch + a known diagnostics version marker.
+Avoid caching build outputs across arches (complexity vs benefit).
+Glibc compatibility choice
+If you want broader compatibility:
+Pin x64 to ubuntu-20.04; for arm64, use the oldest available hosted image.
+Alternative: run build inside a Docker image with older glibc on both runners.
+Future: PyPI wheels
+Later, publish platform wheels bundling the tiny bridge .so with Python files via cibuildwheel:
+manylinux/musllinux x64 & arm64 first.
+Keep your GitHub Release flow for tarballs in parallel.
+If you’re happy with this, I can implement the matrix workflow and the optional smoke test next.
+
+

@@ -1,0 +1,5 @@
+1. animation demo embeded in README 
+2. source mapping.
+3. arm64 support.
+4. AI - auto review/comparing/sync with submodule diagnostics - provide the next dev plan 
+
