@@ -1,0 +1,57 @@
+but I got the error as the below (base) PS C:\Users\orien> wsl -d docker-desktop docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# docker --help It looks like you have tried to invoke the docker CLI from the docker-desktop WSL2 distribution. This is not supported. Please invoke the docker CLI from the Windows Command Prompt, PowerShell, or other compatible terminals. If you wish to interact with Docker Desktop from a third-party WSL2 distribution, such as Ubuntu, please enable the Docker Desktop WSL2 integration for it. See: https://docs.docker.com/desktop/wsl/#enabling-docker-support-in-wsl-2-distrosdocker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien#
+=======
+
+That message is expected. The docker-desktop WSL distro is a special VM that runs the Docker daemon; it’s not a place where you use the docker CLI. You should run docker from:
+
+Windows PowerShell / CMD, or
+
+Your own WSL2 distro (e.g., Ubuntu) with Docker Desktop WSL integration enabled.
+
+Both of those CLIs talk to the Docker Desktop daemon that lives inside the docker-desktop VM.
+
+What to do
+1) Run binfmt commands from a CLI that talks to Docker Desktop
+
+Use PowerShell (recommended):
+
+# Make sure you're talking to Docker Desktop
+docker context use default
+docker info | findstr /i "Context Operating"
+
+# Refresh binfmt in the Docker Desktop VM
+docker run --privileged --rm tonistiigi/binfmt --uninstall qemu-* 2>$null
+docker run --privileged --rm tonistiigi/binfmt --install arm64
+
+# Quick check that ARM64 emulation works
+docker run --rm --platform=linux/arm64 alpine uname -m
+# expect: aarch64
+
+
+Or use your Ubuntu WSL distro (not docker-desktop) if it’s integrated with Docker Desktop (Settings → Resources → WSL Integration). The commands are the same.
+
+2) (Optional) Verify the registration inside the Docker Desktop VM
+
+You can open the docker-desktop distro to inspect kernel state (but not run docker):
+
+wsl -d docker-desktop
+
+
+Inside that shell:
+
+# See binfmt entries
+ls /proc/sys/fs/binfmt_misc
+cat /proc/sys/fs/binfmt_misc/qemu-aarch64
+
+# Example output should show 'enabled' and the path to qemu-aarch64
+
+Why this is the flow
+
+The docker CLI connects to a daemon. On Windows with Docker Desktop, that daemon runs inside the docker-desktop WSL VM.
+
+tonistiigi/binfmt modifies the daemon’s VM (where containers actually run). So you just need your CLI to talk to Docker Desktop; you do not need to run the CLI inside the docker-desktop distro (and you can’t).
+
+If you still see issues after reinstalling binfmt, tell me which shell you used for the docker run ... binfmt commands and the output of:
+
+docker context ls
+docker run --rm --platform=linux/arm64 alpine uname -m
+

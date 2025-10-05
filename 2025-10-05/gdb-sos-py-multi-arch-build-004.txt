@@ -1,0 +1,90 @@
+qemu: uncaught target signal 11 (Segmentation fault) - core dumped means we can find qemu core dump in wsl2 x64 host, right? which folder and what name it is?
+==========
+Short answer: you usually won’t find any core file by default. Whether a core is written (and where) is controlled by Linux settings in the kernel that your process is actually running under. In your case (Windows 11 + WSL2 + Docker Desktop, running an ARM64 container on an x64 host), the crashing process is qemu-aarch64 (user-mode) and it runs inside Docker’s WSL2 Linux VM. So:
+
+If core dumps are disabled (they usually are), there will be no file.
+
+If they’re enabled, the core file’s path and name are defined by /proc/sys/kernel/core_pattern in the Docker VM, not your Windows filesystem or your main Ubuntu WSL distro.
+
+How to check where a core would go (and enable it)
+
+Do this in a shell inside the ARM64 container (the qemu process lives in the same kernel/namespace for our purposes):
+
+# 1) Are core dumps allowed for this process?
+ulimit -c            # 0 means disabled. Unlimited is good.
+
+# 2) What filename/pipeline is used?
+cat /proc/sys/kernel/core_pattern
+# Examples:
+#   core
+#   core.%e.%p.%t
+#   |/usr/share/apport/apport %p %s %c %d %P %u %g %t %e %E   (piped to a crash handler)
+
+
+If you see 0 from ulimit -c, enable it for the container process:
+
+ulimit -c unlimited
+
+
+If core_pattern starts with a pipe (|), crashes are being piped to a handler (e.g., apport or systemd-coredump) inside Docker’s VM, so no .core file appears in your project. If it’s a plain filename, the core will be written in the crashing process’s current working directory (i.e., inside the container’s filesystem).
+
+Make cores land somewhere you can actually see
+
+Add this to your docker-compose.yml service to force core dumps on and put them into a mounted folder:
+
+services:
+  dev-arm64:
+    # ... your existing config ...
+    privileged: true
+    ulimits:
+      core: -1                     # allow core dumps
+    sysctls:
+      kernel.core_pattern: "/cores/core.%e.%p.%t"
+    volumes:
+      - ..:/workspaces/gdbsos:cached
+      - ./cores:/cores             # host folder to collect cores
+    tty: true
+    command: sleep infinity
+
+
+Then recreate the container, reproduce the segfault, and look in your project’s ./cores/ folder on Windows—files like core.qemu-aarch64.12345.1696529999 should appear.
+
+Notes
+
+Some kernels disallow changing kernel.core_pattern in an unprivileged container. You’ve set privileged: true, which typically permits it. If it still doesn’t stick, set it from the host Docker VM (see below), or omit the sysctls line and accept the VM’s default (which may pipe to a handler → no file).
+
+If core_pattern pipes to a handler, you won’t get a file; you’d have to inspect that handler’s storage (e.g., /var/crash/*.crash for Apport, or coredumpctl for systemd-coredump) inside the Docker Desktop VM, not your main WSL distro.
+
+Inspecting the Docker Desktop VM (advanced)
+
+If you really want to look inside the Docker VM that owns binfmt/qemu:
+
+# From Windows PowerShell:
+wsl -l -v
+# You'll see distros like: docker-desktop, docker-desktop-data
+
+# To open a shell in the docker-desktop distro:
+wsl -d docker-desktop
+# Then, inside:
+cat /proc/sys/kernel/core_pattern
+ulimit -c    # (in an interactive shell)
+
+
+If that VM routes crashes to systemd-coredump, use:
+
+coredumpctl list | grep qemu
+coredumpctl info <PID>    # to inspect
+coredumpctl dump <PID> --output=/tmp/qemu.core
+
+
+(Availability depends on whether systemd/coredump is present/enabled in that VM.)
+
+TL;DR
+
+The message means qemu-aarch64 crashed (SIGSEGV).
+
+A core file is not created by default.
+
+If enabled, the core lives wherever core_pattern in the Docker/WSL2 kernel says—often not your project folder.
+
+Easiest way: set ulimits.core=-1, set kernel.core_pattern to /cores/core.%e.%p.%t, mount ./cores:/cores, then reproduce; the core will show up in ./cores on your Windows drive.

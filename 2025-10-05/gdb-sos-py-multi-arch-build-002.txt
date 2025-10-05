@@ -1,0 +1,38 @@
+docker run --privileged --rm tonistiigi/binfmt --uninstall qemu-* || true docker run --privileged --rm tonistiigi/binfmt --install arm64 I need to make sure binfmt registered and works successfully in docker-desktop vm but not my wsl2 ubuntu distro VM, right? they are not related. Docker desktop will use docker-desktop vm to run vs-code containers, right?
+========
+You’ve got it. When you use Docker Desktop on Windows 11 (WSL2 backend):
+
+Your containers run in the docker-desktop WSL VM (and its docker-desktop-data), not in your personal Ubuntu WSL distro—unless you deliberately run a separate Docker daemon there.
+
+Running
+
+docker run --privileged --rm tonistiigi/binfmt --uninstall qemu-* || true
+docker run --privileged --rm tonistiigi/binfmt --install arm64
+
+
+installs/refreshes binfmt inside the Docker Desktop VM used by the Docker daemon you’re currently connected to. If your current Docker context points to Docker Desktop (the default), that’s exactly where it’s applied.
+
+So yes: you need binfmt registered in the Docker Desktop VM. Your separate Ubuntu WSL distro’s binfmt settings are unrelated (unless you switch the Docker CLI to a daemon running inside that distro).
+
+How to double-check you’re targeting Docker Desktop
+docker context ls           # look for the one with a *; usually "default" or "desktop-linux"
+docker context inspect      # confirm it's Docker Desktop
+Quick verification that binfmt works (on Docker Desktop)
+bash
+Copy code
+docker run --rm --platform=linux/arm64 alpine uname -m
+# should print: aarch64
+If you want to see the registration
+Open a shell in the Docker Desktop VM:
+
+powershell
+Copy code
+wsl -d docker-desktop
+Then inside:
+
+bash
+Copy code
+ls /proc/sys/fs/binfmt_misc
+cat /proc/sys/fs/binfmt_misc/qemu-aarch64
+When it would be different
+If you run your own Docker daemon inside your Ubuntu WSL distro and switch docker context to it, then you’d need to run the tonistiigi/binfmt commands there as well—each daemon/VM is separate.

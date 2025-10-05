@@ -1,0 +1,35 @@
+I set up a dual-arch dev container flow so you can open either x64 or arm64 on your WSL2 x86_64 host, with a single shared Dockerfile based on .NET 8.0 jammy.
+
+What I added
+.devcontainer/Dockerfile
+
+Based on your runtime Dockerfile but using mcr.microsoft.com/devcontainers/dotnet:0-8.0-jammy
+Installs the same build dependencies (clang, lldb, liblldb-dev, liblttng-ust-dev, ninja, etc.)
+docker-compose.yml
+
+Two services:
+dev-amd64: platform linux/amd64
+dev-arm64: platform linux/arm64
+Both build from the same Dockerfile and mount the workspace
+privileged and user: vscode preserved
+devcontainer.json
+
+Switched to dockerComposeFile with default service dev-amd64
+Preserved your PATH/DOTNET env, extensions, and postStartCommand
+Simplified postCreateCommand since the Dockerfile installs deps
+How to use
+Enable arm64 emulation once (host):
+devcontainer.json
+Open x64 container (default):
+
+Dev Containers: Reopen in Container (uses service dev-amd64)
+Switch to arm64:
+
+In devcontainer.json, change "service" to "dev-arm64", then Reopen in Container
+Or use the command palette: Dev Containers: Reopen in Container, pick dev-arm64
+Notes
+
+On x86_64 WSL2, arm64 runs via QEMU (slower but fine for parity/testing).
+Both containers share the same workspace and tooling; your build.sh will detect the arch inside the container.
+If you want a quick toggle action instead of editing devcontainer.json, I can add a pair of separate devcontainer-*.json entries or simple scripts to switch the service.
+

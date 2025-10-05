@@ -1,0 +1,66 @@
+I would like to understand more about how aarch64 container running in wsl2 x64 windows 11 host, for example, if I see one test.sh running in container, does that mean there is a process qemu-aarch64-user running on wsl2 x64 to emulate the aarch64 shell to run test.sh?
+
+====
+
+Great question. The short version is: yes—on an x64 Windows 11 host (via Docker Desktop on WSL2), when you run an ARM64 container and execute test.sh, the shell binary that runs the script (e.g. /bin/sh or /bin/bash) is an AArch64 ELF, so the kernel invokes qemu-aarch64 (user-mode) to emulate that process. From there, every AArch64 ELF that the shell launches is also run under qemu-user.
+
+Here’s how it works step-by-step:
+
+binfmt_misc registration (host/VM)
+
+Docker Desktop’s Linux VM (the WSL2 “docker-desktop” distro) registers an interpreter for AArch64 ELFs, typically named qemu-aarch64 (or qemu-aarch64-static) via binfmt_misc.
+
+When the kernel sees an executable with machine type AArch64 on an x86_64 kernel, it routes the exec to that interpreter.
+
+What happens when you run test.sh in the ARM64 container
+
+test.sh is just text. The kernel looks at the shebang line (#!/bin/sh).
+
+It needs to exec the interpreter /bin/sh. In an ARM64 container, /bin/sh is an AArch64 ELF.
+
+The kernel notices the ARM64 ELF, consults binfmt_misc, and starts qemu-aarch64 (an x86_64 binary on the host VM) with /bin/sh as its target.
+
+So the visible process tree is roughly:
+
+(inside container):   /bin/sh test.sh
+(in the WSL2 Docker VM): qemu-aarch64 /bin/sh test.sh
+
+
+Inside the container you see /bin/sh; in the Docker VM you’d see a qemu-aarch64 process that is hosting it.
+
+Children of the shell
+
+When /bin/sh runs other programs (e.g., ldd, node, dotnet, your binaries), each AArch64 exec also goes through binfmt and is emulated by qemu-aarch64. Practically that means:
+
+You’ll often see one qemu-user process per emulated process (fork/exec will create more).
+
+Libraries, dynamic linker, etc., are from the ARM64 rootfs (your container). System calls are translated by qemu to the x86_64 kernel in the Docker VM.
+
+What is not emulated
+
+Kernel things (e.g., loading kernel modules, insmod) aren’t possible from user-mode qemu.
+
+If you somehow try to run an amd64 binary inside that ARM64 container, it will fail (no matching binfmt entry for amd64→amd64 inside an ARM64 rootfs). The host only emulates non-native arches; native x86_64 binaries don’t exist in that ARM64 container anyway.
+
+How to see it
+
+Inside the container you’ll only see the target processes (ps aux shows /bin/sh, ldd, etc.).
+
+In the Docker VM (wsl -d docker-desktop), you can see the qemu-aarch64 processes:
+
+ps -ef | grep qemu-aarch64
+cat /proc/sys/fs/binfmt_misc/qemu-aarch64   # shows the binfmt registration
+
+
+Why your earlier crash looked the way it did
+
+VS Code ran a helper script. That invoked /bin/sh (ARM64), which triggered qemu-aarch64. The segfault you saw was qemu-user crashing while emulating one of those ARM64 utilities, not your script itself crashing natively.
+
+TL;DR
+
+Running test.sh in an ARM64 container on an x64 WSL2 host means the ARM64 shell (/bin/sh) is executed via qemu-aarch64 user mode.
+
+Each AArch64 binary the shell launches is emulated the same way.
+
+Inside the container you see normal ARM64 processes; in the Docker VM you see corresponding qemu-aarch64 host processes doing the emulation.
+
