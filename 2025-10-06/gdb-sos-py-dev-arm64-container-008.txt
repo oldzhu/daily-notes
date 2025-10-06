@@ -1,0 +1,101 @@
+for the steps below disable the current rule: echo -1 > /proc/sys/fs/binfmt_misc/aarch64 install via tonistiigi with --install (privileged) so it re-registers and fd-locks its binary, re-check cat /proc/sys/fs/binfmt_misc/aarch64 and repeat the pgrep/readlink/--version steps. I have the questions 1. for disable the current rule and re-check steps, I just need to enter docker-desktop vm or have to enter dockerd process namespace in docker-desktop vm to disable and check? 2. for install via tonistiigi, I know I need to run it powershell or wsl2 shell but what is the detail command?
+
+==========
+
+Great questions. Here’s the short, practical version.
+
+1) Where to disable/re-check the rule?
+
+Do it in the same mount namespace that dockerd uses, because binfmt_misc is a mount and registrations are per-mount-namespace. On Docker Desktop (Windows/WSL2):
+
+Easiest/safest: run a privileged container on the Docker Desktop engine and operate on /proc/sys/fs/binfmt_misc from there. That container shares the relevant context for binfmt registration and you don’t have to nsenter anything manually.
+
+Advanced: if you’re already hopping into the Docker Desktop VM and nsentering the dockerd process, that also works—just make sure you’re in dockerd’s mount namespace when you echo -1 and when you inspect the entry.
+
+If you’re not sure: use the privileged-container method below.
+
+2) Exact commands (PowerShell or WSL2 shell)
+
+You can paste these as-is in PowerShell or any shell that has the docker CLI pointed at Docker Desktop.
+
+A. Disable the current aarch64 handler (optional but clean)
+docker run --privileged --rm alpine:3 sh -lc '
+  if [ -e /proc/sys/fs/binfmt_misc/aarch64 ]; then
+    echo "Before disable:"; cat /proc/sys/fs/binfmt_misc/aarch64 || true
+    echo -1 > /proc/sys/fs/binfmt_misc/aarch64
+    echo "Disabled."
+  else
+    echo "No aarch64 entry present."
+  fi
+  echo
+  echo "binfmt status:"
+  cat /proc/sys/fs/binfmt_misc/status || true
+'
+
+B. Install tonistiigi’s fd-locked interpreter
+
+(arm64 = aarch64)
+
+docker run --privileged --rm --pull=always tonistiigi/binfmt --install arm64
+
+
+Use --install all if you want every QEMU handler, or a comma list like --install "arm64,riscv64,ppc64le".
+
+C. Verify the registration you just created
+docker run --privileged --rm alpine:3 sh -lc '
+  echo "aarch64 entry:"
+  cat /proc/sys/fs/binfmt_misc/aarch64 || { echo "missing"; exit 1; }
+'
+
+
+You should see something like:
+
+enabled
+interpreter /proc/self/fd/XX   # or a path
+flags: FOC...                  # F present = fd-locked
+...
+
+D. Prove which QEMU the kernel will actually run
+
+Trigger an ARM64 run so qemu starts:
+
+docker run --rm --platform=linux/arm64 alpine:3 uname -m
+
+
+Inspect the live interpreter process (from a privileged helper):
+
+# show any qemu-aarch64 pids
+docker run --privileged --net=host --pid=host --rm alpine:3 sh -lc '
+  p=$(pgrep -f qemu-aarch64 | head -n1 || true)
+  [ -n "$p" ] || { echo "No qemu-aarch64 running right now"; exit 0; }
+  echo "PID: $p"
+  echo -n "exe: "; readlink -f /proc/$p/exe
+  echo "stat:"
+  stat -c "%n  inode=%i  mtime=%y" /proc/$p/exe || true
+  echo
+  echo "version:"
+  /proc/$p/exe --version | head -n1
+'
+
+
+The line printed by /proc/$p/exe --version is the authoritative version you’re actually using.
+
+Notes & tips
+
+You don’t have to do step A; tonistiigi/binfmt --install will (re)register the handlers for you. I include it because it makes before/after state obvious.
+
+If you see flags containing F, the interpreter is fd-locked, which is what you want for stability across namespace/path changes.
+
+If you want to uninstall what tonistiigi set:
+
+docker run --privileged --rm tonistiigi/binfmt --uninstall arm64
+
+
+To see what version the tonistiigi image ships, you can check:
+
+docker run --privileged --rm tonistiigi/binfmt --version
+
+
+but remember: the live process check (step D) is what proves what the kernel actually uses.
+
+If you run these and paste the verification blocks (C/D), I can confirm you’re on the build you expect.

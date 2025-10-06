@@ -1,0 +1,67 @@
+docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# pgrep -f qemu-aarch64 902 docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# readlink -f /proc/902/exe /usr/bin/qemu-aarch64 docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# stat -c '%n inode=%i mtime=%y' /proc/902/e xe /proc/902/exe inode=10617 mtime=2025-10-06 08:45:31.770283793 +0000 docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# stat -c '%n inode=%i mtime=%y' /usr/bin/qe mu-aarch64 stat: can't stat '/usr/bin/qemu-aarch64': No such file or directory docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# nsenter -t 203 -m -u -i -n -p sh -lc 'stat - c "%n inode=%i mtime=%y" /usr/bin/qemu-aarch64' /usr/bin/qemu-aarch64 inode=16527 mtime=2024-02-15 11:11:26.000000000 +0000 docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# /proc/902/exe --version qemu-aarch64 version 8.1.5 (v8.1.5) Copyright (c) 2003-2023 Fabrice Bellard and the QEMU Project developers docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# pls refer above command output, a little bit wired, it show inode are different, but /proc.902/exe --version show version is 8.1.5 not like the version 10.0.4 reported from docker run --privileged --rm tonistiigi/binfmt --version
+
+=========
+
+You're seeing 3 different “views” of the world at once, which makes the output look contradictory—but it actually lines up:
+
+What your data says
+
+Binfmt entry
+
+interpreter /usr/bin/qemu-aarch64
+flags: POCF
+
+
+F = fd-locked. The kernel pinned the exact file it opened at registration time.
+
+The running interpreter (PID 902)
+
+readlink -f /proc/902/exe  → /usr/bin/qemu-aarch64
+stat /proc/902/exe         → inode=10617  mtime=2025-10-06 08:45:31
+/proc/902/exe --version    → qemu-aarch64 version 8.1.5
+
+
+So the actual interpreter in use is QEMU 8.1.5.
+
+The path in the dockerd namespace
+
+nsenter ... stat /usr/bin/qemu-aarch64 → inode=16527  mtime=2024-02-15
+
+
+Different inode from the running one.
+
+Why the inode differs (but the version is 8.1.5)
+
+Different mount namespaces. /usr/bin/qemu-aarch64 inside PID 203’s namespaces (your nsenter) is not the same filesystem object as the one PID 902 sees. Different mount → different inode.
+
+Fd-locking (F flag). Even if /usr/bin/qemu-aarch64 later changes or is different across namespaces, the kernel keeps using the pinned file it opened at registration. That pinned file is what PID 902 is executing.
+
+No contradiction with tonistiigi/binfmt --version. That command prints the version shipped inside the tonistiigi container (often 10.0.4). It doesn’t prove the host kernel is using that build. Your live process proves the kernel is running 8.1.5.
+
+Quick sanity checks you can run (optional)
+# See order of handlers (first match wins). If both “aarch64” and “qemu-aarch64” exist,
+# the earlier one in this list is used.
+cat /proc/sys/fs/binfmt_misc/status
+
+# Show all ARM64-related handlers to see if there’s more than one
+for f in /proc/sys/fs/binfmt_misc/*; do [ -f "$f" ] && echo "== $f ==" && cat "$f"; done | grep -E '^(==|interpreter|flags|magic)' -n
+
+# See if the running exe is a different mount than your nsenter shell
+ls -l /proc/902/exe   # shows “... -> /usr/bin/qemu-aarch64” and appends “(deleted)” if unlinked
+
+TL;DR
+
+The kernel is currently executing QEMU 8.1.5 for aarch64, as shown by /proc/902/exe --version.
+
+The inode mismatch is expected due to namespace/mount differences and fd-locking—it doesn’t change which binary actually runs.
+
+tonistiigi/binfmt --version is not authoritative for what the kernel uses; it only reports the version bundled by that image.
+
+If you want to switch to tonistiigi’s build (e.g., 10.0.4), you must (in the same VM/namespace that actually owns binfmt):
+
+disable the current rule: echo -1 > /proc/sys/fs/binfmt_misc/aarch64
+
+install via tonistiigi with --install (privileged) so it re-registers and fd-locks its binary,
+
+re-check cat /proc/sys/fs/binfmt_misc/aarch64 and repeat the pgrep/readlink/--version steps.
+

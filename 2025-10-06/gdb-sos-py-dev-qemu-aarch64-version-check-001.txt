@@ -1,0 +1,48 @@
+oldzhu@oldzhu-box-999:~/daily-notes/2025-10-06$ docker run -i --rm --platform=linux/arm64 alpine:3 sh
+Unable to find image 'alpine:3' locally
+3: Pulling from library/alpine
+6e174226ea69: Pull complete
+Digest: sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
+Status: Image is up to date for alpine:3
+ls
+...
+docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# ps aux
+PID   USER     TIME  COMMAND
+    1 root      0:00 {init(docker-des} /init
+    5 root      0:00 {init} plan9 --control-socket 6 --log-level 4 --server-fd 7 --pipe-fd 9 --log-truncate
+    8 root      0:00 {SessionLeader} /init
+    9 root      0:01 {Relay(10)} /init
+   10 root      0:00 /usr/bin/vpnkit-bridge --pid-file=/run/vpnkit-bridge.pid guest
+   11 root      0:00 {Relay(12)} /init
+   12 root      0:00 wsl-bootstrap run --base-image /c/Program Files/Docker/Docker/resources/docker-desktop.iso --cli-i
+   39 root      0:00 unshare -mpf --propagation=unchanged --kill-child /usr/local/bin/wsl-bootstrap jump
+   40 root      0:00 /init
+   66 root      0:19 /init services
+   88 root      0:00 /bin/sh /usr/bin/rungetty.sh
+   89 root      0:00 /bin/login -f
+  119 root      0:00 /usr/local/bin/containerd-stargz-grpc
+  121 root      0:00 -bash
+  127 root      0:34 /usr/bin/containerd --config /etc/containerd/containerd.toml
+  165 100       0:00 /sbin/rpcbind -w
+  176 root      0:00 /sbin/rpc.statd
+  202 root      0:00 /usr/sbin/rpc.idmapd
+  203 root      0:34 /usr/local/bin/dockerd --config-file /run/config/docker/daemon.json --containerd /run/containerd/c
+  508 root      0:00 {SessionLeader} /init
+  509 root      0:00 {Relay(510)} /init
+  510 root      0:00 -sh
+ 1827 root      0:00 /usr/bin/containerd-shim-runc-v2 -namespace moby -id d7a1a5fa6326fcae01088133ba0a73805c248e48aa19c
+ 1848 root      0:00 {sh} /usr/bin/qemu-aarch64 /bin/sh sh
+ 1869 root      0:00 ps aux
+docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# /proc/1848/exe --version
+qemu-aarch64 version 10.0.4 (v10.0.4)
+Copyright (c) 2003-2025 Fabrice Bellard and the QEMU Project developers
+docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# /proc/1848/exe --version
+-sh: /proc/1848/exe: not found
+docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# nsenter -t 203 -m -u -i -n -p sh -lc 'cat /p
+roc/sys/fs/binfmt_misc/qemu-aarch64'
+enabled
+interpreter /usr/bin/qemu-aarch64
+flags: POCF
+offset 0
+magic 7f454c460201010000000000000000000200b700
+mask ffffffffffffff00fffffffffffffffffeffffff

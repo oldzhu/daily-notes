@@ -1,0 +1,125 @@
+Inside the dockerd namespace (PID 197 in your snippet):
+
+nsenter -t 203 -m -u -i -n -p sh -lc '
+  ls /proc/sys/fs/binfmt_misc
+  for f in /proc/sys/fs/binfmt_misc/*; do
+    [ -f "$f" ] && echo "== $f ==" && cat "$f"
+  done | sed -n "/^== .*aarch64/,+10p"
+'
+
+
+Look for a file named qemu-aarch64 (or similar) and check its interpreter line. That path (and the fd it was registered with if the F flag is used) is what the kernel runs. If it reads /usr/bin/qemu-aarch64, then you were using 8.1.5; if it’s the fd-locked tonistiigi one, you’ll effectively be on v10.0.4. 
+Kernel Documentation
+pls explain more on  "That path (and the fd it was registered with if the F flag is used) is what the kernel runs. If it reads /usr/bin/qemu-aarch64, then you were using 8.1.5; if it’s the fd-locked tonistiigi one, you’ll effectively be on v10.0.4. " and give samples output of the command for me to understand
+
+===========
+
+Great question — here’s what that line means and how to read the entry you’ll see under /proc/sys/fs/binfmt_misc/:
+
+What the “interpreter path (and fd if F is used)” means
+
+Every binfmt_misc entry tells the kernel which program to exec when it encounters a binary with a given magic (e.g., an aarch64 ELF on an x86_64 host). That program is shown on the interpreter line of the entry.
+
+If the F flag is present, the kernel opens the interpreter binary at registration time and pins that open file. Later, when an aarch64 binary is run, the kernel uses that already-opened file even if the path has moved or the mount namespace changed. In other words, with F, the path in the entry is just informational; the actual thing run is the pinned file descriptor the kernel saved when the entry was registered. 
+Kernel Documentation
++1
+
+So:
+
+If the entry says interpreter /usr/bin/qemu-aarch64 (or ...-static) and it was registered from your distro package, you’ll be running whatever version that path pointed to at registration (in your context: qemu 8.1.5).
+
+If it was registered by tonistiigi/binfmt with the F flag (fd-locked), you’re effectively running the exact QEMU binary that container opened when it installed the binfmt — commonly a newer static build (in your context: qemu 10.0.4). Even if /usr/bin/qemu-aarch64 later changes, the kernel will keep using the pinned one. 
+Docker Hub
++1
+
+Sample outputs
+
+Below are realistic examples of what your nsenter one-liner could print when you inspect qemu-aarch64 inside the dockerd namespace.
+
+1) Distro-provided QEMU (e.g., 8.1.5) registered by systemd-binfmt or a package
+/proc/sys/fs/binfmt_misc:
+qemu-aarch64  register  status
+== /proc/sys/fs/binfmt_misc/qemu-aarch64 ==
+enabled
+interpreter /usr/bin/qemu-aarch64-static
+flags: OCF
+offset 0
+magic 7f454c460201010000000000000000000200b700
+mask  ffffffffffffff00fffffffffffffffffeffffff
+
+
+Key points:
+
+interpreter points at a normal file path (/usr/bin/qemu-aarch64-static).
+
+flags: OCF is common:
+
+O: pass an open fd of the target binary to the interpreter,
+
+C: credentials based on the target binary,
+
+F: interpreter opened/pinned at registration (sometimes present, sometimes not, depending on how it was installed).
+
+If this was installed by your distro, that path usually maps to the distro’s QEMU version (your note: 8.1.5). Example outputs like this (with -static and OCF) are widely documented. 
+i7y blog
+
+2) fd-locked registration (e.g., from tonistiigi/binfmt, effectively 10.0.4)
+/proc/sys/fs/binfmt_misc:
+qemu-aarch64  register  status
+== /proc/sys/fs/binfmt_misc/qemu-aarch64 ==
+enabled
+interpreter /proc/self/fd/42
+flags: FOC
+offset 0
+magic 7f454c460201010000000000000000000200b700
+mask  ffffffffffffff00fffffffffffffffffeffffff
+
+
+Key points:
+
+The interpreter may appear as a /proc/self/fd/<n> handle (or still show a normal path), but the crucial part is flags: F — the kernel has already opened and pinned that exact QEMU binary at registration time. The entry keeps working even if the original file path disappears or you switch namespaces/mounts. That’s how the tonistiigi/binfmt approach stays stable and can ship its own newer QEMU builds (your note: 10.0.4). 
+Kernel Documentation
++2
+Docker Hub
++2
+
+Why this matters: with F, the version you actually run is the one that was opened during registration, not whatever /usr/bin/qemu-aarch64 points to today. That’s why “fd-locked tonistiigi one” means you’re effectively on the version bundled by that image.
+
+How to check on your host
+
+Your one-liner is perfect. You’re grepping just the aarch64 entry:
+
+nsenter -t 203 -m -u -i -n -p sh -lc '
+  ls /proc/sys/fs/binfmt_misc
+  for f in /proc/sys/fs/binfmt_misc/*; do
+    [ -f "$f" ] && echo "== $f ==" && cat "$f"
+  done | sed -n "/^== .*aarch64/,+10p"
+'
+
+
+Look at the interpreter line and flags:
+
+If it shows a normal path like /usr/bin/qemu-aarch64(-static) and you know that path is QEMU 8.1.5, then that’s what you had at registration time.
+
+If flags includes F, the kernel is running the pinned fd that was opened then (e.g., tonistiigi/binfmt’s static QEMU 10.0.4), regardless of current filesystem state. 
+Kernel Documentation
++1
+
+If you want even more certainty, you can temporarily disable the entry (echo -1 > /proc/sys/fs/binfmt_misc/qemu-aarch64), re-register with the tool you expect (distro vs. tonistiigi), and re-read the file to confirm the interpreter and flags. (Be careful if other builds depend on it.)
+
+References
+
+Linux kernel docs for binfmt_misc flags (F, O, C, P) and behavior. 
+Kernel Documentation
+
+Example qemu-aarch64 entry showing interpreter /usr/bin/qemu-aarch64-static and flags: OCF. 
+i7y blog
+
+Using F keeps the interpreter usable even after package removal / path change (pinned at registration). 
+Red Hat Bugzilla
+
+tonistiigi/binfmt uses F to fd-lock the interpreter it provides. 
+Docker Hub
++1
+
+If you paste your actual qemu-aarch64 entry here, I’ll decode exactly which version you’re effectively using.

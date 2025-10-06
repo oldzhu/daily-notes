@@ -1,0 +1,109 @@
+== /proc/sys/fs/binfmt_misc/aarch64 == enabled interpreter /usr/bin/qemu-aarch64 flags: POCF offset 0 magic 7f454c460201010000000000000000000200b700 mask ffffffffffffff00fffffffffffffffffeffffff
+========
+
+What this means (line by line)
+
+interpreter /usr/bin/qemu-aarch64 → The rule was registered using that path.
+
+flags: POCF
+
+P: preserve original argv[0]
+
+O: pass the opened target binary’s fd to the interpreter
+
+C: run interpreter with the target’s creds (so setuid-like semantics work correctly)
+
+F: fd-locked — the kernel opened the interpreter at registration time and pinned that exact file. That pinned file is what actually runs.
+
+So which QEMU version are you “effectively” using?
+
+Because F is present, the kernel will keep using the exact binary that was opened when this rule was registered, regardless of what /usr/bin/qemu-aarch64 points to now.
+
+If the registration was done when /usr/bin/qemu-aarch64 was QEMU 8.1.5, you are effectively on 8.1.5 (pinned).
+
+If the rule was registered by something like tonistiigi/binfmt that fd-locks a newer static build, you’re effectively on that newer build (e.g., 10.0.4), even if /usr/bin/qemu-aarch64 later changes.
+
+The entry alone doesn’t reveal the version—only that it’s fd-locked to whatever that path resolved to at registration.
+
+How to prove which binary/version is actually running
+Option A — Observe a live qemu-aarch64 process (most reliable)
+
+Trigger an ARM64 run to make the interpreter start:
+
+docker run --rm --platform=linux/arm64 alpine uname -m
+
+
+Find the running QEMU process:
+
+pgrep -f qemu-aarch64
+
+
+Suppose it prints 4242.
+
+Inspect the exact file image the kernel is executing:
+
+readlink -f /proc/4242/exe
+stat -c '%n  inode=%i  mtime=%y' /proc/4242/exe
+# Compare with:
+stat -c '%n  inode=%i  mtime=%y' /usr/bin/qemu-aarch64
+
+
+If inodes match, the pinned file is the current /usr/bin/qemu-aarch64.
+
+If the exe path shows (deleted) or the inode differs, the kernel is using a pinned copy that’s no longer the same filesystem object (classic sign of fd-locking to a different build).
+
+Ask that exact image for its version:
+
+/proc/4242/exe --version | head -n1
+
+
+That prints the actual QEMU version in use.
+
+Option B — Temporarily re-register (only if you can disrupt briefly)
+# Disable current rule (careful: affects ARM emulation until re-enabled)
+echo -1 | sudo tee /proc/sys/fs/binfmt_misc/aarch64
+
+# Reinstall via your chosen method, then re-check:
+cat /proc/sys/fs/binfmt_misc/aarch64
+# Confirm interpreter + flags, then run Option A again.
+
+What your current entry suggests
+
+You are fd-locked (F present).
+
+The interpreter was /usr/bin/qemu-aarch64 at registration.
+
+If your system package provided that path (e.g., QEMU 8.1.5) and it registered the rule, you’re effectively on 8.1.5.
+
+If you used a tool (e.g., tonistiigi/binfmt) that registered while pointing at a different binary (or later replaced the file), you might actually be on a newer build—check with Option A to be sure.
+
+If you paste the results of the Option A commands (readlink/stat/version), I’ll tell you definitively which one you’re running.
+
+docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# pgrep -f qemu-aarch64
+902
+docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# readlink -f /proc/902/exe
+/usr/bin/qemu-aarch64
+docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# stat -c '%n  inode=%i  mtime=%y' /proc/902/e
+xe
+/proc/902/exe  inode=10617  mtime=2025-10-06 08:45:31.770283793 +0000
+docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# stat -c '%n  inode=%i  mtime=%y' /usr/bin/qe
+mu-aarch64
+stat: can't stat '/usr/bin/qemu-aarch64': No such file or directory
+docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# nsenter -t 203 -m -u -i -n -p sh -lc 'stat -
+c '%n  inode=%i  mtime=%y' /usr/bin/qe
+> mu-aarch64'
+stat: missing operand
+Try 'stat --help' for more information.
+docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# nsenter -t 203 -m -u -i -n -p sh -lc 'stat -
+c '%n  inode=%i  mtime=%y' /usr/bin/qemu-aarch64'
+stat: missing operand
+Try 'stat --help' for more information.
+docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# nsenter -t 203 -m -u -i -n -p sh -lc 'stat -
+c "%n  inode=%i  mtime=%y" /usr/bin/qemu-aarch64'
+/usr/bin/qemu-aarch64  inode=16527  mtime=2024-02-15 11:11:26.000000000 +0000
+docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# /proc/902/exe --version
+qemu-aarch64 version 8.1.5 (v8.1.5)
+Copyright (c) 2003-2023 Fabrice Bellard and the QEMU Project developers
+docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien#
+
+

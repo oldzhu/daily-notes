@@ -1,0 +1,74 @@
+Inside the docker-desktop, I can see the below
+
+docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# ls -la /proc/sys/fs/binfmt_misc
+total 0
+drwxr-xr-x    2 root     root             0 Oct  6 01:23 .
+dr-xr-xr-x    1 root     root             0 Oct  6 01:24 ..
+-rw-r--r--    1 root     root             0 Oct  6 01:23 WSLInterop
+-rw-r--r--    1 root     root             0 Oct  6 01:24 aarch64
+-rw-r--r--    1 root     root             0 Oct  6 01:24 arm
+-rw-r--r--    1 root     root             0 Oct  6 01:24 mips64
+-rw-r--r--    1 root     root             0 Oct  6 01:24 mips64le
+-rw-r--r--    1 root     root             0 Oct  6 01:24 ppc64le
+--w-------    1 root     root             0 Oct  6 01:24 register
+-rw-r--r--    1 root     root             0 Oct  6 01:24 riscv64
+-rw-r--r--    1 root     root             0 Oct  6 01:24 s390x
+-rw-r--r--    1 root     root             0 Oct  6 01:23 status
+and in aarch64, I could see the below content
+enabled
+interpreter /usr/bin/qemu-aarch64
+flags: POCF
+offset 0
+magic 7f454c460201010000000000000000000200b700
+mask ffffffffffffff00fffffffffffffffffeffffff
+
+but there is no /usr/bin/qemu-aarch64
+docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# ls -la /usr/bin/qemu-aarch64
+ls: /usr/bin/qemu-aarch64: No such file or directory
+but from docker run --privileged --rm tonistiigi/binfmt --version, I could see qemu version is 10.0.0.4, is this normal? does that mean docker desktop vm will use the qemu in tonistiigi/binfmt container but not the /usr/bin/qemu? am I correct? 
+=================
+
+Short answer: yes—that’s normal. The binfmt entry you’re reading is global, but the interpreter /usr/bin/qemu-aarch64 path is resolved in the mount namespace where Docker Desktop’s daemon registered it (dockerd/buildkit), not necessarily in the shell you’re using. So you won’t see that file in your interactive docker-desktop shell, even though it exists in the daemon’s namespace. The tonistiigi/binfmt --version output is the reliable truth about what’s actually registered and being used.
+
+If you want to prove which binary/version is in use, here are a few ways:
+
+Option A — Enter the Docker daemon’s namespaces and check directly
+# inside the docker-desktop distro
+ps aux | grep dockerd
+# take the PID for dockerd (say, 1234), then:
+sudo nsenter -t 1234 -m -u -i -n -p sh -lc '
+  echo "Interpreter from binfmt:"; awk -F": " "/^interpreter/ {print \$2}" /proc/sys/fs/binfmt_misc/aarch64;
+  echo; ls -l /usr/bin/qemu-aarch64 || true;
+  /usr/bin/qemu-aarch64 -version || true
+'
+
+
+You should see the file and a version string here, because you’re now in the same mount namespace where it was installed.
+
+Option B — Ask Docker to tell you (no nsenter)
+docker run --privileged --rm tonistiigi/binfmt --version
+
+
+This reads the active registrations and invokes the interpreters the same way the daemon would. If it reports qemu-aarch64 (v10.0.0.4), that’s what will run.
+
+Option C — Reinstall (or pin) the emulator & re-check
+# override whatever Docker Desktop registered
+docker run --privileged --rm tonistiigi/binfmt --uninstall qemu-*
+docker run --privileged --rm tonistiigi/binfmt:qemu-v10.0.4-56 --install arm64
+
+# confirm
+docker run --privileged --rm tonistiigi/binfmt --version
+
+Option D — Sanity test with a tiny arm64 run
+docker run --rm --platform linux/arm64 alpine uname -m
+# should print: aarch64
+
+Why the file “isn’t there” in your shell
+
+/proc/sys/fs/binfmt_misc/* is kernel-wide, but the interpreter path is looked up at exec time in the caller’s mount namespace.
+
+Docker Desktop registers the QEMU binaries inside the daemon/buildkit environment (a different mount namespace), so /usr/bin/qemu-aarch64 exists there, not necessarily in your login shell’s view of the filesystem.
+
+If your goal is just to fix the segfaults, overriding with a known-good tonistiigi/binfmt tag (Option C) is usually all you need; the exact path where the binary lives is less important than what --version reports.
+
+

@@ -1,0 +1,124 @@
+[ 1005.210298] WSL (8130 - CaptureCrash): Capturing crash for pid: 3419, executable: !usr!bin!qemu-aarch64, signal: 11, port: 50005 [ 1006.269167] qemu-aarch64: ldconfig.real: potentially unexpected fatal signal 11. [ 1006.270096] CPU: 2 PID: 8131 Comm: ldconfig.real Not tainted 6.6.87.2-microsoft-standard-WSL2 #1 [ 1006.270975] RIP: 0033:0x7701a2 [ 1006.271312] Code: 0f 05 48 83 f8 da 75 d4 4c 89 c0 48 89 d6 0f 05 c3 48 89 f8 4d 89 c2 48 89 f7 4d 89 c8 48 89 d6 4c 8b 4c 24 08 48 89 ca 0f 05 <c3> e9 e1 ff ff ff 48 8d 3d 91 9e 21 00 e9 3a 1f 00 00 48 8d 3d 85 [ 1006.272568] RSP: 002b:00007ffe9ebffd08 EFLAGS: 00000246 ORIG_RAX: 0000000000000082 [ 1006.273378] RAX: fffffffffffffdfe RBX: 000000000000000b RCX: 00000000007701a2 [ 1006.274022] RDX: 0000000000000000 RSI: 0000000000000008 RDI: 00007ffe9ebffd40 [ 1006.274785] RBP: 000000000000000b R08: 0000000000000000 R09: 0000000000000000 [ 1006.275322] R10: 0000000000000000 R11: 0000000000000246 R12: 000000000097bec0 [ 1006.276026] R13: 00007de3377ec960 R14: 00007ffe9ebffd40 R15: 00007de33781e430 [ 1006.276751] FS: 00007de33f8ed0f0 GS: 0000000000000000 [ 1006.277783] WSL (8135 - CaptureCrash): Capturing crash for pid: 3423, executable: !usr!bin!qemu-aarch64, signal: 11, port: 50005
+
+======
+
+Thanks — those logs nail it:
+
+The crashing process is the host emulator qemu-aarch64 (signal 11).
+
+It dies while running ldconfig.real from libc-bin during the post-install step.
+
+So the failure isn’t your Dockerfile; it’s the user-mode QEMU that Docker Desktop/WSL2 uses to run linux/arm64 containers on x86_64.
+
+Below is a tight “fix or prove” checklist you can run right now.
+
+1) Replace the emulator Docker Desktop is using (most effective)
+
+Install a known-good binfmt/QEMU set and override whatever Docker Desktop registered:
+
+# In any shell with Docker CLI (PowerShell, CMD, or WSL)
+docker run --privileged --rm tonistiigi/binfmt --uninstall qemu-*
+docker run --privileged --rm tonistiigi/binfmt --install arm64
+# (or --install all if you do multi-arch regularly)
+
+
+Verify what’s active:
+
+docker run --privileged --rm tonistiigi/binfmt --version
+docker run --privileged --rm tonistiigi/binfmt --install arm64
+
+
+Then retry your --platform linux/arm64 run/build.
+(If it still crashes, repeat the two commands but pin a different tag, e.g. tonistiigi/binfmt:qemu-v8.0.4 or a newer qemu-vX.Y.Z tag. Some QEMU releases have user-mode regressions; swapping versions is the fast workaround.)
+
+2) Confirm what’s currently registered in Docker Desktop’s WSL VM
+# Jump into the Docker Desktop distro
+wsl -d docker-desktop
+
+# See the binfmt entry (path to emulator, flags, etc.)
+cat /proc/sys/fs/binfmt_misc/qemu-aarch64
+
+# Check the emulator version that entry points to
+/usr/bin/qemu-aarch64 -version || /usr/lib/binfmt.d/qemu-aarch64 -version
+
+
+If that shows an older/newer QEMU known to be flaky, step (1) above will override it.
+
+3) Capture an actual core file from qemu-aarch64 (to prove it)
+
+WSL’s “CaptureCrash” messages are informational. To get a readable core:
+
+mkdir -p ./cores
+docker run -it --rm \
+  --platform linux/arm64 \
+  --ulimit core=-1 \
+  --sysctl kernel.core_pattern=/cores/core.%e.%p.%t \
+  -v ${PWD}/cores:/cores \
+  <image-or-cmd-that-crashes>
+
+
+After it segfaults, you should have ./cores/core.qemu-aarch64.<pid>.<ts> on the host.
+
+Minimal inspection (inside WSL Ubuntu):
+
+sudo apt-get update && sudo apt-get install -y gdb
+gdb /usr/bin/qemu-aarch64-static ./cores/core.qemu-aarch64.*
+bt     # backtrace
+
+
+(If your binfmt points to a different qemu path, use that binary in gdb.)
+
+You can also check kernel logs right where the crash happens:
+
+wsl -d docker-desktop -- dmesg | tail -n 200
+
+4) Unstick apt after you fix QEMU
+
+Once the emulator is stable, re-run the postinst that failed:
+
+# inside your ARM64 container
+dpkg --configure -a
+apt-get -f install
+
+
+If your Dockerfile got stuck mid-layer, just rebuild after step (1).
+
+5) Workarounds if you need progress today
+
+Change base image: Try ubuntu:24.04 instead of 22.04, or switch to debian:bookworm. Different ldconfig/libc-bin combos often avoid the crash path.
+
+Avoid ldconfig during build: As a temporary hack in a throwaway build stage only, you can stub /sbin/ldconfig:
+
+RUN printf '#!/bin/sh\nexit 0\n' > /sbin/ldconfig && chmod +x /sbin/ldconfig \
+    && apt-get update && apt-get install -y <your deps> \
+    && rm -f /sbin/ldconfig && ldconfig
+
+
+(Do this only to get past the build; remove the hack before shipping.)
+
+Skip emulation entirely (rock-solid): Use a real ARM64 builder/runner:
+
+docker buildx create --name armbuilder --driver docker-container --use
+# If you have a remote ARM box:
+# docker buildx create --name armbuilder --use ssh://user@arm-host
+docker buildx build --platform linux/arm64 -t yourimg:arm64 .
+
+
+Or push to a registry with --push and run it on an ARM node.
+
+6) Quick sanity test for your environment
+# If this fails, your emulator is still broken
+docker run --rm --platform linux/arm64 alpine uname -a
+
+# Then try a small apt step on Ubuntu ARM64
+docker run --rm -it --platform linux/arm64 ubuntu:22.04 \
+  bash -lc 'apt-get update && apt-get install -y ca-certificates && echo OK'
+
+
+If Alpine works but Ubuntu crashes on libc-bin, it’s definitely the QEMU + ldconfig interaction.
+
+TL;DR
+
+Your dmesg shows qemu-aarch64 segfaulting while running ldconfig.real — a known QEMU user-mode issue that appears during libc-bin’s postinst. Replace the binfmt/QEMU bundle with tonistiigi/binfmt (or pin a different tag), then dpkg --configure -a. If you want proof, capture a core using the --ulimit core + kernel.core_pattern trick above and open it with gdb against the host qemu-aarch64 binary.
+
+

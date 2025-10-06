@@ -1,0 +1,105 @@
+while I am  checking qemu version I saw something seems conflict:
+1. check /usr/bin/qemu-aarch64 under dockerd namespace version:
+docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# ps aux|grep dockerd
+  197 root      0:13 /usr/local/bin/dockerd --config-file /run/config/docker/daemon.json --containerd /run/containerd/containerd.sock --pidfile /run/desktop/docker.pid --swarm-default-advertise-addr=192.168.65.3 --host-gateway-ip 192.168.65.254 --allow-direct-routing
+ 1352 root      0:00 grep dockerd
+
+docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# nsenter -t 197 -m -u -i -n -p sh -lc '
+>   echo "Interpreter from binfmt:"; awk -F": " "/^interpreter/ {print \$2}" /proc/sys/fs/binfmt_misc/aarch64;
+>   echo; ls -l /usr/bin/qemu-aarch64 || true;
+>   /usr/bin/qemu-aarch64 -version || true
+> '
+Interpreter from binfmt:
+
+
+-rwxr-xr-x 1 root root 10042928 Feb 15  2024 /usr/bin/qemu-aarch64
+qemu-aarch64 version 8.1.5 (v8.1.5)
+Copyright (c) 2003-2023 Fabrice Bellard and the QEMU Project developers
+2. ask docker to check the version
+oldzhu@oldzhu-box-999:~/daily-notes/2025-10-06$ docker run --privileged --rm tonistiigi/binfmt --version
+binfmt/8bf932d qemu/v10.0.4 go/1.23.12
+
+one is qemu-aarch64 say version is 8.1.5 and docker says qemu version is v10.0.4, now I am confused and is it normal? which version is used and if there is known issue to cause the crash as the above?
+
+===========
+
+Short answer: yes, seeing two different “versions” is normal—and the segfault you hit matches a known QEMU-user bug that affects ldconfig.real in Jammy/22.04 ARM64 roots.
+
+What those two versions mean
+
+nsenter … /usr/bin/qemu-aarch64 -version → 8.1.5
+That’s the QEMU user emulator installed inside the Docker Desktop VM (the dockerd namespace you entered). When the kernel’s binfmt_misc hands off an aarch64 binary, it will run whatever interpreter path is registered there—often /usr/bin/qemu-aarch64 or /usr/bin/qemu-aarch64-static. Your crash logs also show that path: executable: !usr!bin!qemu-aarch64, which strongly suggests the 8.1.5 binary actually ran.
+
+docker run … tonistiigi/binfmt --version → qemu/v10.0.4
+That’s the version bundled in the tonistiigi/binfmt image. It only becomes the one the kernel uses if you’ve installed (registered) those emulators into binfmt_misc. The image also supports using the F (fd-locked) registration trick so the kernel pins the exact binary that was installed at that time. 
+GitHub
++1
+
+So: the version “used” is whatever binfmt_misc is currently pointing at, not necessarily the one the helper image reports.
+
+Why the segfault?
+
+There’s a documented QEMU-user regression where qemu-aarch64[-static] segfaults running ldconfig.real from Ubuntu 21.04–22.04 (glibc 2.33–2.35) when the emulator is around QEMU 8.1/8.2 era. Ubuntu tracked it and fixed it in patched QEMU builds (>= 8.2.2+ds-0ubuntu1.7 on Noble, >= 9.0.2 on Oracular). Your stack trace (ldconfig.real crashing during libc-bin postinst) matches that issue. 
+Launchpad
++1
+
+How to see what’s actually registered
+
+Inside the dockerd namespace (PID 197 in your snippet):
+
+nsenter -t 197 -m -u -i -n -p sh -lc '
+  ls /proc/sys/fs/binfmt_misc
+  for f in /proc/sys/fs/binfmt_misc/*; do
+    [ -f "$f" ] && echo "== $f ==" && cat "$f"
+  done | sed -n "/^== .*aarch64/,+10p"
+'
+
+
+Look for a file named qemu-aarch64 (or similar) and check its interpreter line. That path (and the fd it was registered with if the F flag is used) is what the kernel runs. If it reads /usr/bin/qemu-aarch64, then you were using 8.1.5; if it’s the fd-locked tonistiigi one, you’ll effectively be on v10.0.4. 
+Kernel Documentation
++1
+
+Fix / workarounds
+
+Pick one:
+
+Re-register binfmt to a fixed, new QEMU
+Install a recent tonistiigi release into binfmt_misc:
+
+# On the Windows host in WSL (not inside a container)
+docker run --privileged --rm tonistiigi/binfmt:qemu-v10.0.4 --install aarch64
+
+
+Then re-check the interpreter entry as above. This uses a QEMU that already includes the upstream fix. 
+Docker Hub
+
+Update the QEMU in the Docker Desktop VM (if you control it)
+If that VM is Ubuntu-based and you can apt-get inside it, make sure qemu-user(-static) is a build with the fix (e.g., Noble 1:8.2.2+ds-0ubuntu1.7 or Oracular 9.0.2+). That specifically resolves the ldconfig.real segfault on 22.04 ARM64 roots. 
+Launchpad
+
+Temporary build workaround
+If you only need to get past libc-bin during image builds, you can (hacky!) skip ldconfig while under emulation, e.g.:
+
+# before apt operations
+RUN ln -sf /bin/true /sbin/ldconfig && \
+    apt-get update && apt-get -y dist-upgrade && \
+    ln -sf /usr/sbin/ldconfig /sbin/ldconfig
+
+
+But the proper fix is using a patched QEMU.
+
+Use a newer base
+If possible, use an ARM64 base that doesn’t fall into the bad ldconfig window (e.g., Ubuntu 24.04 or Debian bookworm). Those don’t trip this specific bug with modern QEMU. 
+Launchpad
+
+TL;DR
+
+Your kernel was almost certainly running /usr/bin/qemu-aarch64 8.1.5 (the path in the crash log), not the v10.0.4 from tonistiigi/binfmt.
+
+That version mismatch is normal; the active one is whatever binfmt_misc registered.
+
+The crash is a known QEMU-user bug with ldconfig.real from 22.04 that’s fixed in newer QEMU. Re-register binfmt with tonistiigi/binfmt:qemu-v10.0.4 (or otherwise upgrade the emulator), and it should go away. 
+GitHub
++1
+
+If you want, paste the cat /proc/sys/fs/binfmt_misc/qemu-aarch64 output and I’ll tell you exactly which binary is being invoked.

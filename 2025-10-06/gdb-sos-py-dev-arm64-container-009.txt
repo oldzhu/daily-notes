@@ -1,0 +1,140 @@
+It is wired....
+ docker run --privileged --rm tonistiigi/binfmt --version
+binfmt/8bf932d qemu/v10.0.4 go/1.23.12
+you can see qemu version is v10.0.4
+then I installed and registered tonistiigi/binfmt qemu for aarch64 as as the below 
+oldzhu@oldzhu-box-999:~/daily-notes/2025-10-06$ docker run --privileged --rm --pull=always tonistiigi/binfmt --install arm64
+latest: Pulling from tonistiigi/binfmt
+Digest: sha256:30cc9a4d03765acac9be2ed0afc23af1ad018aed2c28ea4be8c2eb9afe03fbd1
+Status: Image is up to date for tonistiigi/binfmt:latest
+installing: arm64 OK
+{
+  "supported": [
+    "linux/amd64",
+    "linux/amd64/v2",
+    "linux/amd64/v3",
+    "linux/arm64",
+    "linux/riscv64",
+    "linux/ppc64le",
+    "linux/s390x",
+    "linux/386",
+    "linux/arm/v7",
+    "linux/arm/v6"
+  ],
+  "emulators": [
+    "WSLInterop",
+    "arm",
+    "mips64",
+    "mips64le",
+    "ppc64le",
+    "qemu-aarch64",
+    "riscv64",
+    "s390x"
+  ]
+}
+But it still show qemu version is 8.1.15 as the below(203 is the pid for dockerd)
+
+docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# nsenter -t 203 -m -u -i -n -p sh -lc '/usr/b
+in/qemu-aarch64 --version'
+
+
+qemu-aarch64 version 8.1.5 (v8.1.5)
+Copyright (c) 2003-2023 Fabrice Bellard and the QEMU Project developers
+
+it is normal?
+ChatGPT said:
+Thought for 31s
+
+Short answer: yes, that’s “normal” for what you ran—the number you checked (/usr/bin/qemu-aarch64 --version inside dockerd’s ns) is just the file on disk, not necessarily the interpreter the kernel will launch. And right now you still have an older handler taking precedence.
+
+Here’s how to make it unambiguous and switch to tonistiigi’s v10.0.4.
+
+Why you’re seeing 8.1.5
+
+tonistiigi/binfmt --version tells you what that image ships (v10.0.4).
+
+cat /proc/sys/fs/binfmt_misc/* tells you what’s registered (and in what order).
+
+/usr/bin/qemu-aarch64 --version prints the distro file in that namespace (8.1.5).
+
+The kernel actually uses the first matching binfmt rule (order matters) and, if the rule has F, the pinned fd it opened at registration.
+
+So if an older aarch64 rule (pointing to /usr/bin/qemu-aarch64 8.1.5) is ahead of the qemu-aarch64 rule tonistiigi installed, you’ll keep running 8.1.5.
+
+Fix it (do everything in the Docker Desktop engine’s context)
+0) Inspect what’s actually registered and in what order
+docker run --privileged --rm alpine:3 sh -lc '
+  echo "== status =="; cat /proc/sys/fs/binfmt_misc/status || true
+  echo; for f in /proc/sys/fs/binfmt_misc/*; do
+    [ -f "$f" ] || continue
+    echo "== $f =="; sed -n "1,8p" "$f"
+  done
+'
+
+
+Look for both an entry named aarch64 and one named qemu-aarch64, their flags, and which one appears earlier in status.
+
+1) Remove the old handler(s)
+
+Disable anything that matches aarch64 before reinstalling:
+
+docker run --privileged --rm alpine:3 sh -lc '
+  for n in aarch64 qemu-aarch64; do
+    if [ -e /proc/sys/fs/binfmt_misc/$n ]; then
+      echo "Disabling $n"; echo -1 > /proc/sys/fs/binfmt_misc/$n
+    fi
+  done
+  echo; cat /proc/sys/fs/binfmt_misc/status || true
+'
+
+2) Install tonistiigi’s handler into the same binfmt mount the engine uses
+
+(Explicitly bind the binfmt mount so we aren’t touching a private one.)
+
+docker run --privileged --rm \
+  -v /proc/sys/fs/binfmt_misc:/proc/sys/fs/binfmt_misc \
+  tonistiigi/binfmt --install arm64
+
+3) Verify the new registration
+docker run --privileged --rm alpine:3 sh -lc '
+  echo "== aarch64 entry =="; cat /proc/sys/fs/binfmt_misc/aarch64 || true
+  echo; echo "== status =="; cat /proc/sys/fs/binfmt_misc/status || true
+'
+
+
+You want to see:
+
+flags contain F (fd-locked)
+
+Only one ARM64 handler (ideally named aarch64)
+
+It appears early in status (order matters)
+
+4) Prove the running interpreter is v10.0.4
+
+Start any ARM64 container to spawn QEMU, then inspect the live process:
+
+# trigger qemu
+docker run --rm --platform=linux/arm64 alpine:3 uname -m
+
+# check the live qemu-aarch64
+docker run --privileged --rm --pid=host --net=host alpine:3 sh -lc '
+  p=$(pgrep -f qemu-aarch64 | head -n1 || true)
+  [ -n "$p" ] || { echo "No qemu-aarch64 running"; exit 0; }
+  echo "PID: $p"
+  echo -n "exe: "; readlink -f /proc/$p/exe
+  /proc/$p/exe --version | head -n1
+'
+
+
+That last line is the authoritative version actually in use. You should now see qemu-aarch64 version 10.0.4.
+
+Common gotchas
+
+Two handlers (e.g., aarch64 and qemu-aarch64) both match ARM64 ELF. The first in status wins. Remove the other or ensure the tonistiigi one is first.
+
+Wrong namespace/mount: Running --install without binding /proc/sys/fs/binfmt_misc can register inside the container’s private mount, not the engine’s. The -v /proc/sys/fs/binfmt_misc:/proc/sys/fs/binfmt_misc avoids that.
+
+Checking the file vs. the process: qemu-aarch64 --version shows a file on disk (often 8.1.5). The kernel might still run a pinned tonistiigi binary. Always confirm with the live process (/proc/<pid>/exe --version).
+
+If you run steps 0–4 and paste the status, the aarch64 entry, and the live --version, I can double-check that you’re truly on 10.0.4.

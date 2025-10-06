@@ -1,0 +1,95 @@
+750.5 Processing triggers for libc-bin (2.35-0ubuntu3.10) ... 750.6 qemu: uncaught target signal 11 (Segmentation fault) - core dumped 751.6 Segmentation fault (core dumped) 751.6 qemu: uncaught target signal 11 (Segmentation fault) - core dumped 752.7 Segmentation fault (core dumped) 752.7 dpkg: error processing package libc-bin (--configure): 752.7  installed libc-bin package post-installation script subprocess returned error exit status 139 752.7 Errors were encountered while processing: 752.7  libc-bin 752.9 E: Sub-process /usr/bin/dpkg returned an error code (1) ------ My scenario is I have to run my vscode aacrh64 container in my wsl2 x64 windows 11 host, but I got the above error, I know docker-desktop vm will use qemu to run aarch64 elf program and it seems core dumped as above, how to config and check the dump file crated in docker-desktop vm or how to fix the error?
+
+===========
+
+That stack trace is the classic “ldconfig/libc-bin crashes under qemu-user” failure while emulating ARM64 on an x86_64 host. It’s not your Dockerfile—this is almost always a QEMU bug/regression in the user-mode emulator that Docker Desktop (via WSL2) uses for linux/arm64 containers. You can either (A) swap in a non-broken QEMU, (B) capture a core to prove it’s QEMU, or (C) avoid emulation.
+
+Here’s a pragmatic, do-it-now plan.
+
+1) Quick fix: replace the emulator Docker Desktop is using
+
+Docker Desktop registers the emulators in the kernel’s binfmt_misc. You can override them with the maintained tonistiigi/binfmt images.
+
+Install a known-good QEMU build:
+
+# (Run on your Windows host in PowerShell or any WSL shell that has Docker CLI)
+docker run --privileged --rm tonistiigi/binfmt:qemu-v10.0.4-56 --uninstall qemu-*
+docker run --privileged --rm tonistiigi/binfmt:qemu-v10.0.4-56 --install arm64
+# (Or install all emulators)
+# docker run --privileged --rm tonistiigi/binfmt:qemu-v10.0.4-56 --install all
+
+
+Verify what’s registered:
+
+docker run --privileged --rm tonistiigi/binfmt --version
+docker run --privileged --rm tonistiigi/binfmt --install arm64   # prints current status
+
+
+Now retry your --platform linux/arm64 container/build.
+Why this helps: multiple reports show qemu-aarch64 segfaulting while libc-bin runs its postinst (ldconfig). The regression has been tracked in QEMU/Ubuntu; switching to a release without the regression or to a fixed newer build resolves it. 
+That stack trace is the classic “ldconfig/libc-bin crashes under qemu-user” failure while emulating ARM64 on an x86_64 host. It’s not your Dockerfile—this is almost always a QEMU bug/regression in the user-mode emulator that Docker Desktop (via WSL2) uses for linux/arm64 containers. You can either (A) swap in a non-broken QEMU, (B) capture a core to prove it’s QEMU, or (C) avoid emulation.
+
+Here’s a pragmatic, do-it-now plan.
+
+1) Quick fix: replace the emulator Docker Desktop is using
+
+Docker Desktop registers the emulators in the kernel’s binfmt_misc. You can override them with the maintained tonistiigi/binfmt images.
+
+Install a known-good QEMU build:
+
+# (Run on your Windows host in PowerShell or any WSL shell that has Docker CLI)
+docker run --privileged --rm tonistiigi/binfmt:qemu-v10.0.4-56 --uninstall qemu-*
+docker run --privileged --rm tonistiigi/binfmt:qemu-v10.0.4-56 --install arm64
+# (Or install all emulators)
+# docker run --privileged --rm tonistiigi/binfmt:qemu-v10.0.4-56 --install all
+
+
+Verify what’s registered:
+
+docker run --privileged --rm tonistiigi/binfmt --version
+docker run --privileged --rm tonistiigi/binfmt --install arm64   # prints current status
+
+
+Now retry your --platform linux/arm64 container/build.
+Why this helps: multiple reports show qemu-aarch64 segfaulting while libc-bin runs its postinst (ldconfig). The regression has been tracked in QEMU/Ubuntu; switching to a release without the regression or to a fixed newer build resolves it. 
+You can also peek at the emulator registrations and kernel messages in the Docker Desktop VM:
+
+# Enter the Docker Desktop WSL distro:
+wsl -d docker-desktop
+
+# See what binfmt entries are active:
+cat /proc/sys/fs/binfmt_misc/qemu-aarch64
+
+# Kernel logs around the crash:
+dmesg | tail -n 100
+
+
+These steps confirm it’s QEMU that’s faulting during libc-bin’s postinst (ldconfig). Known reports match exactly what you’re seeing. 
+Launchpad
++1
+
+3) Extra knobs that often help
+
+Try a different base image (e.g., Ubuntu 24.04 vs 22.04, or Debian Bookworm vs Bullseye). Some combinations exercise different ldconfig code paths. That’s why the bug shows up specifically during libc-bin configure. 
+Launchpad
++1
+
+Keep your binfmt fresh on the node doing the build/run. Re-installing with tonistiigi/binfmt updates the emulators even on Docker Desktop/WSL2. 
+GitHub
+
+Build without emulation (the robust route): use a remote ARM64 builder/runner (EC2 Graviton, a Pi, etc.) with docker buildx create --name armbld --driver docker-container --platform linux/arm64 ssh://... and docker buildx build --builder armbld --platform linux/arm64 .... This avoids qemu entirely.
+
+4) Why this happens (the tl;dr)
+
+There have been QEMU user-mode regressions (post-8.1) that crash while running ldconfig.real in ARM64 rootfs under x86_64. Ubuntu tracked it as a bug against qemu-user-static with reports that downgrading to 8.0.4 avoided the segfault; newer upstream releases have fixes. That’s exactly the “installed libc-bin … exit status 139” symptom you posted. 
+Launchpad
++1
+
+If you hit another snag, paste the output of:
+
+docker run --privileged --rm tonistiigi/binfmt --version
+docker run --rm --platform linux/arm64 alpine uname -a
+
+
+and the lines from dmesg around the crash, and I’ll map that to a specific binfmt/QEMU version combo.
+
