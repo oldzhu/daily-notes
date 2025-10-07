@@ -1,0 +1,16 @@
+Short version: In a single working tree, truly concurrent x64 and arm64 builds aren’t safe with Arcade as-is, because it always uses submodule/.dotnet when tools.runtimes is present. Our symlink solves correctness, but if two builds flip it mid-run, one could end up running the wrong arch’s SDK.
+
+What the current setup guarantees
+
+Diagnostics: we hold a lock across the entire diagnostics build, so a second arch waits until the first finishes. This avoids mid-build flips.
+Runtime: we currently lock only the pre-install/symlink step. If you start two arches at once, the second could flip the .dotnet link while the first runtime build is still running.
+What this means for concurrency
+
+Same workspace:
+Safe: serialize per submodule. Diagnostics is already serialized; we should extend the runtime lock to cover the whole build step too if you want strict safety there.
+Not safe: fully parallel x64+arm64 builds in the same checkout without serialization.
+Different workspaces/containers: safe to run in parallel (recommended for real concurrency).
+For example: use two devcontainers or two git worktrees pointing to the same commit.
+If you’d like, I can update build-coreclr-corelib.sh to hold the runtime lock for the full duration of the runtime build steps, matching diagnostics’ behavior. That will ensure that even if you kick off both arches in the same folder, one will wait for the other instead of conflicting.
+
+

@@ -1,0 +1,60 @@
+I setup two containers successfully (amd64 and aarch64) successfully but have two problems need to solve:
+1. qemu version used to emulated
+ in dockerd namespace, the /usr/bin/qemu-aarch64 version is 8.1.5 which  has a known issue would crash sometimes.
+ the qemu in tonistiigi/binfmt is 10.0.14, I can use docker run --privileged --rm tonistiigi/binfmt --install arm64 to let docker-desktop vm to use the qemu 10.0.14 to fix the crash in qemu 8.1.5. 
+ but I found whenvery docker engine is restarted or whenver my wsl2 windows 11 host is restarted, the qemu used by VM will switch back to 8.1.5. How do make qemu 10.0.14 register persistent? Otherwise I have to run docker run --privileged --rm tonistiigi/binfmt --install arm64 everytime docker engine is restarted or any other better way to handle this situation?
+ 2. .donet conflict in the /workspaces/gdbsos of the two containers.
+ In gdbsos build.sh, I have to build diagnostics submodule 1st, the building process by default will download .dotnet sdk to /workspaces/gdbsos/src/diagnotics/.dotnet and then use it. That would cuase the problem as the /workspace/gdbsos is shared betwen the two containers. which means I can not run the two containers and build the gdbsos concurrently becuase one expect /workspaces/gdbsos/src/diagnotics/.dotnet is for amd64 and another expect /workspaces/gdbsos/src/diagnotics/.dotnet is for arm64. This conflict also exists when building submodule /workspaces/gdbsos/src/runtime, how to solve this conflict?
+
+===========
+
+I’ll tackle both issues: make the QEMU registration automatic every time you start the arm64 container, and isolate the .dotnet toolset per-arch so x64/arm64 builds don’t conflict.
+
+What I changed
+docker-compose.yml
+Added a one-shot init service to register QEMU v10.0.14:
+Service: binfmt → image tonistiigi/binfmt:qemu-v10.0.14, command ["--install","arm64"]
+dev-arm64 depends_on the binfmt service (runs it each time you reopen the arm64 container)
+Per-service .NET toolset isolation:
+dev-amd64 env: DOTNET_ROOT/DOTNET_INSTALL_DIR → /workspaces/gdbsos/.dotnet-amd64
+dev-arm64 env: DOTNET_ROOT/DOTNET_INSTALL_DIR → /workspaces/gdbsos/.dotnet-arm64
+PATH is scoped to the service-specific .dotnet dir to avoid cross-arch mixing
+devcontainer.json
+Removed global PATH/DOTNET_ROOT from remoteEnv so compose service env fully controls it.
+This achieves:
+
+QEMU 10.0.14 is auto-registered before the arm64 container starts, even after Docker restarts.
+The diagnostics/runtime submodules install and use their own arch-specific .dotnet toolset (no conflict when both containers are open or building concurrently).
+Why this addresses your points
+Persistent QEMU registration on Docker Desktop/WSL2
+Docker Desktop’s Moby VM resets binfmt on engine restart, so registrations aren’t persistent by design.
+By adding the binfmt one-shot service and making dev-arm64 depend on it, the registration runs automatically whenever you reopen the arm64 dev container—no manual command required.
+Alternative options (if you prefer):
+Add an initializeCommand in devcontainer.json to run the same binfmt container on host before compose up.
+Use a Windows Task Scheduler job that runs on logon/startup:
+wsl.exe -d <YourDistro> docker run --privileged --rm tonistiigi/binfmt:qemu-v10.0.14 --install arm64
+.dotnet toolset conflict across x64/arm64
+Arcade/diagnostics honors DOTNET_INSTALL_DIR. We set:
+x64: /workspaces/gdbsos/.dotnet-amd64
+arm64: /workspaces/gdbsos/.dotnet-arm64
+PATH is set per-service so each container sees only its own toolset. This prevents cross-arch binaries being reused incorrectly.
+If you prefer to keep toolsets under each submodule, we can point these to src/diagnostics/.dotnet-amd64 and src/diagnostics/.dotnet-arm64 (and similarly for src/runtime); the approach is the same.
+How to try it
+Open arm64 container (ensures QEMU 10.0.14 is registered first due to depends_on):
+Dev Containers: Reopen in Container (service dev-arm64)
+Inside container:
+uname -m → aarch64
+echo $DOTNET_ROOT → /workspaces/gdbsos/.dotnet-arm64
+Open amd64 container (service dev-amd64):
+uname -m → x86_64
+echo $DOTNET_ROOT → /workspaces/gdbsos/.dotnet-amd64
+Build note:
+
+When you run ./build.sh, diagnostics/runtime will install a .NET SDK into the arch-specific directory thanks to DOTNET_INSTALL_DIR, so both containers can build concurrently without fighting over the same .dotnet folder.
+Optional refinements
+Use named Docker volumes for toolsets (keeps workspace cleaner):
+Mount a dotnet-amd64 volume to /workspaces/gdbsos/.dotnet-amd64 and dotnet-arm64 for arm64.
+If you want the registration step to run for both services every time (not just arm64), add depends_on: binfmt to dev-amd64 too—harmless on x64.
+If you want “true persistence” across engine restarts without relying on devcontainer startup:
+Use a startup script (Task Scheduler) that runs the binfmt container once at boot/logon.
+If you want me to switch the toolset dirs to live under src/diagnostics and src/runtime (e.g., src/diagnostics/.dotnet-amd64 and .dotnet-arm64), I can update the compose env to match.

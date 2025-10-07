@@ -1,0 +1,50 @@
+I am testing build.sh and saw the below
+oldzhu@oldzhu-box-999:~/gdbsos$ git status
+On branch main
+Your branch is ahead of 'origin/main' by 1 commit.
+(use "git push" to publish your local commits)
+
+Changes not staged for commit:
+(use "git add <file>..." to update what will be committed)
+(use "git restore <file>..." to discard changes in working directory)
+(commit or discard the untracked or modified content in submodules)
+modified: .devcontainer/devcontainer.json
+modified: .devcontainer/docker-compose.yml
+modified: .devcontainer/post-start.sh
+modified: README.md
+modified: build.sh
+modified: docs/faq.md
+modified: src/diagnostics (untracked content)
+modified: src/scripts/build-coreclr-corelib.sh
+modified: src/tests/gdb/test.sh
+oldzhu@oldzhu-box-999:~/gdbsos/src/diagnostics$ git status
+HEAD detached from a8536653
+Untracked files:
+(use "git add <file>..." to include in what will be committed)
+.dotnet.arm64/
+.dotnet.x64/
+seems related with .dotnet.[arch] we created. I don't want them to be tracked, just adding .dotnet.arm64 amd .dotnet.x64 in .gitignore in reporoot is enough?
+
+=============
+Short answer: No. A .gitignore in the repo root doesn’t affect files inside a Git submodule. That’s a separate repo with its own ignore rules.
+
+What works instead:
+
+Submodule-local ignore (no commits needed): add patterns to the submodule’s .git/info/exclude so those folders don’t show as untracked.
+Patterns to add: .dotnet* and .dotnet.*
+Committed ignore (requires changing the submodule repo): add a .gitignore inside the submodule with those patterns, commit in the submodule, then update the submodule pointer in the superproject. Usually not desirable here.
+I’ve automated the safe option:
+
+build.sh now appends .dotnet* and .dotnet.* to src/diagnostics/.git/info/exclude.
+build-coreclr-corelib.sh does the same for src/runtime/.git/info/exclude.
+After one run, git status in the superproject should no longer show “src/diagnostics (untracked content)” or similar from those toolset folders.
+
+==========
+No—changes to .git/info/exclude are local-only and never tracked by Git, even inside a submodule.
+
+Quick facts:
+
+.git/info/exclude lives inside the submodule’s .git directory.
+It behaves like a personal .gitignore for that submodule on your machine.
+It’s not part of the repository working tree, so it won’t show in git status, can’t be staged, and doesn’t require a commit or submodule pointer update.
+This is why I chose info/exclude over committing a .gitignore into the submodule. It keeps your main repo clean without touching the submodule history

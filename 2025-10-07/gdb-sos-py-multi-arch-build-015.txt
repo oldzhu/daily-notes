@@ -1,0 +1,27 @@
+Got it. I’ve updated the runtime helper as requested:
+
+Lock scope widened: We now acquire the runtime lock at the top and hold it for the entire script (until the very end), so a parallel build for another arch will wait rather than flipping .dotnet mid-run.
+
+No backups, prompt instead:
+
+If src/runtime/.dotnet is a symlink pointing somewhere else, we warn and:
+Relink automatically if RT_DOTNET_FORCE=1 is set
+Otherwise prompt interactively [y/N]; abort if declined or non-interactive
+If src/runtime/.dotnet is a directory, we warn similarly and only replace it with a symlink when you confirm or set RT_DOTNET_FORCE=1
+This avoids any migration or mixing of contents
+Everything else (pre-install, progress output, elapsed timing, PATH check) stays as-is.
+
+Notes:
+
+For CI/non-interactive runs where you want an automatic relink, set RT_DOTNET_FORCE=1 in the environment.
+With the lock held for the full build, two builds in the same workspace will serialize safely.
+If you want the same prompt-only (no backup) behavior on diagnostics too, I can mirror that change in build.sh as well.
+
+All set. I updated build.sh to match your preference:
+
+No backups or migration of diagnostics/.dotnet anymore.
+If diagnostics/.dotnet is:
+A symlink to a different target: warn and prompt to relink to .dotnet.{arch}; or auto-relink if DIAG_DOTNET_FORCE=1.
+A directory: warn and prompt to remove and replace with a symlink; or auto-replace if DIAG_DOTNET_FORCE=1.
+Missing: create the symlink to .dotnet.{arch}.
+This mirrors the runtime script’s behavior. Combined with the lock we already take, this avoids cross-arch mixing and gives you explicit control in both interactive and CI modes.

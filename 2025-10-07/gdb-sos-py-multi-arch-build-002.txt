@@ -1,0 +1,85 @@
+what u mean "switch the toolset dirs to live under src/diagnostics and src/runtime (e.g., src/diagnostics/.dotnet-amd64 and .dotnet-arm64), I can update the compose env to match.", pls explain what u will do but do not aply the code change before I understand and agree.
+
+===========
+
+Good question—here’s exactly what I meant by “switch the toolset dirs to live under src/diagnostics and src/runtime,” plus the implications, without changing any code yet.
+
+Two viable layouts
+Option A (what we set up now): one per-arch toolset at workspace root
+
+x64: /workspaces/gdbsos/.dotnet-amd64
+arm64: /workspaces/gdbsos/.dotnet-arm64
+Pros: simple, no further changes needed; both submodules reuse the same per-arch toolset.
+Cons: diagnostics and runtime share the same SDK location; if they need different SDKs simultaneously, this can clash.
+Option B (what I proposed): per-submodule, per-arch toolsets
+
+Diagnostics:
+x64: /workspaces/gdbsos/src/diagnostics/.dotnet-amd64
+arm64: /workspaces/gdbsos/src/diagnostics/.dotnet-arm64
+Runtime:
+x64: /workspaces/gdbsos/src/runtime/.dotnet-amd64
+arm64: /workspaces/gdbsos/src/runtime/.dotnet-arm64
+Pros: complete isolation; diagnostics and runtime can pin different SDKs without stepping on each other.
+Cons: slightly more complexity and disk use; requires a small tweak to build.sh so each submodule uses its own path.
+How Option B would work (concrete plan, no changes yet)
+Choose install dirs per submodule and arch as listed above.
+
+Adjust environment usage (what the build scripts look for)
+
+Both diagnostics and runtime use Arcade’s tooling logic (eng/common/tools.sh) which honors:
+DOTNET_INSTALL_DIR: where to install/use the SDK
+DOTNET_ROOT: often set equal to DOTNET_INSTALL_DIR
+DOTNET_MULTILEVEL_LOOKUP=0: keeps builds hermetic
+PATH: prepend 
+𝐷
+𝑂
+𝑇
+𝑁
+𝐸
+𝑇
+𝐼
+𝑁
+𝑆
+𝑇
+𝐴
+𝐿
+𝐿
+𝐷
+𝐼
+𝑅
+𝑎
+𝑛
+𝑑
+DOTNET 
+I
+​
+ NSTALL 
+D
+​
+ IRand{DOTNET_INSTALL_DIR}/tools for convenience
+Minimal change in build.sh to set the right directory before each submodule build
+Before running diagnostics build:
+export DOTNET_INSTALL_DIR=/workspaces/gdbsos/src/diagnostics/.dotnet-${ARCH}
+export DOTNET_ROOT=$DOTNET_INSTALL_DIR
+export PATH="$DOTNET_INSTALL_DIR:$DOTNET_INSTALL_DIR/tools:$PATH"
+Then invoke build.sh …
+Before running runtime build:
+Re-export DOTNET_INSTALL_DIR=/workspaces/gdbsos/src/runtime/.dotnet-${ARCH}
+export DOTNET_ROOT=$DOTNET_INSTALL_DIR
+export PATH="$DOTNET_INSTALL_DIR:$DOTNET_INSTALL_DIR/tools:$PATH"
+Then invoke build.sh …
+Compose environment for dev containers
+We can either:
+Keep DOTNET_* unset in compose so build.sh owns the choice per submodule (simplest/most explicit), or
+Set a “default” per arch (e.g., point to diagnostics) knowing build.sh will override to runtime before calling runtime’s build.
+For clarity, I’d prefer the first: let build.sh set DOTNET_INSTALL_DIR/ROOT just-in-time per submodule.
+Compatibility
+If DOTNET_INSTALL_DIR isn’t set, Arcade defaults to repoRoot/.dotnet (which is what caused the original conflict).
+With Option B, there’s no ambiguity—each submodule installs to its own arch-specific folder.
+TL;DR recommendations
+If you don’t need different SDKs per submodule right now, Option A (per-arch at workspace root) is already enough and simpler.
+If you want the most robust isolation (and the ability to run both submodules concurrently with different SDKs), go with Option B:
+I’ll tweak build.sh to export DOTNET_INSTALL_DIR/ROOT per submodule call as above.
+I’ll leave DOTNET_* unset in compose so build.sh is the single source of truth.
+If you choose Option B, say the word and I’ll implement exactly those build.sh exports (no other behavior changes), and keep compose env clean so there’s no accidental override.
+

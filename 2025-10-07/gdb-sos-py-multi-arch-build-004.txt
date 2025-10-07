@@ -1,0 +1,47 @@
+Actions planned and taken
+I made targeted edits to move all dotnet toolset selection into scripts just-in-time, and removed any lingering assumptions about a fixed src/diagnostics/.dotnet path:
+
+build.sh
+
+Before diagnostics build: export DOTNET_INSTALL_DIR/ROOT to src/diagnostics/.dotnet.${ARCH}, set DOTNET_MULTILEVEL_LOOKUP=0, and prepend PATH.
+Before configuring/building the bridge (which relies on runtime): set DOTNET_INSTALL_DIR/ROOT to src/runtime/.dotnet.${ARCH} similarly.
+post-start.sh
+
+Removed hard-coded DOTNET_ROOT and PATH pointing to src/diagnostics/.dotnet.
+Added a note: DOTNET_ROOT is intentionally unset; build.sh sets per-submodule toolsets.
+docker-compose.yml
+
+Kept the binfmt init service for persistent QEMU 10.0.14 registration.
+Removed per-service DOTNET_* and PATH so the container doesn’t force one toolset. Scripts now own the choice (avoids cross-arch bleed).
+build-coreclr-corelib.sh
+
+Unsets any prior DOTNET_* unless KEEP_GOOD_ENVS=1.
+Exports DOTNET_INSTALL_DIR/ROOT to src/runtime/.dotnet-${ARCH}, sets DOTNET_MULTILEVEL_LOOKUP=0, and adjusts PATH. This isolates runtime’s toolset.
+Scripts scanned
+
+src/scripts/checkout-sub-runtime.sh, deploy-all.sh, run_with_capture.sh, update-sub-diagnostics.sh: no .dotnet assumptions found.
+swap-coreclr.sh references the shared runtime under diagnostics/.dotnet/shared—this is expected; it copies into the runtime shared framework, not the SDK toolset. No change needed.
+Tests scanned
+
+The logs show prior runs had /src/diagnostics/.dotnet/dotnet. That was via environment before. With Option B, tests don’t need to know the SDK path—scripts set it at build time.
+If you also want the runtime build scripts under src/runtime or diagnostics’ own build scripts forcibly to use the per-arch toolset, we already satisfy it by exporting DOTNET_INSTALL_DIR/ROOT right before invoking their build.sh.
+
+Do you need to rebuild the dev containers?
+Yes, to pick up the compose change (we removed DOTNET_* env there). Rebuilding refreshes the container environment.
+You do not need to rebuild the base image (Dockerfile unchanged since last edit). A “Rebuild and Reopen in Container” is sufficient.
+Follow-ups I can do next (if you approve)
+Ensure tests and any harness don’t rely on DOTNET_ROOT in their execution environment. Today they don’t set it; they’re fine.
+Optional: add a short section to README/CONTRIBUTING describing the per-submodule per-arch toolset layout:
+Diagnostics SDK: src/diagnostics/.dotnet-x64 or .dotnet-arm64
+Runtime SDK: src/runtime/.dotnet-x64 or .dotnet-arm64
+Build scripts select automatically.
+Quick sanity checks after you rebuild containers
+In amd64 container:
+echo $DOTNET_ROOT should be empty (container-level).
+Run build.sh -c Debug; confirm creation of src/diagnostics/.dotnet.x64 and src/runtime/.dotnet.x64 as needed.
+In arm64 container:
+Same, but .dotnet.arm64 counterparts.
+You can build both concurrently; SDKs won’t conflict.
+If you want me to proceed with any further tweaks (e.g., moving shared README notes, or adding a small helper that prints which toolset will be used per submodule), say the word.
+
+

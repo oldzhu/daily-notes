@@ -1,0 +1,22 @@
+You’re right—the second install into .dotnet is coming from Arcade’s InitializeDotNetCli, and it’s expected when global.json contains a “runtimes” entry.
+
+Why it happens:
+
+Arcade logic: if global.json has runtimes, it ignores DOTNET_INSTALL_DIR for the “use existing SDK” check and defaults to installing under repo_root/.dotnet.
+Your logs show exactly that: first we pre-install to .dotnet.arm64, then Arcade installs again to .dotnet (without suffix).
+What I changed to fix it:
+
+Before diagnostics builds, I now ensure .dotnet is a symlink to src/diagnostics/.dotnet.${ARCH}.
+If .dotnet already existed as a directory, we migrate its contents into the suffixed folder and then replace it with a symlink.
+Did the same for runtime: src/runtime/.dotnet -> src/runtime/.dotnet-${ARCH}.
+Kept the submodule clean by appending .dotnet* and .dotnet.* to each submodule’s .git/info/exclude (local-only).
+What this achieves:
+
+Even when Arcade insists on using src/diagnostics/.dotnet, it transparently lands in the per-arch folder.
+With the symlink in place before Arcade runs, the second “install” should be a no-op (SDK already present) rather than a full download.
+How to verify quickly:
+
+ls -l .dotnet → should point to .dotnet.arm64 (or .dotnet.x64).
+Rerun build.sh; you’ll still see “Adding to PATH: …/.dotnet”, but it’s now the symlink to your arch-suffixed SDK.
+Future runs should skip re-downloading if the SDK is already present in the suffixed directory.
+If you still see a fresh download after this change, it likely means the symlink was created after Arcade started. In that case, run build.sh again so the link exists before the Arcade scripts execute.

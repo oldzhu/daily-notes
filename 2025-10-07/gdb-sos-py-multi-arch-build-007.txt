@@ -1,0 +1,19 @@
+Good call—yes, piping dotnet-install output to /dev/null made it look hung. I’ve adjusted our script to show progress and timing, and fixed the PATH check so you can see whether DOTNET is actually on PATH.
+
+what I changed
+Removed >/dev/null 2>&1 around dotnet-install so you’ll see its normal progress output.
+Added clear logs before running the installer:
+Prints args, architecture, and a “PATH includes DOTNET” check.
+Measures elapsed time and prints “dotnet-install completed in Ns”.
+Optional timeout support: set DOTNET_INSTALL_TIMEOUT to a number (seconds), and the run will be wrapped in timeout --foreground N for easier CI/local control.
+Fixed PATH detection logic to reliably say yes/no.
+You can now re-run your build and observe the installer’s progress directly:
+
+You should see dotnet-install fetching artifacts and extracting SDKs if they’re not already present.
+If it stalls due to network, you’ll see where it stopped rather than a totally silent gap.
+If you want to guard against long waits, export DOTNET_INSTALL_TIMEOUT=600 (or your preferred duration) before running.
+Example (optional):
+
+export DOTNET_INSTALL_TIMEOUT=600
+build.sh -c Release
+If anything still feels stuck, share the last few lines of the dotnet-install output and I’ll help triage.

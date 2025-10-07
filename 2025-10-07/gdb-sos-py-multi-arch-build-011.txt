@@ -1,0 +1,38 @@
+Using "Apply Patch"
+
+
+```
+
+```
+
+
+Using "Apply Patch"
+
+
+```
+
+```
+Short answer: with the new symlink approach, concurrent x64 and arm64 builds are safe as long as we avoid racing the .dotnet symlink and installer. I’ve added guards to make this robust.
+
+What could conflict
+- Arcade insists on using submodule/.dotnet when global.json has “runtimes”. If two builds flip that path at the same time (e.g., one pointing to .dotnet.x64 and the other to .dotnet.arm64), you can get transient races.
+
+What we did to prevent it
+- Stable target per-arch: We keep SDKs in `.dotnet.{arch}` (diagnostics) and `.dotnet-{arch}` (runtime).
+- Stable entry point: We replace `submodule/.dotnet` with a symlink to the per-arch directory before calling Arcade. This makes Arcade’s “fallback” deterministic.
+- Locking: Added a submodule-local file lock during the sensitive section (symlink flip + optional pre-install + Arcade initialize).
+  - Diagnostics: `src/diagnostics/.dotnet-arcade.lock`
+  - Runtime: `src/runtime/.dotnet-arcade.lock`
+  - Uses `flock` to serialize those steps; after the build step, the lock is released.
+
+Result
+- Two builds (x64 and arm64) in the same workspace won’t corrupt each other:
+  - Each uses its own SDK folder.
+  - The shared `.dotnet` entry gets switched atomically under a lock.
+  - The installer run is serialized to avoid partial extracts colliding.
+
+Notes
+- If you truly need fully parallel builds without any serialization, run them in separate workspaces or containers. The lock keeps things correct but will make the second build wait briefly while the first initializes.
+- The submodule exclude additions remain local-only and won’t show up in git status.
+
+Made changes.

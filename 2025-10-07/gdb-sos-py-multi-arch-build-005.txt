@@ -1,0 +1,34 @@
+Changes made
+build.sh: use Diagnostics toolset for the bridge too
+I removed the runtime .dotnet assignment and ensured both the diagnostics build and the subsequent bridge configure/build use the diagnostics toolset:
+DOTNET_INSTALL_DIR/ROOT = src/diagnostics/.dotnet.${ARCH}
+DOTNET_MULTILEVEL_LOOKUP=0 and PATH updates
+Why: as you noted, the bridge build primarily relies on the diagnostics ecosystem, so sharing the diagnostics SDK is the right default.
+test.sh: removed hardcoded x64
+Detects arch from uname -m and maps to your labels (x64, arm64, etc.).
+sos.py candidate paths now use linux.${ARCH}.[Debug|Release], not linux.x64.
+Error message updated accordingly.
+post-start.sh: no global DOTNET_ROOT
+Removed the hard-coded DOTNET_ROOT=src/diagnostics/.dotnet and PATH export.
+Left a note that build.sh sets per-submodule toolsets on demand.
+Compose: no DOTNET_* at service level
+Cleared DOTNET_ROOT/DOTNET_INSTALL_DIR/PATH in docker-compose.yml for both services so builds don’t bleed across arches.
+Your binfmt service remains to auto-register QEMU 10.0.14 before arm64 starts.
+Docs: added per-submodule toolsets section
+README: added “Developer note: per-submodule toolsets (Option B)” with the directory scheme and behavior.
+CONTRIBUTING.md: new file with a brief recap and devcontainer notes.
+What to do next
+Rebuild the dev container to pick up compose changes:
+VS Code → Dev Containers → Rebuild and Reopen in Container
+Optional cleanup (one-time):
+Remove any old shared SDKs you don’t want:
+/workspaces/gdbsos/.dotnet-*
+/workspaces/gdbsos/src/diagnostics/.dotnet
+/workspaces/gdbsos/src/runtime/.dotnet
+Quality gates
+Syntax checks: bash script edits are small; variables are quoted and arches mapped consistently.
+Requirements coverage:
+build.sh uses diagnostics toolset for bridge (Done).
+test.sh arch-aware plugin discovery (Done).
+Docs updated in README and CONTRIBUTING (Done).
+If you’d like me to also make swap-coreclr.sh and other helpers echo which DOTNET_INSTALL_DIR they detect/use (for easier debugging), I can add lightweight logging next

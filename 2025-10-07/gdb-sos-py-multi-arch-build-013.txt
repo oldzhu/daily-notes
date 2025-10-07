@@ -1,0 +1,42 @@
+You’re right to double‑check—runtime’s Arcade scripts have the same behavior as diagnostics.
+
+Here’s the proof from your repo.
+
+File: tools.sh
+
+global.json “runtimes” detection
+Lines ~554–562:
+
+global_json_file="${repo_root}global.json"
+
+global_json_has_runtimes=false
+
+if jq -e '.tools | has("runtimes")' "$global_json_file"; then global_json_has_runtimes=true fi
+
+elif [[ "$(cat "$global_json_file")" =~ "runtimes"[[:space:]:]*{ ]]; then global_json_has_runtimes=true fi
+
+This sets global_json_has_runtimes=true when tools.runtimes exists.
+
+InitializeDotNetCli respects DOTNET_INSTALL_DIR only when no “runtimes” AND the SDK already exists there
+Lines ~144–171:
+
+ReadGlobalVersion "dotnet"
+
+local dotnet_sdk_version=$_ReadGlobalVersion
+
+local dotnet_root=""
+
+if [[ $global_json_has_runtimes == false && -n "${DOTNET_INSTALL_DIR:-}" && -d "$DOTNET_INSTALL_DIR/sdk/$dotnet_sdk_version" ]]; then dotnet_root="$DOTNET_INSTALL_DIR" else dotnet_root="$repo_root/.dotnet" export DOTNET_INSTALL_DIR="$dotnet_root" if [[ ! -d "$DOTNET_INSTALL_DIR/sdk/$dotnet_sdk_version" ]]; then if [[ "$install" == true ]]; then InstallDotNetSdk "$dotnet_root" "$dotnet_sdk_version" else ... fi fi fi
+
+Implications:
+
+If global_json_has_runtimes == true, it always goes to repo_root/.dotnet.
+If global_json_has_runtimes == false, it will use DOTNET_INSTALL_DIR only when the required SDK directory already exists under it; otherwise it falls back to repo_root/.dotnet and installs there.
+PATH probe is also disabled when runtimes is present
+Lines ~132–140:
+
+if [[ "$use_installed_dotnet_cli" == true && $global_json_has_runtimes == false && -z "${DOTNET_INSTALL_DIR:-}" ]]; then dotnet_path=command -v dotnet ... export DOTNET_INSTALL_DIR=dirname "$_ResolvePath" fi
+
+So both diagnostics and runtime Arcade behave the same: having tools.runtimes in global.json disables “use existing” and forces repo_root/.dotnet. This is why our symlink approach (submodule/.dotnet -> .dotnet-{arch}) is necessary and effective in both submodules.
+
+

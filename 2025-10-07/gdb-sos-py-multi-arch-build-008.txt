@@ -1,0 +1,26 @@
+I’ll mirror the diagnostics SDK logic in the runtime helper so it won’t ever drop an SDK into src/runtime/.dotnet.
+
+changes made
+Updated build-coreclr-corelib.sh to:
+Use per-arch toolset path: src/runtime/.dotnet-${ARCH}.
+Print the same toolset diagnostics as build.sh:
+ARCH, uname -m, DOTNET_INSTALL_DIR, DOTNET_ROOT, “PATH includes DOTNET”.
+Pre-install the SDK specified by global.json into that path using dotnet-install.sh, with:
+Visible progress (no redirection).
+Optional timeout via DOTNET_INSTALL_TIMEOUT using timeout --foreground.
+Elapsed time reporting when finished.
+This ensures Arcade’s InitializeDotNetCli finds the required SDK under .dotnet-${ARCH} and doesn’t fall back to src/runtime/.dotnet.
+
+try it
+From repo root:
+Run the helper normally or with an explicit arch:
+ARCH=x64 CONFIG=Release build-coreclr-corelib.sh
+Optional timeout:
+export DOTNET_INSTALL_TIMEOUT=600
+ARCH=arm64 CONFIG=Release build-coreclr-corelib.sh
+You should see:
+
+“==> Runtime toolset” lines showing the environment.
+dotnet-install progress and args.
+“dotnet-install completed in Ns”.
+If anything attempts to install under src/runtime/.dotnet without the suffix, share the output and I’ll tighten it further.

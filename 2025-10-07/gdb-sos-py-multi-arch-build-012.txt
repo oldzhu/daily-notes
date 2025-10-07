@@ -1,0 +1,51 @@
+u mentioned two points relaed with our changes which I wan to confirm:
+
+Diagnostics’ Arcade script (tools.sh) uses DOTNET_INSTALL_DIR only if it already contains the SDK version from global.json. If not, it resets to repo_root/.dotnet
+Arcade logic: if global.json has runtimes, it ignores DOTNET_INSTALL_DIR for the “use existing SDK” check and defaults to installing under repo_root/.dotnet.
+are your sure? could u combine with the real code and the links to explain to me so I can verify and confirm?
+
+======
+
+Great question—yes, both points are accurate, and here’s the exact code in your diagnostics submodule that drives this behavior.
+
+where it happens (your repo)
+File: tools.sh
+
+Uses DOTNET_INSTALL_DIR only if it already has the SDK and global.json has no “runtimes”
+In InitializeDotNetCli, after reading the SDK version from global.json:
+
+# Use dotnet installation specified in DOTNET_INSTALL_DIR if it contains the required SDK version,# otherwise install the dotnet CLI and SDK to repo local .dotnet directory to avoid potential permission issues.if [[ $global_json_has_runtimes == false && -n "${DOTNET_INSTALL_DIR:-}" && -d "$DOTNET_INSTALL_DIR/sdk/$dotnet_sdk_version" ]]; then  dotnet_root="$DOTNET_INSTALL_DIR"else  dotnet_root="${repo_root}.dotnet"  export DOTNET_INSTALL_DIR="$dotnet_root"  if [[ ! -d "$DOTNET_INSTALL_DIR/sdk/$dotnet_sdk_version" ]]; then    if [[ "$install" == true ]]; then      InstallDotNetSdk "$dotnet_root" "$dotnet_sdk_version"    else      ...    fi  fifi
+Key parts:
+The “use DOTNET_INSTALL_DIR” branch only runs when global_json_has_runtimes == false AND the required SDK is present.
+Otherwise, it sets dotnet_root to repo_root/.dotnet and exports DOTNET_INSTALL_DIR to that path, then installs if needed.
+When global.json has “runtimes”, it forces repo_root/.dotnet
+Just above, Arcade sets the flag by inspecting global.json:
+
+global_json_file="${repo_root}global.json"# determine if global.json contains a "runtimes" entryglobal_json_has_runtimes=falseif command -v jq &> /dev/null; then  if jq -e '.tools | has("runtimes")' "$global_json_file" &> /dev/null; then    global_json_has_runtimes=true  fielif [[ "$(cat "$global_json_file")" =~ \"runtimes\"[[:space:]\:]*\{ ]]; then  global_json_has_runtimes=truefi
+Because the “use DOTNET_INSTALL_DIR” check explicitly requires global_json_has_runtimes == false, having a runtimes entry causes the else branch to run every time:
+dotnet_root="${repo_root}.dotnet"
+export DOTNET_INSTALL_DIR="$dotnet_root"
+Install there if not already present.
+One more related check (path probe) also respects the “no runtimes” constraint
+Earlier, they only probe PATH for a system dotnet to seed DOTNET_INSTALL_DIR when “runtimes” is false and DOTNET_INSTALL_DIR is empty:
+
+if [[ "$use_installed_dotnet_cli" == true && $global_json_has_runtimes == false && -z "${DOTNET_INSTALL_DIR:-}" ]]; then  local dotnet_path=`command -v dotnet`  if [[ -n "$dotnet_path" ]]; then    ResolvePath "$dotnet_path"    export DOTNET_INSTALL_DIR=`dirname "$_ResolvePath"`  fifi
+This reinforces that “runtimes” disables any “use existing” logic and pushes Arcade to the repo-root .dotnet location.
+
+how we verified this in your logs
+Your build logs showed:
+
+First, pre-install into .dotnet.arm64 (our script).
+Then Arcade runs and logs “Adding to PATH: …/src/diagnostics/.dotnet” and installs there again. That matches the else branch behavior above when runtimes is present.
+why the symlink fix works
+Because Arcade will always try to use .dotnet when “runtimes” is present, we ensure that:
+
+.dotnet is a symlink to src/diagnostics/.dotnet.{arch} before Arcade initializes.
+Result: even when Arcade “defaults” to .dotnet, it transparently lands in the per-arch folder. If the SDK is already there (from pre-install), the install becomes a fast no-op.
+optional upstream reference
+This pattern is standard in Arcade repos. Your local tools.sh is the authoritative source for your submodule; if you want to compare, the same logic exists in dotnet/arcade’s tools.sh (but your submodule owns the exact behavior you build against).
+
+If you’d like, I can annotate these exact lines in your workspace with comments to make future behavior clearer for contributors.
+
+Similar code found with 2 license types - View matches
+
