@@ -1,0 +1,22 @@
+actions taken
+Created folder: testspaces
+Added ignore rule to .gitignore:
+testspaces so local images/ISOs aren’t tracked
+Added prep script: prepare.sh
+Downloads Ubuntu Jammy ARM64 cloud image if missing
+Copies meta-data, user-data, make-seed.sh, and run.sh into testspaces
+Replaces the placeholder CHANGE_ME_ADD_YOUR_SSH_PUBLIC_KEY with your ~/.ssh/id_rsa.pub (falls back to id_ed25519.pub if available; warns if neither found)
+Builds seed.iso in testspaces via make-seed.sh
+Prints the exact command to boot the VM from testspaces
+how to use
+Optionally make scripts executable:
+chmod +x src/tests/qemu/*.sh
+Run the prep:
+prepare.sh
+Then launch the VM from the prepared workspace:
+(cd src/tests/qemu/testspaces && ./run.sh jammy-server-cloudimg-arm64.img seed.iso)
+If your firmware path differs:
+(cd src/tests/qemu/testspaces && BIOS=/usr/share/edk2/aarch64/QEMU_EFI.fd ./run.sh jammy-server-cloudimg-arm64.img seed.iso)
+The VM will mount your repo at /workspaces inside the guest (via 9p).
+
+

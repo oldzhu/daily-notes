@@ -1,0 +1,26 @@
+what I added
+make-seed.sh
+
+Creates a cloud-init seed.iso from meta-data and user-data.
+Uses genisoimage or mkisofs automatically.
+Usage: ./make-seed.sh [seed.iso]
+run.sh
+
+Launches QEMU with sensible defaults, 9p mount of the repo, and SSH port forward.
+Auto-detects firmware: prefers single-file /usr/share/qemu-efi-aarch64/QEMU_EFI.fd, falls back to AAVMF split firmware and copies vars template on first run.
+Environment overrides: SMP, MEM, BIOS, CODE, VARS_TEMPLATE, VARS, HOST_REPO, SSH_PORT.
+Usage: ./run.sh jammy-server-cloudimg-arm64.img [seed.iso]
+Updated README.md
+
+Mentions the helpers, adds quick examples, and shows how to override firmware path via BIOS=/path/to/QEMU_EFI.fd.
+Tip: mark the scripts executable before use
+
+chmod +x make-seed.sh run.sh
+Quick start
+
+Put your SSH public key in user-data.
+Create the seed: ./make-seed.sh
+Launch: ./run.sh jammy-server-cloudimg-arm64.img seed.iso
+SSH in after cloud-init finishes: ssh -p 2222 dev@127.0.0.1
+Your repo is at workspaces inside the VM.
+

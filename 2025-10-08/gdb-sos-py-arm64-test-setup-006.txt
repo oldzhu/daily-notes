@@ -1,0 +1,35 @@
+I checked my .ssh folder on my host, but no id_rsa.pub and id_ed2551.pub, what are them and what they are used for? why it need in our scenario?
+oldzhu@oldzhu-box-999:~$ ls .ssh
+known_hosts known_hosts.old
+
+=============
+
+Good question. Those files are your SSH public keys:
+
+~/.ssh/id_rsa.pub and ~/.ssh/id_ed25519.pub are the public halves of SSH key pairs (RSA or Ed25519).
+They’re used to authenticate you over SSH without a password. The VM’s cloud-init puts your public key into ~/.ssh/authorized_keys so you can log in as user dev via the forwarded SSH port.
+Why you need one here
+
+Our user-data seed uses key-based SSH for first login (typical for cloud images). The prep script replaces the placeholder with your public key so you can SSH in.
+You don’t have a key yet, so let’s generate one (recommended: Ed25519).
+Generate an SSH key (host machine)
+
+
+ssh-keygen -t ed25519 -C "your-email@example.com"# Press Enter to accept default path (~/.ssh/id_ed25519), optional passphrase.
+Verify and re-run prep
+
+
+ls ~/.ssh/id_ed25519.pub./src/tests/qemu/prepare.sh
+That will inject ~/.ssh/id_ed25519.pub automatically (the script falls back to Ed25519 if RSA is missing), build the seed ISO, and print the run command.
+
+Alternative (not recommended): enable password SSH in the VM
+
+If you prefer a quick test without keys, you can enable password auth by editing user-data before creating the seed:
+Add at top-level:
+
+
+ssh_pwauth: truechpasswd:  list: |    dev:yourpassword  expire: false
+This is less secure; prefer key-based auth.
+
+Small note: you mentioned id_ed2551.pub—the correct filename is id_ed25519.pub (with “19”).
+

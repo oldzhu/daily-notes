@@ -1,0 +1,54 @@
+is the below warning for ptrace whe run r in gdb to test sos(arm64 container running on x64 host) caused by limitation by emulate arm64 process using qemu? any solution or fix?
+(gdb) bpmd TestDebuggee.dll Test.DumpIL
+[sos][warn] Native host not available; proceeding with NULL host (no Python fallback).
+SOS GDB Python extension loaded (NO native host; NULL host path).
+Function "coreclr_execute_assembly" not defined.
+Temporary breakpoint 1 (coreclr_execute_assembly) pending.
+(gdb) r
+Starting program: /workspaces/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee
+warning: Could not trace the inferior process.
+warning: ptrace: Function not implemented
+During startup program exited with code 127.
+(gdb)
+
+=========
+You’re hitting a ptrace limitation from user-mode emulation: when an arm64 container runs on an x64 host via binfmt_misc + qemu-aarch64 (user-mode), GDB’s normal ptrace control of the inferior isn’t implemented. That’s why GDB prints “ptrace: Function not implemented” and “Could not trace the inferior process” when you run.
+
+What this means
+
+In user-mode QEMU, the emulated process isn’t a real arm64 task from the kernel’s point of view; ptrace calls from GDB don’t map cleanly, and many ptrace operations are not supported (you get ENOSYS/“Function not implemented” instead of EPERM).
+Granting SYS_PTRACE or relaxing seccomp won’t fix this particular error; that helps with permissions (EPERM), not missing ptrace support under emulation.
+Ways to proceed
+
+Preferred: use a native arm64 kernel
+
+Run in a real arm64 environment (ARM64 VM or hardware: AWS Graviton, Azure Ampere, Apple silicon VM, etc.). Then GDB + SOS works with “run” and “attach” normally.
+Use QEMU’s gdbstub (works without ptrace)
+
+Instead of letting GDB ptrace the program, launch the program with QEMU’s built-in gdbstub and have GDB connect over the remote protocol.
+One-time in terminal 1 (start the target under the stub):
+Example sketch:
+qemu-aarch64 -g 12345 /path/to/dotnet /path/to/TestDebuggee
+Note: You may need to pass a proper sysroot with -L if your image expects it (e.g., -L /usr/aarch64-linux-gnu), and the correct dotnet for arm64.
+In terminal 2 (your GDB session):
+gdb-multiarch (or an aarch64 build of gdb)
+set architecture aarch64
+source sos.py
+target remote :12345
+Then use SOS commands (bpmd, etc.). Remote targets work; our Python extension operates over the GDB remote protocol.
+Notes:
+Don’t use “run” in this flow; QEMU already started the program. Use “continue”, breakpoints, etc.
+If you prefer to start the process from GDB, QEMU also supports -gdb and -S variants, but -g is usually simplest for user-mode.
+Full-system emulation (qemu-system-aarch64)
+
+Spin up a minimal arm64 guest VM in QEMU (with KVM if available), install .NET arm64 and GDB inside the guest, and debug natively. This mirrors a real arm64 machine, at the cost of more setup.
+If you only need post-mortem
+
+Produce a core dump (in an arm64-native environment) and analyze it from your current machine. Live debugging won’t be reliable under user-mode emulation, but coredump analysis doesn’t require ptrace.
+FYI about our plugin
+
+I updated our services to report the correct processor type (ARM64 on this setup) and to handle cross-arch register names. That removes the earlier “SOS does not support target architecture 'x64'” issue. The remaining stop is strictly due to the ptrace/emu limitation.
+Practical tip
+
+If you want our test harness to “fail-softly” under emulation, we can add a quick detection (e.g., check /proc/sys/fs/binfmt_misc/qemu-aarch64 or probe a tiny ptrace call) and skip live-run GDB tests on emulated arm64, suggesting the gdbstub flow instead. If you’d like, I can wire that skip into the tests.
+

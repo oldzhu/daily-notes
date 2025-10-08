@@ -1,0 +1,20 @@
+could u add the logic into prepare.sh, in case it does not find the pub key, it will ask if would like to generate one, if no exit, if yes call ssh-keyfen -t ed25519 to generate one and then continue,is it fine?
+=======
+
+Great idea—done. The prepare.sh script now interactively handles missing SSH keys:
+
+If no ~/.ssh/id_rsa.pub or ~/.ssh/id_ed25519.pub is found, it prompts:
+“Generate a new Ed25519 SSH key now? [y/N]”
+If you answer yes:
+It generates an Ed25519 key pair non-interactively (no passphrase) at ~/.ssh/id_ed25519 and continues.
+If you answer no:
+It aborts with a short message telling you how to add a key manually.
+Where this lives
+
+prepare.sh
+Quick try
+
+Run:
+prepare.sh
+Follow the prompt. After generation, the script injects your pubkey into user-data, builds seed.iso, and prints the run command.
+

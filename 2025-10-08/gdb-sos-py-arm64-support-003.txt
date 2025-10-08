@@ -1,0 +1,78 @@
+You’re right to switch to full-system emulation—under qemu-system-aarch64, GDB doesn’t need ptrace from qemu-user. There isn’t an official “.NET on ARM64 qcow2” image from Microsoft. The quickest path is to boot a stock ARM64 cloud image (Ubuntu or Debian) and install the official .NET ARM64 packages via cloud-init on first boot.
+
+Recommended: Ubuntu ARM64 cloud image + cloud-init
+What you get:
+
+A minimal ARM64 VM with .NET 8 SDK/runtime, gdb, and lldb preinstalled.
+SSH access via host port forwarding.
+Works on x64 host (TCG emulation; slower than native but good for SOS validation).
+1) Grab an ARM64 cloud image + firmware
+Ubuntu 22.04 (Jammy) ARM64 cloud image:
+jammy-server-cloudimg-arm64.img from Canonical (cloud-images.ubuntu.com)
+UEFI firmware for aarch64 (one of these is usually present on Linux hosts):
+Either a single BIOS file: /usr/share/qemu-efi-aarch64/QEMU_EFI.fd
+Or split AAVMF files:
+Code: /usr/share/AAVMF/AAVMF_CODE.fd
+Vars: copy /usr/share/AAVMF/AAVMF_VARS.fd to a writable file, e.g., AAVMF_VARS.my.fd
+If you’re unsure which you have, use the single-file “-bios QEMU_EFI.fd” form; it’s simpler.
+
+2) Create cloud-init seed to auto-install .NET
+Create two small files in a temp folder:
+
+meta-data:
+
+instance-id: iid-local01
+local-hostname: dotnet-arm64
+user-data (cloud-init):
+
+Creates a user, installs Microsoft’s apt repo, .NET 8 SDK, gdb/lldb, and tools.
+Example user-data (Ubuntu 22.04 “jammy”):
+
+#cloud-config users:
+
+name: dev ssh_authorized_keys:
+<your_ssh_public_key_here> sudo: ALL=(ALL) NOPASSWD:ALL shell: /bin/bash package_update: true runcmd:
+curl -fsSL https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -o /tmp/packages-microsoft-prod.deb
+dpkg -i /tmp/packages-microsoft-prod.deb
+apt-get update
+apt-get install -y dotnet-sdk-8.0 gdb lldb unzip ca-certificates curl git
+sysctl -w kernel.core_pattern=core
+If you prefer Ubuntu 24.04 (noble), change the URL to /config/ubuntu/24.04/packages-microsoft-prod.deb.
+
+Then make a seed ISO (or nocloud image) from those two files.
+
+3) Launch QEMU (full system, ARM64)
+Basic invocation (no KVM, TCG only, with SSH port forward):
+
+Using a single BIOS file (simplest):
+
+qemu-system-aarch64 -M virt -cpu cortex-a72 -smp 4 -m 4096 -bios /usr/share/qemu-efi-aarch64/QEMU_EFI.fd -drive if=virtio,format=qcow2,file=jammy-server-cloudimg-arm64.img -cdrom seed.iso -nic user,hostfwd=tcp::2222-:22 -nographic
+Or with AAVMF code/vars:
+
+qemu-system-aarch64 -M virt -cpu cortex-a72 -smp 4 -m 4096 -drive if=pflash,format=raw,readonly=on,file=/usr/share/AAVMF/AAVMF_CODE.fd -drive if=pflash,format=raw,file=AAVMF_VARS.my.fd -drive if=virtio,format=qcow2,file=jammy-server-cloudimg-arm64.img -cdrom seed.iso -nic user,hostfwd=tcp::2222-:22 -nographic
+Notes:
+
+-smp and -m: bump as your host allows (TCG speed is the limiting factor).
+-cpu cortex-a72 is a good baseline; -cpu max also works on recent QEMU.
+The first boot will apply cloud-init (can take a minute).
+4) Connect and verify .NET
+SSH into the guest (after cloud-init completes):
+ssh -p 2222 dev@127.0.0.1
+Verify:
+dotnet --info
+gdb --version
+lldb --version
+Now you can copy your aarch64 SOS build in (scp -P 2222 …) or mount a shared folder via 9p/virtiofs if you prefer. Run your TestDebuggee and use GDB and SOS inside the VM like on a native ARM64 box.
+
+Alternatives
+Debian ARM64 cloud image:
+Same approach; use Microsoft’s Debian repo config (packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb, etc.).
+Tarball install (no apt):
+Download the official arm64 .NET tar.gz from Microsoft, extract to /usr/share/dotnet, symlink /usr/bin/dotnet -> /usr/share/dotnet/dotnet. Handy if you don’t want to add the repo.
+Docker images (arm64):
+mcr.microsoft.com/dotnet/runtime:8.0, sdk, aspnet are multi-arch and include arm64. These are user-mode containers, not full-system VMs; they won’t help with the ptrace issue you saw, but they’re useful inside your VM if you want containerized test apps.
+Small tips for SOS testing in the VM
+Performance: With TCG, compiles are slow. Use release binaries copied in from your host where possible.
+Networking: You can add more hostfwd (e.g., for gdbserver if you want remote debugging from host to guest).
+GDB flavor: If needed, install gdb-multiarch too, but for in-guest debugging the regular aarch64 gdb is fine.
+If you want, I can drop a ready-to-use cloud-init seed (meta-data + user-data) into your repo under tools/qemu/ and a tiny README with a tested QEMU command for your dev environment.

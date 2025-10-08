@@ -1,0 +1,22 @@
+Moving the QEMU helper assets into qemu so they live alongside our test assets and removing the old copies to avoid confusion.
+
+actions taken
+Created qemu and added:
+
+meta-data — cloud-init meta
+user-data — cloud-init config (installs .NET 8 SDK arm64, gdb, lldb; sets 9p mount; create user “dev”)
+README.md — end-to-end steps to download the Ubuntu ARM64 image, generate the seed ISO, and run QEMU with host repo mounted at workspaces
+Removed the old duplicates from qemu:
+
+meta-data
+user-data
+README.md
+Paths in the README are updated to point at qemu.
+
+where to find it now
+Cloud-init seeds:
+meta-data
+user-data (remember to paste your SSH pubkey)
+Guide:
+README.md
+If you want small launch helpers next (e.g., src/tests/qemu/make-seed.sh and src/tests/qemu/run.sh that auto-detect firmware paths and the cloud image), I can add them.

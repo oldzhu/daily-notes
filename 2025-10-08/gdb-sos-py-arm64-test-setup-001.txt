@@ -1,0 +1,32 @@
+I’ve dropped a ready-to-use cloud-init seed and a concise guide so anyone can boot an ARM64 Ubuntu VM under QEMU and test our GDB+SOS without ptrace issues.
+
+files added
+meta-data — Cloud-init meta-data (instance id, hostname)
+
+user-data — Cloud-init config:
+
+Creates user “dev” (passwordless sudo)
+Installs Microsoft package feed + .NET 8 SDK (arm64), gdb, lldb, curl, git
+Sets up a 9p mount via fstab mapping our repo at workspaces
+Note: replace the placeholder SSH key with your public key
+README.md — Step-by-step setup:
+
+Download Ubuntu ARM64 cloud image (22.04 Jammy example)
+Create cloud-init seed ISO
+Start QEMU (two firmware options shown)
+Mount the repo via 9p
+SSH in and run GDB + SOS test commands
+quick start
+Edit user-data and replace:
+CHANGE_ME_ADD_YOUR_SSH_PUBLIC_KEY
+Create the seed ISO next to the image:
+genisoimage -output seed.iso -volid cidata -joliet -rock tools/qemu/user-data tools/qemu/meta-data
+Start the VM (single-file firmware example in README). The command includes:
+SSH port forward to 2222
+-virtfs mapping your host repo root gdbsos into the guest; it will mount to workspaces
+SSH in and verify .NET, gdb, lldb.
+notes
+First boot takes a couple of minutes while cloud-init installs packages.
+If workspaces isn’t mounted at first boot, the README shows a one-liner to mount via 9p manually.
+You can switch to Ubuntu 24.04 (noble) by changing the cloud image and the Microsoft repo in user-data (already auto-detected via lsb-release in the script).
+If you want me to pin exact image URLs and add a tiny helper script to generate the seed ISO and launch QEMU, I can add tools/qemu/make-seed.sh and tools/qemu/run.sh as well.

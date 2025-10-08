@@ -1,0 +1,34 @@
+seems that makes the things complex,let us choose to use username dev with empty password to simplify the testing image preparaing, pls help to modify user-data to support dev without password and also remove the logic to create/use the ssk pub key in prepare.sh
+
+=====
+Acknowledged. I switched our VM seed to use the “dev” user with an empty password and removed the SSH key dependency from the prep flow.
+
+changes made
+user-data
+
+Removed ssh_authorized_keys.
+Enabled SSH password auth and empty passwords:
+ssh_pwauth: true
+Ensure PasswordAuthentication yes and PermitEmptyPasswords yes in sshd_config.
+passwd -d dev to make the password empty.
+Restart SSH.
+Added openssh-server to packages to ensure the SSH service is present.
+Kept existing .NET SDK, gdb/lldb, and 9p mount setup.
+prepare.sh
+
+Removed all SSH public key generation/injection logic.
+Now simply copies the seeds/helpers, builds seed.iso, and prints the run command.
+Prints a note that password-based SSH is configured (empty password for user dev).
+how to use now
+Recreate the seed and launch:
+prepare.sh
+(cd src/tests/qemu/testspaces && ./run.sh jammy-server-cloudimg-arm64.img seed.iso)
+SSH in after cloud-init finishes:
+ssh -p 2222 dev@127.0.0.1
+When prompted for password, just press Enter (empty password).
+If StrictHostKeyChecking prompts, answer “yes” on first connect.
+Security note
+
+This setup is only for local testing. The VM is bound to localhost:2222 in the examples, but an empty password is inherently insecure—don’t expose this VM to untrusted networks.
+If you want, I can add a short “Security notes for local testing” block to the QEMU README to make the risk explicit and show how to switch back to SSH keys later.
+

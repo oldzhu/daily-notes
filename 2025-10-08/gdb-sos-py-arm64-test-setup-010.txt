@@ -1,0 +1,40 @@
+You're right—the Ubuntu ARM64 cloud image is tiny, so cloud-init can run out of space while installing packages. I’ve added automatic disk growth to the QEMU workflow and a safe, first-boot expansion path so the root filesystem grows to fill the larger virtual disk.
+
+actions taken
+prepare.sh
+Resizes the downloaded image with qemu-img to a larger virtual size (default 20G; override with DISK_SIZE).
+user-data
+Enables root partition auto-grow (growpart + resizefs).
+Adds a boot-time fallback to grow the partition and expand the filesystem (handles ext4 and xfs).
+Installs cloud-guest-utils (growpart) and xfsprogs (xfs_growfs).
+README.md
+Added troubleshooting notes and how to change the disk size.
+how to use it
+Fresh prep: run the prep helper again to copy the updated seed files and grow the image.
+DISK_SIZE defaults to 20G; set as needed.
+This creates a new seed.iso with the auto-grow config and resizes the qcow2 image.
+Launch as usual with run.sh. On first boot, cloud-init will grow the root partition and filesystem automatically.
+Optional (only if you need to do it manually in an existing VM):
+
+If you’ve already resized the qcow2 image but the root FS didn’t expand, SSH in and run:
+For the typical virtio disk and first partition:
+sudo growpart /dev/vda 1
+sudo resize2fs $(findmnt -n -o SOURCE /)
+If the root filesystem is xfs:
+sudo growpart /dev/vda 1
+sudo xfs_growfs /
+If you didn’t resize the image yet (outside the VM):
+qemu-img resize jammy-server-cloudimg-arm64.img 20G
+Then apply the in-VM steps above on next boot.
+quick notes
+qcow2 growth is thin-provisioned; host disk usage increases as the guest writes data.
+Some distros/filesystems may vary. The bootcmd fallback now handles both ext4 (resize2fs) and xfs (xfs_growfs).
+If your current seed.iso came from testspaces, regenerate it after updating user-data (or just rerun prepare.sh).
+If your VM is already full, you might need to stop it, resize the image, then boot and run the grow commands. As a stopgap, sudo apt-get clean can free some space to let cloud-init finish.
+what changed (files)
+prepare.sh: image resized to DISK_SIZE (default 20G) with qemu-img.
+user-data: growpart/resizefs enabled; boot-time fallback for ext4/xfs; added required packages.
+README.md: documented disk sizing and recovery steps.
+requirements coverage
+Fix cloud-init “No space left on device” by increasing disk and growing rootfs: Done (scripts + seed updated, manual recovery steps provided).
+

@@ -1,0 +1,29 @@
+I tested and got the error as the below:
+oldzhu@oldzhu-box-999:~/daily-notes/2025-10-08$ ssh -p 2222 qemu-arm64-dev@127.0.0.1
+The authenticity of host '[127.0.0.1]:2222 ([127.0.0.1]:2222)' can't be established.
+ED25519 key fingerprint is SHA256:7GO4R2j02PiOl3Gx8Y4WhHGnhNQg6rpD2JRW4hhgknc.
+This key is not known by any other names
+Are you sure you want to continue connecting (yes/no/[fingerprint])?
+Host key verification failed.
+
+==========
+
+You’re just seeing SSH’s first‑time trust prompt for the VM’s host key, and you also used the wrong username.
+
+Username to use: dev (that’s what our cloud-init creates), not qemu-arm64-dev.
+At the prompt “Are you sure you want to continue connecting…”, type yes and press Enter to add the host key to known_hosts.
+Try:
+
+
+ssh -p 2222 dev@127.0.0.1
+If you prefer to auto-accept new host keys:
+
+
+ssh -p 2222 -o StrictHostKeyChecking=accept-new dev@127.0.0.1
+If you’ve started/stopped the VM multiple times and get a “REMOTE HOST IDENTIFICATION HAS CHANGED!” or an immediate “Host key verification failed”, clear the old entry and retry:
+
+
+ssh-keygen -f ~/.ssh/known_hosts -R "[127.0.0.1]:2222"ssh -p 2222 dev@127.0.0.1
+If it asks for a password instead of using your key, make sure the prep script injected your public key into user-data (search for your key string there), then rebuild the seed ISO and reboot the VM.
+
+

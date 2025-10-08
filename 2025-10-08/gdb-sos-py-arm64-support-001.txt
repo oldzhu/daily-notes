@@ -1,0 +1,54 @@
+now I am testing sos.py in arm64 container and I saw the below tarce:
+(gdb) bpmd TestDebuggee.dll Test.DumpIL
+call into lldb_get_processor_type
+call into lldb_output_va_list
+SOS does not support the current target architecture 'x64' (0x8664). A 32 bit target may require a 32 bit debugger or vice versa. In general, try to use the same bitness for the debugger and target process.
+Command 'bpmd' failed with HRESULT -2147467259.
+....
+seems our current implementation of lldb_get_processor_type hrad coded to return x64, please help to modify and return the correct processor type to aligh with lldb plugin implemenation in diagnostic submode, please also review our other codes to fix similar issue to support at least x64 and arm64 at the current stage.
+
+======
+
+actions taken
+Implemented arch detection and used it consistently:
+Added IMAGE_FILE_MACHINE_ARM64 (0xAA64) in abi.py.
+Added helpers in services.py:
+_detect_arch_name() reads GDB arch name or uname.
+_detect_machine_type() maps to IMAGE_FILE_MACHINE_{AMD64|ARM64}.
+_detect_pointer_size() uses GDB types or ctypes.
+Fixed places that were hardcoded to AMD64:
+IDebuggerServices/ILLDBServices::GetProcessorType now returns the detected machine type (x64 or arm64).
+ICLRDataTarget2::GetMachineType now returns the detected machine type.
+ICLRDataTarget2::GetPointerSize now reflects actual pointer size.
+Made register access cross-arch aware:
+Instruction/stack/frame offset getters fall back to cross-arch register names:
+rip/pc, rsp/sp, rbp/fp/x29.
+lldb_get_thread_context_by_system_id:
+On x64, we still fill a minimal AMD64 DT_CONTEXT like before.
+On arm64, we don’t yet marshal a Windows-style CONTEXT; we return E_NOTIMPL for the context while still updating cached offsets. This keeps the bpmd scenario working without pretending to be x64.
+files changed
+abi.py
+Add IMAGE_FILE_MACHINE_ARM64 = 0xAA64.
+services.py
+New arch/pointer-size detection helpers.
+Use detection in lldb_get_processor_type and DAC’s GetMachineType/GetPointerSize.
+Cross-arch register handling in context/offset helpers.
+Guard AMD64-specific DT_CONTEXT fill; arm64 returns E_NOTIMPL for now.
+how to try it
+In the arm64 container, re-run your scenario:
+bpmd TestDebuggee.dll Test.DumpIL
+You should no longer see “SOS does not support the current target architecture 'x64' …” because we now report arm64 (0xAA64).
+Optional sanity checks in GDB:
+You should see “call into lldb_get_processor_type” and no arch mismatch error afterward.
+notes
+For arm64, we’ve prioritized correctness of the reported machine type and avoided returning an x64 context. The Windows ARM64 CONTEXT layout is more involved; returning E_NOTIMPL on GetThreadContextBySystemId lets SOS fall back where possible. If you see any SOS command requiring full thread context on arm64, we can implement the ARM64 CONTEXT fields next.
+quality gates
+Lint/type: No Python syntax errors detected in the edited files.
+Build: N/A for Python changes.
+Runtime smoke: Based on your trace, bpmd should proceed past the architecture check now.
+Requirements coverage:
+
+Return correct processor type on arm64: Done.
+Align other code to support x64 and arm64: Done for DAC machine type/pointer size and register getters. ARM64 CONTEXT is Deferred (explicitly E_NOTIMPL) pending need.
+If you want, I can add a minimal ARM64 CONTEXT writer (X0–X30, SP, PC, PSTATE) to satisfy more advanced SOS flows.
+

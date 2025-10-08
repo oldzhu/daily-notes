@@ -1,0 +1,35 @@
+I’ll switch the default shared folder to your WSL2 path and explain where qemu-system will work.
+
+change made
+Updated run.sh default HOST_REPO:
+From: /workspaces/gdbsos
+To: ${HOME}/gdbsos
+You can still override with HOST_REPO=/some/other/path ./run.sh …
+This matches your plan to run QEMU from the WSL2 x64 host, where your repo lives under ~/gdbsos.
+
+about running qemu-system inside the amd64 dev container
+It can work, but success depends on host/container privileges and device access:
+You don’t need KVM for correctness; TCG (pure emulation) is sufficient for our SOS testing. However, it’s slow.
+You do need:
+The qemu-system-aarch64 binary in the container (present per your devcontainer, but verify).
+Access to firmware files inside the container (paths may differ vs host).
+Networking and file sharing as configured (9p virtfs path must be valid inside the container).
+Potential blockers:
+Missing firmware paths (use BIOS env override or mount host firmware into the container).
+9p passthrough security_model=passthrough may fail if container user/permissions don’t match host file ownership. You can use security_model=mapped-xattr as a fallback, or run from WSL2 host to avoid container filesystem layers.
+GUI/graphics is irrelevant (we run -nographic).
+KVM acceleration is typically unavailable in containers without special setup. Not required, but don’t expect speed.
+Recommendation:
+
+Prefer running qemu-system-aarch64 from the WSL2 x64 host (outside the container). That gives:
+Direct access to ~/gdbsos (matches our default HOST_REPO).
+Simpler firmware path handling.
+Fewer permission surprises for 9p.
+If you still want to run from the container, set up:
+
+HOST_REPO to a path the container can actually access and that you intend to share.
+BIOS/CODE/VARS_TEMPLATE to firmware that’s accessible inside the container.
+If 9p fails on permissions, try:
+run.sh: change -virtfs option to security_model=mapped-xattr
+or run QEMU as root in the container (only if acceptable).
+Want me to add a small note into the README highlighting the WSL2-host usage as the default and mention the container caveats?
