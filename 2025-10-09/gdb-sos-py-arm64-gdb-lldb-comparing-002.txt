@@ -1,0 +1,40 @@
+Thanks for your summary. Based on the testing for amd64 arch, I think the most relavant part is Populate DT_CONTEXT for ARM64 in GetThreadContextBySystemId becuase for we implement it for amd 64, for all the other staffs u mentioned, they may not be related as they also have no implementation or simple return in amd64 for clrstack and dso for amd64 arch works fine. Based on this, please implement the ARM64 DT_CONTEXT population(which u already doe for amd64 arch) but hold on others unless we have solid evidence they are related. By the way, the previous change still not work:
+(gdb) clrstack
+OS Thread Id: 0x93a (8)
+Child SP IP Call Site
+(gdb) dso
+Invalid range 0 - 10000
+Managed command 'dso' failed (HRESULT=0x80004005). Unspecified failure. Try 'sostrace on' for details.
+pls implement the he ARM64 DT_CONTEXT population and I will test to see if it fix the the above.
+
+===========
+Thanks for the precise direction—I'll add full ARM64 DT_CONTEXT population in GetThreadContextBySystemId and leave the other items untouched for now.
+
+Actions taken
+Implemented DT_CONTEXT population for ARM64:
+
+Added a helper _fill_arm64_dt_context(frame, contextFlags, context_ptr) in services.py.
+This writes the following fields into the DT_CONTEXT buffer (matching dbgtargetcontext.h layout up to Pc):
+ContextFlags
+Cpsr
+X0–X28
+Fp (x29), Lr (x30), Sp, Pc
+Updated lldb_get_thread_context_by_system_id:
+When machine type is ARM64, sets flags (DT_CONTEXT_ARM64 | CONTROL | INTEGER) and calls _fill_arm64_dt_context(...) to populate the buffer.
+AMD64 flow is unchanged.
+Quick check:
+
+Ran a static error check on services.py — no syntax errors reported.
+Why this should help
+clrstack/dso rely on having a valid thread context in a few code paths; fully populating ARM64 DT_CONTEXT like the LLDB plugin does removes a major gap.
+We already added stack base/limit resolution via /proc/maps and fixed SP/IP/FP reads. With DT_CONTEXT now populated on ARM64, SOS’s context-based flows should have the data they need.
+What’s next
+Please re-run your scenario on ARM64:
+clrstack
+dso
+If dso still reports “Invalid range 0 - 10000”, I’ll dig into the next likely culprit with concrete evidence (e.g., VirtualUnwind or mapping/stack selection nuances). But per your guidance, we’ll hold off on those until we see the results.
+Files changed
+services.py
+New: _fill_arm64_dt_context
+Updated: lldb_get_thread_context_by_system_id calls _fill_arm64_dt_context for ARM64
+Completion summary: Implemented ARM64 DT_CONTEXT population only, aligned to LLDB’s fields. Build/typecheck is clean. Let me know the test results for clrstack and dso.

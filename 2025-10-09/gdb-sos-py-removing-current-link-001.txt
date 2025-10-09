@@ -1,0 +1,36 @@
+Great idea—removing the “current” symlink avoids cross-arch confusion. I updated the scripts to default to arch-specific Release paths and commented out the symlink logic with clear notes.
+
+What I changed
+post-start.sh
+
+Removed both diagnostics and bridge “current” symlink creation (left as commented block with rationale).
+SOS_ROOT now defaults to arch-specific Release, but can be overridden:
+export SOS_ROOT="${SOS_ROOT:-${DIAGNOSTICS_ROOT}/artifacts/bin/linux.${ARCH}.Release}"
+build.sh
+
+Removed updates to artifacts/bin/current for both diagnostics and bridge builds.
+Added comments to prefer explicit linux.<arch>.<config> directories.
+test.sh
+
+SOS_ROOT now defaults to arch-specific Release:
+export SOS_ROOT="${SOS_ROOT:-${REPO_ROOT}/src/diagnostics/artifacts/bin/linux.${ARCH}.Release}"
+test_gdbsos.py
+
+Default plugin path now resolves to arch-specific Debug, then Release, without using diagnostics/bin/current.
+Detects host arch (x64/arm64) to pick the right folder.
+Notes
+I left .dotnet symlink management in build.sh (per-arch toolset) intact because it’s scoped within the diagnostics submodule and keyed to ARCH, so it doesn’t cause cross-arch mixing.
+No changes to lib/tool discovery elsewhere were needed.
+Commit message suggestion
+Option A (single)
+
+gdbsos: remove ‘current’ symlink usage; default to arch-specific Release
+Stop creating artifacts/bin/current for diagnostics and bridge
+post-start.sh/test.sh: set SOS_ROOT to linux.${ARCH}.Release (override via env)
+tests: choose arch-specific plugin path; drop dependency on diagnostics/bin/current
+Option B (split)
+
+devcontainer: stop creating diagnostics/bridge ‘current’ symlinks; default SOS_ROOT to arch Release
+build: remove ‘current’ symlink updates; prefer explicit linux.<arch>.<config>
+tests: default SOS_ROOT/plugin to arch-specific Debug/Release; no more diagnostics/bin/current
+If you want me to propagate this pattern to any other scripts (e.g., scripts under src/scripts) or documentation references, say the word and I’ll apply the same update.

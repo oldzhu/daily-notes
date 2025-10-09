@@ -1,0 +1,38 @@
+I'll add detailed trace logging and an env override to the architecture detection path in services.py, then summarize how to troubleshoot in your VM.
+
+services.py+75-2
+services.py+8-1
+Good call—let’s instrument the detection so we can see exactly what GDB reports and what we choose, and add a quick override to unblock you if needed.
+
+what I changed
+services.py
+Added detailed tracing in:
+_detect_arch_name: logs results from frame.architecture().name, “show architecture”, and os.uname().machine.
+_detect_machine_type: logs the chosen path; supports env overrides:
+SOS_FORCE_MACHINE_TYPE or SOS_FORCE_ARCH = arm64|aarch64|amd64|x64|x86_64|x86-64
+_detect_pointer_size: logs pointer-size source and value.
+lldb_get_processor_type: logs both the detected arch name and the final IMAGE_FILE_MACHINE_* used.
+This will emit trace lines under the “arch” trace category you already use (via trace_cat).
+
+how to troubleshoot in the VM
+Ensure tracing is enabled the same way you’ve been using it (e.g., TRACE_ENABLED or your existing mechanism). Then reproduce the issue in the aarch64 VM. You should now see lines like:
+
+[arch] [detect] frame.architecture().name=aarch64
+[arch] [detect] show architecture -> aarch64
+[arch] [detect] os.uname().machine=aarch64
+[arch] [detect] name='aarch64'
+[arch] [detect] -> ARM64 (name match)
+[lldb_get_processor_type] arch_name='aarch64', machine=0xaa64 (ARM64)
+If it still returns AMD64 unexpectedly, try forcing it to ARM64 to confirm the rest of the pipeline:
+
+Set env before loading SOS in GDB:
+set env SOS_FORCE_ARCH aarch64
+or: set env SOS_FORCE_MACHINE_TYPE arm64
+If the logs show aarch64 correctly but machine type ends up 0x8664 (AMD64), we’ll know where to look next.
+
+likely root causes to watch for
+GDB target arch still set to x86-64 despite running under aarch64 QEMU, e.g., multiarch confusion or initial frame absent when queried.
+We call detection too early before GDB has a frame. The new tracing will show “frame.architecture().name unavailable” if so—then we’ll rely on “show architecture” or uname.
+If only uname is seen as x86_64 (e.g., nested emulation), the env override is a practical workaround; if it helps, we can refine the order or add a target-specific check.
+Ping me with the new trace output from your VM if you still see x64, and I’ll adjust the detection order or add a more robust GDB query.
+

@@ -1,0 +1,53 @@
+bpmd works now but clrstack and dso do not work after the bpmd bp hit
+(gdb) JITTED SimpleThrow!Simple.Main()
+Setting breakpoint: breakpoint set --address 0x0000FFFFA8E42370 [Simple.Main()]
+
+Thread 1 "SimpleThrow" hit Breakpoint 4, 0x0000ffffa8e42370 in ?? ()
+bt
+#0 0x0000ffffa8e42370 in ?? ()
+#1 0x0000fffff75bec20 in ?? () from /usr/lib/dotnet/shared/Microsoft.NETCore.App/8.0.20/libcoreclr.so
+Backtrace stopped: previous frame inner to this frame (corrupt stack?)
+(gdb) dso
+Unable to get the stack pointer for thread 8dd.
+Managed command 'dso' failed (HRESULT=0x80004005). Unspecified failure. Try 'sostrace on' for details.
+(gdb) clrstack
+OS Thread Id: 0x8dd (8)
+Failed to start stack walk: 80004001
+coud u check and help to fix?
+
+========
+Thanks for the detailed repro. There are two separate issues here:
+
+Wrong arch detection previously
+Root cause: we treated gdb.architecture().name as a string, but it’s a method. The repr “<built-in method name …>” slipped through and we fell back to pointer-size (= AMD64).
+Fix: _detect_arch_name now calls name() and sanitizes the result. You should see:
+[detect] frame.architecture().name()=aarch64
+[lldb_get_processor_type] arch_name='aarch64', machine=0xaa64 (ARM64)
+clrstack/dso failing after bp hit on ARM64
+Symptoms:
+dso: “Unable to get the stack pointer for thread …”
+clrstack: “Failed to start stack walk: 80004001”
+Causes and fixes:
+We returned E_NOTIMPL for ARM64 thread context previously; clrstack relies on a successful context call to proceed.
+Change: lldb_get_thread_context_by_system_id now returns S_OK on ARM64 and sets minimal flags (CONTROL|INTEGER) while caching pc/sp/fp (pc, sp, x29).
+Offset getters may read registers from the wrong thread if GDB hasn’t switched to the cached sysid.
+Change: lldb_get_instruction_offset/stack_offset/frame_offset now switch to the cached current sysid thread before reading registers and then use the cache or direct reads.
+lldb_get_context_stack_trace used to return E_NOTIMPL (0x80004001), which can stop clrstack from attempting its own unwinder.
+Change: Implemented a minimal version that returns S_OK with zero frames, nudging SOS to use its own stack walking.
+What to try now in the VM
+
+Re-run your scenario. Watch for:
+[lldb_get_processor_type] … machine=0xaa64 (ARM64)
+dso should no longer complain about stack pointer
+clrstack should proceed (it may still be limited until we fully marshal a Windows ARM64 CONTEXT, but the common paths should work with our offsets).
+If anything still fails
+
+Run “sostrace on” and share:
+The new [arch] traces (ensure they show aarch64)
+The calls around lldb_get_thread_context_by_system_id / lldb_get_stack_offset / clrstack
+As a quick unblock, you can also force detection just to eliminate any ambiguity:
+In GDB: set env SOS_FORCE_ARCH aarch64
+Notes and next steps
+
+For a fully accurate ARM64 thread context, we’d eventually add a DT_CONTEXT_ARM64 structure and set X0–X30, SP, FP (X29), LR (X30), and PC. Many Linux paths in SOS don’t require the full Windows context though; the above fixes should get dso and clrstack working on aarch64 in your VM.
+If we see any remaining stack-walk issues, we can add a small unwind helper in lldb_virtual_unwind for ARM64 frames.

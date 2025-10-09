@@ -1,0 +1,17 @@
+actions taken
+user-data
+Updated fstab entry to mount 9p at gdbsos instead of workspaces.
+Ensure both workspaces and gdbsos exist before mounting.
+README.md
+Updated all references, manual mount example, and usage paths to gdbsos.
+Example GDB source path updated to sos.py.
+next steps
+Regenerate the seed ISO so the new mount path applies on next boot:
+Run prepare.sh again (this copies user-data and rebuilds seed.iso in testspaces/).
+Boot the VM with run.sh from testspaces.
+Inside the VM, your repo will be at gdbsos.
+If you need a manual mount in the VM:
+
+sudo mkdir -p /workspaces/gdbsos
+sudo mount -t 9p host /workspaces/gdbsos -o trans=virtio,version=9p2000.L,msize=262144,cache=mmap
+All set—your VM and devcontainer paths are aligned.

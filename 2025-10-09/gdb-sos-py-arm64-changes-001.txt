@@ -1,0 +1,82 @@
+Changes at a glance
+Files changed:
+services.py (+302/−16)
+README.md (+4)
+Branch is 1 commit ahead of origin/main.
+Details by area
+Architecture detection and processor type
+_detect_arch_name():
+More robust handling of gdb.Frame.architecture().name being a method or attribute, decoding bytes, filtering bogus reprs, and returning a clean, lower-cased name.
+Added trace logging at each detection step:
+frame.architecture().name()
+show architecture fallback
+os.uname().machine
+_detect_machine_type():
+New environment overrides: SOS_FORCE_MACHINE_TYPE or SOS_FORCE_ARCH with values like arm64|aarch64|amd64|x64|x86_64|x86-64.
+More explicit mapping from detected arch name to IMAGE_FILE_MACHINE constants with trace logs for:
+Override decisions
+Name-based matches
+Pointer-size fallback
+Final default
+_detect_pointer_size():
+Tries GDB type system first, then ctypes, logs the source and value for easier diagnostics.
+lldb_get_processor_type():
+Now logs both the detected arch name and the resulting machine type (e.g., ARM64 vs AMD64) for transparency.
+Impact:
+
+Clearer, debuggable architecture selection; easy to force via env for troubleshooting.
+Avoids “always x64” behavior and aligns with LLDB semantics.
+Thread context (DT_CONTEXT) population
+New helper: _fill_arm64_dt_context(frame, contextFlags, context_ptr):
+Writes a minimal-but-sufficient ARM64 DT_CONTEXT subset: ContextFlags, Cpsr, X0–X28, Fp(x29), Lr(x30), Sp, Pc, with register fallbacks (e.g., pstate for CPSR, fp for x29, lr for x30).
+Matches offsets used by LLDB’s DT_CONTEXT layout so SOS can consume it.
+lldb_get_thread_context_by_system_id(...):
+AMD64 path unchanged (uses _fill_amd64_dt_context).
+ARM64 path now sets flags (CONTEXT_ARM64 | CONTROL | INTEGER) and fully populates DT_CONTEXT via _fill_arm64_dt_context.
+Updates a small per-thread cache {rip, rsp, rbp} using cross-arch register names (rip|pc, rsp|sp, rbp|fp|x29).
+Returns success (S_OK) for both AMD64 and ARM64.
+Impact:
+
+Unblocked ARM64 SOS flows like clrstack and dso by providing the expected context structure, aligning with LLDB behavior.
+Value queries and stack bounds
+lldb_get_value_by_name(...):
+Implemented (was E_NOTIMPL before).
+Supports:
+pc aliases: $pc, pc, instructionoffset, ip
+sp aliases: $sp, sp, stackoffset
+Stack bounds (via /proc/<pid>/maps scanning for mapping containing SP):
+Top: stackbase, threadstackbase, stackhigh, stack_top, stack_top_addr
+Bottom: stacklimit, threadstacklimit, stacklow, stack_bottom, stack_bottom_addr
+Ensures we read registers on the correct thread (switch if needed), then uses gdb.newest_frame() with cross-arch fallbacks.
+Impact:
+
+SOS can retrieve stack base/limit and register-derived values reliably across x64/arm64.
+Instruction/stack/frame offsets
+lldb_get_instruction_offset(...), lldb_get_stack_offset(...), lldb_get_frame_offset(...):
+Now switch to the current thread sysid (if tracked) before reading registers directly.
+Prefer values from _context_cache and fall back to live register reads with cross-arch names.
+Impact:
+
+More stable offset retrieval in multi-thread scenarios and across architectures.
+Context stack trace behavior
+lldb_get_context_stack_trace(...):
+Now returns S_OK with framesFilled = 0 instead of E_NOTIMPL.
+This lets SOS fallback cleanly to its own unwinder without treating it as a hard failure.
+Impact:
+
+Smoother behavior in commands that probe for a native stack-trace provider first.
+QEMU test harness docs
+README.md:
+Added guidance to disable W^X for JIT to ensure bpmd/JIT breakpoints work reliably:
+export DOTNET_EnableWriteXorExecute=0
+Impact:
+
+Fewer surprises when testing breakpoints in the ARM64 VM environment; avoids JIT write/execute protection interfering with bpmd.
+Behavioral overview
+ARM64 now reports correctly as ARM64 and provides a fully populated DT_CONTEXT for SOS consumers.
+clrstack and dso work on ARM64 per your confirmation.
+Value lookups for IP/SP and stack bounds are available and robust on both x64 and arm64.
+Offset getters are thread-aware and more consistent.
+Diagnostics are richer with targeted trace logs for architecture detection and processor type reporting.
+QEMU test README includes a practical W^X hint to avoid breakpoint issues.
+If you want, I can fold these highlights into a short CHANGELOG entry or add a “What’s new” section to README.md to document these improvements for future contributors.

@@ -1,0 +1,53 @@
+I’ll search for any remaining references to "artifacts/bin/current", creation of "current" symlinks, and SOS_ROOT to update them consistently.
+
+Searched text for artifacts/bin/current|/current\b|SOS_ROOT|DIAGNOSTICS_ROOT|ln -sfn ".*current", 20 results
+Read build-coreclr-corelib.sh, lines 1 to 200
+
+I’ll remove “current” symlink usage consistently across scripts and default to arch-specific Release paths, then summarize what I changed and propose commit messages.
+
+Actions taken
+post-start.sh
+
+Removed diagnostics and bridge “current” symlink creation (left as commented with rationale).
+SOS_ROOT now defaults to arch-specific Release, with override support:
+export SOS_ROOT="${SOS_ROOT:-${DIAGNOSTICS_ROOT}/artifacts/bin/linux.${ARCH}.Release}"
+build.sh
+
+Removed updates to artifacts/bin/current for diagnostics and bridge (added comments to prefer explicit linux.<arch>.<config>).
+No functional change to build outputs; only symlink side-effect removed.
+test.sh
+
+SOS_ROOT now defaults to arch-specific Release, overridable:
+export SOS_ROOT="${SOS_ROOT:-${REPO_ROOT}/src/diagnostics/artifacts/bin/linux.${ARCH}.Release}"
+Plugin path detection already tries linux.
+𝐴
+𝑅
+𝐶
+𝐻
+.
+ARCH.{CONFIG}, then Debug, then Release (so it still finds a plugin if present).
+test_gdbsos.py
+
+Default plugin discovery updated to be arch-aware:
+Tries linux.<arch>.Debug then linux.<arch>.Release under top-level artifacts.
+Removed fallback to diagnostics/artifacts/bin/current.
+Verified no remaining “current” symlink creation in scripts; only .dotnet toolset symlinks remain (they’re per-arch and safe to keep).
+
+What’s left referencing “current”
+A generated/test artifact appears under sos.py (not a script we maintain). I didn’t touch it.
+Documentation references (e.g., README, docs/faq.md) mention “current” historically; not modified since your ask was specifically for scripts.
+Commit message options
+Option A (single)
+
+Subject: scripts: drop ‘current’ symlink; default to arch Release
+Body:
+Remove artifacts/bin/current symlink creation in build.sh and post-start.sh
+Default SOS_ROOT to linux.${ARCH}.Release (overridable via env)
+tests: arch-aware default plugin path; no dependency on diagnostics/bin/current
+Option B (split)
+
+devcontainer: stop creating diagnostics/bridge ‘current’ symlinks; SOS_ROOT -> linux.${ARCH}.Release
+build: remove artifacts/bin/current updates; prefer explicit linux.<arch>.<config>
+tests: default SOS_ROOT to arch Release; plugin path arch-aware (Debug/Release)
+If you want, I can also sweep docs to remove “current” references or add a short note explaining the new convention.
+

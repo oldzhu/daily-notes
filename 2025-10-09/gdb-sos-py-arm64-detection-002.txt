@@ -1,0 +1,36 @@
+_scan_coreclr found path=/usr/lib/dotnet/shared/Microsoft.NETCore.App/8.0.20/libcoreclr.so base=0xfffff7300000
+call into lldb_get_debuggee_type
+call into lldb_get_processor_type
+[detect] frame.architecture().name=<built-in method name of gdb.architecture object at 0xffff96be0c10>
+[detect] frame.architecture().name=<built-in method name of gdb.architecture object at 0xffff96be0c10>
+[detect] name='<built-in method name of gdb.architecture object at 0xffff96be0c10>'
+[detect] -> AMD64 (fallback: ptrsize=8)
+[lldb_get_processor_type] arch_name='<built-in method name of gdb.architecture object at 0xffff96be0c10>', machine=0x8664 (AMD64)
+pls see the above trace and analyze why
+
+==========
+
+Thanks for the trace—that explains it. Root cause: we were reading GDB’s architecture name incorrectly.
+
+GDB’s API: fr.architecture().name is a callable, not a string.
+Our trace shows we logged the method object itself: [detect] frame.architecture().name=<built-in method name ...>
+Because that string isn’t “aarch64”, the name-based checks didn’t match arm64 and we fell back to pointer-size.
+The pointer-size fallback maps 8 bytes to AMD64, which is ambiguous between x64 and arm64. That’s why SOS saw x64 (0x8664).
+What I changed just now
+
+Fixed _detect_arch_name to call arch.name() if callable, sanitize the result, and only accept real strings (filters out the “<built-in method …>” repr).
+Added richer tracing so you’ll see exactly which path was used and the final decision.
+lldb_get_processor_type now logs the detected arch name and machine type used.
+Added SOS_FORCE_MACHINE_TYPE / SOS_FORCE_ARCH env overrides (arm64, aarch64, amd64, x64, x86_64, x86-64) to force a decision if needed for quick unblocking.
+What to do next (quick)
+
+Re-run your aarch64 test in the VM and look for lines like:
+[detect] frame.architecture().name()=aarch64
+[detect] -> ARM64 (name match)
+[lldb_get_processor_type] arch_name='aarch64', machine=0xaa64 (ARM64)
+If you still get AMD64, temporarily force it to confirm the rest of the pipeline:
+In GDB: set env SOS_FORCE_ARCH aarch64
+Then load/run SOS again and confirm it reports 0xAA64.
+If it’s still off after the fix
+
+Share the new “[detect] …” lines; we can add one more heuristic (e.g., check for arm64-style registers like x0..x30 via info registers) before falling back.

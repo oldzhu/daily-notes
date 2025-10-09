@@ -1,0 +1,51 @@
+
+now I would like to make our release github workflow to also support multi-arch(previously it only support x64) which I want to archive is after workflow trigger or or under specfix v* tag, I can see the assets for both x64 and arm64(aarch64) avaiable under the release for the v* tag
+===========
+I'll open the GitHub Actions workflow file to see the current release setup and then update it to build and upload multi-arch assets for x64 and arm64 on v* tags and manual triggers. 
+
+Read [](file:///workspaces/gdbsos/.github/workflows/release.yml)
+
+Using "Apply Patch"
+
+
+```
+
+```
+I’ve updated the GitHub Actions release workflow to build and publish multi-arch assets (x64 and arm64) for v* tags and manual dispatch.
+
+## What changed
+
+- release.yml
+  - Added a matrix with two runners:
+    - x64: ubuntu-latest
+    - arm64: ubuntu-24.04-arm64
+  - Each matrix job:
+    - Installs the same build dependencies via apt
+    - Runs `.build.sh -c Release --package --tag "$TAG"`
+      - Our build.sh auto-detects the host arch and names packages as:
+        - gdbsos-linux-x64-Release-<tag>.tar.gz
+        - gdbsos-linux-arm64-Release-<tag>.tar.gz
+    - Uploads the generated tarballs and checksum files to the same GitHub Release for the tag
+  - Triggers remain the same:
+    - On tag push matching v*
+    - Manual dispatch with an optional tag input
+
+Note: The arm64 job uses GitHub’s `ubuntu-24.04-arm64` runner. Ensure your org/repo has access to arm64 hosted runners; otherwise, use a self-hosted arm64 runner or we can switch to a single x64 job with cross-compilation (more complex due to native deps).
+
+## Commit message
+
+- release: build and publish x64 + arm64 assets
+  - Add matrix with ubuntu-latest (x64) and ubuntu-24.04-arm64 runners
+  - Build via build.sh -c Release --package --tag <v*> for each arch
+  - Upload both architectures’ tarballs and checksums to the same Release
+
+## How to use
+
+- Tag release
+  - Create a tag like v0.2.0 and push; both x64 and arm64 artifacts appear under the release.
+- Manual run
+  - Run the workflow and supply the tag input (v0.2.0); it will build and upload both arch assets.
+
+If you prefer aggregating artifacts first and uploading once (to avoid concurrent writes), I can add an intermediate upload/download-artifact step and a final single “publish” job.
+
+Made changes.

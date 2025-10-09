@@ -1,0 +1,20 @@
+Nice call—separating logs per-arch avoids clobbering. I updated both test harnesses to write under arch-specific subfolders.
+
+Changes
+test.sh
+
+Logs now go to logs/${ARCH} after mapping uname -m to our ARCH label:
+x64 → logs/x64
+arm64 → logs/arm64
+The log directory is created before running tests.
+test_gdbsos.py
+
+Default --logdir now resolves to logs/<arch> (same mapping, overridable via CLI).
+Still allows callers to pass a custom --logdir if needed.
+No other behavior changed.
+
+Commit message
+tests: write logs to arch-specific dirs (logs/x64, logs/arm64)
+test.sh: LOGDIR=logs/${ARCH}
+test_gdbsos.py: default --logdir to logs/<arch> (overridable)
+If you’d like, I can also add a quick cleanup script to prune old logs per-arch, or time-stamp subfolders for repeated runs.

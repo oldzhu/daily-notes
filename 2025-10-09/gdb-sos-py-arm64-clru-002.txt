@@ -1,0 +1,42 @@
+pls implement the guarded ARM64 path(adv=4,no flavor toggle, stable bytes display) 1st and also implementation of using GDB’s Python disassemble API if available (e.g., frame.architecture().disassemble(start, end)) which returns size fields per instruction and avoids string parsing entirely - but this(using gdb python disassemble api) feature is turn off by default and can turn on by env variable
+========
+
+What I changed in lldb_disassemble
+ARM64-specific behavior (always on for ARM64):
+
+Instruction advance set to 4 bytes unconditionally (adv=4).
+We decode text via a single “x/1i” at the requested address, but don’t try to compute size by parsing GDB output.
+We skip disassembly-flavor switching entirely for ARM64 (that’s x86-only).
+RIP canonicalization is now gated to x64 only; disabled on ARM64.
+Optional Python disassembler (default off):
+
+Controlled by env var: SOS_GDB_USE_PY_DISASM=1|true|yes|on
+If enabled and available:
+Use frame.architecture().disassemble(start, end) to get the first instruction’s text and length/size directly.
+Falls back to the regular path if the Python API isn’t available or fails.
+This path works for both AMD64 and ARM64 (and any arch GDB supports via the API).
+Bytes column remains stable and correct:
+
+We read exactly “adv” bytes from memory and render contiguous lowercase hex, so on ARM64 it will show 4 bytes per instruction.
+This alone fixes the earlier 1-byte misalignment that caused “.inst” noise.
+x64 flavor handling and RIP canonicalization:
+
+Flavor switching to “intel” is only performed on AMD64 when not using the Python API.
+RIP “canonicalization” is only applied on AMD64.
+No changes were made elsewhere (kept your formatting logic, columns, and buffer writes intact).
+
+How to use
+Default behavior:
+
+ARM64: clru will advance by 4 bytes per instruction and show correct mnemonics; no flavor toggling.
+AMD64: same behavior as before (parses two instructions to compute length), with the minor guard that RIP canonicalization and flavor switching are x64-only.
+Optional Python disassembler:
+
+Enable via environment variable before running SOS:
+SOS_GDB_USE_PY_DISASM=1
+This makes lldb_disassemble use GDB’s Python API when available for more reliable instruction sizes, avoiding string parsing.
+Why this fixes your clru output
+On ARM64, instructions are fixed 4 bytes; the old code sometimes computed adv=1 due to parsing quirks, causing misaligned decoding and “.inst … undefined” spam. We now advance by 4 consistently.
+The bytes column now shows 4-byte chunks, so it lines up with instruction boundaries and resembles LLDB output.
+If you want me to also flip the ARM64 bytes display to match LLDB’s big-endian word style (e.g., “fd7bbfa9” vs the raw little-endian), I can add a small env-controlled toggle for that next.
+
