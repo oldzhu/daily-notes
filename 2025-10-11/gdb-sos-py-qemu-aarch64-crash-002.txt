@@ -1,0 +1,88 @@
+there is no /usr/bin/qemu-aarch64 in wsl2 host, there is /usr/bin/qemu-aarch64 in docker-desktop host dockerd namespace but the version is 8.1.5, qemu version in tonistiigi/binfmt is 10.0.4, after run docker run --privileged --rm tonistiigi/binfmt:latest --install all, from the docker-desktop vm,  I can see ther qemu 10.0.4 is used, 
+....
+  931 root      0:00 {sh} /usr/bin/qemu-aarch64 /bin/sh sh
+  996 root      0:00 nsenter -t 707 -m -u -i -n -p sh
+  997 root      0:00 sh
+ 1131 root      0:00 ps aus
+/ # /proc/931/exe --version
+qemu-aarch64 version 10.0.4 (v10.0.4)
+Copyright (c) 2003-2025 Fabrice Bellard and the QEMU Project developers
+
+if I tried to run /usr/bin/qemu-aarch64, it says not found.
+if I tried to enter the namespace of the dockerd process,  the version of qemu-aarch64 is older 8.1.5
+docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/orien# nsenter -t 909 -m -u -i -n -p sh
+sh-5.2# /usr/bin/qemu-aarch64 --version
+qemu-aarch64 version 8.1.5 (v8.1.5)
+Copyright (c) 2003-2023 Fabrice Bellard and the QEMU Project developers
+sh-5.2#
+so where is the version of qemu 10.0.4 is located? how kernel find and locate it to run?
+
+==========
+
+Short answer: the QEMU 10.0.4 you see running isn’t coming from a visible “/usr/bin/qemu-aarch64” on the Docker Desktop VM. It’s a binary from the tonistiigi/binfmt image that was opened and pinned in the kernel when you ran --install. The kernel then reuses that pinned file descriptor as the interpreter for aarch64 binaries via binfmt_misc, so you won’t find it by path in your host/namespace. 
+GitHub
++2
+Wikipedia
++2
+
+Here’s why you see the mismatches:
+
+nsenter into the Docker daemon’s mount namespace and running /usr/bin/qemu-aarch64 --version shows 8.1.5 — that’s just the VM’s own file at that path. It’s not what binfmt_misc uses after tonistiigi/binfmt has registered the interpreters. 
+Docker Documentation
+
+When you run an ARM64 program and look at /proc/<qemu-pid>/exe --version, you see 10.0.4 because the kernel launched the pinned interpreter that tonistiigi/binfmt registered. That interpreter originates from the container’s filesystem at install time, not from the host path you’re checking. 
+GitHub
+
+How the kernel finds it
+
+tonistiigi/binfmt registers handlers in /proc/sys/fs/binfmt_misc/… and sets the F (fix/pin) flag. With F, the kernel opens the interpreter at registration time and keeps a reference to it, so subsequent execs don’t need to resolve a path in your current mount namespace (which is why you can’t “find” the 10.0.4 file in the VM). 
+Linux Kernel Documentation
++1
+
+What you can check
+
+Inspect the binfmt entry that’s active (from the Docker Desktop VM / host namespace):
+
+cat /proc/sys/fs/binfmt_misc/qemu-aarch64
+
+
+You should see flags including F (often also OC), plus the interpreter path that was used at registration time. Even if it prints a path like /usr/bin/qemu-aarch64, with F set the kernel actually uses the already-opened file from the installer’s mount namespace. 
+Linux Kernel Documentation
++1
+
+Confirm which binary is running:
+
+# find a qemu-aarch64 process that’s emulating your ARM64 cmd
+ps -ef | grep qemu-aarch64
+# then:
+readlink -f /proc/<pid>/exe
+/proc/<pid>/exe --version
+
+
+That will report 10.0.4, matching what you observed.
+
+Bottom line
+
+The 10.0.4 binary “lives” inside the tonistiigi/binfmt image layers and was pinned into the kernel during --install.
+
+The 8.1.5 binary is just the VM’s /usr/bin/qemu-aarch64. Running it directly will show 8.1.5, but binfmt execs go through the pinned 10.0.4 interpreter. 
+GitHub
++1
+
+If you ever want to switch versions, you can remove the current registrations and re-run install from the image/version you want:
+
+# list entries
+ls /proc/sys/fs/binfmt_misc
+# disable binfmt_misc or unregister specific entries
+echo -1 | sudo tee /proc/sys/fs/binfmt_misc/qemu-aarch64
+# or disable all:
+echo 0 | sudo tee /proc/sys/fs/binfmt_misc/status
+# then reinstall:
+docker run --privileged --rm tonistiigi/binfmt:<tag> --install all
+
+
+(Use with care on Docker Desktop.) 
+Linux Kernel Documentation
++1
+
+If you’d like, tell me what exact platform you’re targeting and I can suggest minimal --install sets (e.g., only arm64) and how to verify the handler flags.

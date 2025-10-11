@@ -1,0 +1,9 @@
+https://github.com/tonistiigi/binfmt/blob/master/cmd/binfmt/main.go
+Moby Project: https://github.com/moby/moby
+BuildKit:https://github.com/moby/buildkit
+Docker CLI:https://github.com/docker/cli
+
+The docker-desktop WSL distribution is not built from a user-accessible Dockerfile. It is a specialized, internal distribution created and managed directly by the Docker Desktop application to run the Docker daemon. Since it's a proprietary part of Docker Desktop, its source for this specific function is not publicly available like an open-source image
+
+https://github.com/wagoodman/dive
+

@@ -1,0 +1,65 @@
+if I understand correctly, when running docker run --privileged --rm tonistiigi/binfmt:latest --install all, as the flag is F, the qemu10.0.4 binary “lives” inside the tonistiigi/binfmt image layers was opened and was pinned into the host kernel(the full path is actually as /usr/bin/qemu-aarch64 in inside the tonistiigi/binfmt image), even after the tonistiigi/binfmt container exist, the pinned handle to qemu in the image will still be used by to emulate a arm64 elf file, am I right? the pinned handle actually is not to the host /usr/bin/qemu-* and also is not to the docker-desktop dockerd namespaced /usr/bin/qemu-*, right? Please confirm my understanding is correct or not by combined with how linux kernel code handle binfmt registration and show the related code and real links to the code.
+
+==========
+
+Your understanding is correct. With tonistiigi/binfmt ... --install all, the binfmt entries are registered with the F flag, so the kernel opens the QEMU interpreter at install time and pins that open file in the binfmt entry. Later, whenever an ARM64 ELF is executed, the kernel uses that pinned file (cloned from the stored struct file *)—not whatever /usr/bin/qemu-aarch64 happens to be in your current host/namespace. That’s why you see qemu-aarch64 10.0.4 even though /usr/bin/qemu-aarch64 elsewhere shows 8.1.5. 
+Linux Kernel Documentation
+
+How the kernel implements this (with code links)
+
+Flag F semantics (docs):
+Kernel docs describe F (“fix binary”) as: open the interpreter “as soon as the emulation is installed and use the opened image… regardless of how the environment changes.” 
+Linux Kernel Documentation
+
+Registration stores an open file when F is set:
+In fs/binfmt_misc.c, the registration path (bm_register_write) parses flags; when it sees 'F' it sets MISC_FMT_OPEN_FILE and then opens the interpreter and saves it in the entry:
+
+'F' → e->flags |= MISC_FMT_OPEN_FILE; (in check_special_flags)
+
+If that flag is set, registration calls open_exec(e->interpreter) and stores the result as e->interp_file. (See lines where f = open_exec(...); e->interp_file = f;). 
+Android Git Repositories
+
+Execution uses the pinned file instead of path lookup:
+Later, on exec (load_misc_binary), if MISC_FMT_OPEN_FILE is set and fmt->interp_file exists, the kernel clones the stored open file via filp_clone_open(fmt->interp_file) instead of reopening by path. That’s the “pinning” in action. 
+Android Git Repositories
+
+Why the visible path can mislead you:
+Even though /proc/sys/fs/binfmt_misc/qemu-aarch64 will still display an interpreter /usr/bin/qemu-aarch64 line, with F set the actual runtime interpreter is the already-open file saved at install time—so the printed path is not authoritative after registration. (Systemd and others have tripped over this exact behavior.) 
+Linux Kernel Documentation
++1
+
+Project-specific confirmation:
+The tonistiigi/binfmt maintainer explicitly confirms they rely on F so “the path doesn't matter after installation.” 
+GitHub
+
+What this means for your case
+
+The qemu 10.0.4 you see via /proc/<pid>/exe --version is the pinned interpreter from the tonistiigi/binfmt image at install time.
+
+/usr/bin/qemu-aarch64 (8.1.5) in the Docker Desktop VM or in the dockerd namespace is not what binfmt uses—running that path directly just runs that older binary.
+
+The pinned handle is neither the host’s /usr/bin/qemu-* nor the dockerd namespace’s /usr/bin/qemu-*; it’s the open file the kernel saved when tonistiigi/binfmt registered the handler.
+
+Verifications you can run
+
+Show flags and the entry:
+
+cat /proc/sys/fs/binfmt_misc/qemu-aarch64
+# Expect: "flags: ...F..." in the output
+
+
+If F is present, the interpreter is pinned. (The shown interpreter path is informational once F is set.) 
+Android Git Repositories
+
+Confirm the actual binary in use:
+
+ps -ef | grep qemu-aarch64
+readlink -f /proc/<qemu-pid>/exe
+/proc/<qemu-pid>/exe --version
+
+
+You’ll see 10.0.4 from the pinned interpreter.
+
+If you want me to, I can also show how to clear and reinstall just the arm64 handler (to avoid touching others) and how to check the OC/P flag effects.
+
+https://docs.kernel.org/admin-guide/binfmt-misc.html
