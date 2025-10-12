@@ -1,0 +1,39 @@
+
+
+Now I am working on why our gdb clru does not give the source lines. The below is the getsymboloptions in lldb plugin
+HRESULT
+LLDBServices::GetSymbolOptions(
+PULONG options)
+{
+*options = SYMOPT_LOAD_LINES;
+return S_OK;
+}
+the below is the implementaion of the heysymbolsoptions in our gdb services.cpp.
+
+
+I think this is one of cause of why our gdb sos clru does not give the source line but lldb plugin clru does give the lines. Pls align with lldb plugin on this function and then I will test.
+
+============
+You’re right—that missing implementation would cause SOS to think line info isn’t enabled. I’ll wire up GetSymbolOptions in our GDB Python services to match the LLDB plugin and return SYMOPT_LOAD_LINES.
+
+What I changed
+File: services.py
+Implemented lldb_get_symbol_options to:
+Set *options = 0x00000010 (SYMOPT_LOAD_LINES).
+Return S_OK (0) on success, E_FAIL on bad pointer.
+Added a local constant:
+SYMOPT_LOAD_LINES = 0x00000010 (same value as in lldbservices.h).
+This aligns with the LLDB plugin’s behavior:
+
+In services.cpp, GetSymbolOptions sets SYMOPT_LOAD_LINES and returns S_OK. Now the GDB plugin does the same.
+Quick verification
+Python bytecode compilation of the edited file: PASS.
+No static errors in the modified Python.
+What this enables
+SOS calls that rely on line info being enabled (like clru) will stop early-exiting due to “lines disabled” and proceed to query line mappings. Combined with your existing lldb_get_line_by_offset implementation, this should allow source lines to appear when symbols are available.
+Next
+Please rerun your clru test under GDB. If source lines still don’t show:
+Ensure symbols are loaded for the module (PDB/portable PDB to source mapping via DAC/ISymbolService, or native symbols for C/C++).
+For managed sources, your lldb_get_line_by_offset already tries the bridge path first, then falls back to info line, so symbol availability is the likely gate.
+If you want, I can add a toggle env var (e.g., SOS_GDB_SYMOPT_LOAD_LINES=0) for troubleshooting, but defaulting to enabled mirrors LLDB and matches SOS expectations.
+

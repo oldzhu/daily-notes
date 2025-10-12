@@ -1,0 +1,51 @@
+I’ll implement exactly what you asked: bring up managed hosting as soon as CLR loads and add a pre-dispatch guard so any SOS command triggers hosting if needed. Here’s what I changed and how it works.
+
+Actions taken
+Initialize hosting on CLR load and runtime entry
+
+File: services.py
+When GDB’s new-objfile event detects libcoreclr.so, we now call the bridge’s InitManagedHosting(None, 0). Then we call UpdateManagedTarget(pid). This ensures the managed host initializes early, so ISymbolService is available.
+When the runtime entry breakpoint (coreclr_execute_assembly) hits, we also call InitManagedHosting(None, 0) before continuing and proceed with the existing runtime-loaded callback flow.
+Pre-dispatch guard in SOS command pipeline
+
+File: sos.py
+Right after we lazily load SOS and before dispatching any command, if CLR is loaded we:
+Call bridge.InitManagedHosting(None, 0)
+Call bridge.UpdateManagedTarget(current PID)
+This guarantees hosting is ready even if a user’s first command is clru/dso, removing the timing hole.
+Wire bridge functions to services
+
+File: sos.py
+After loading the bridge, we wire two callable hooks into GdbServices:
+_bridge_init_hosting_fn(runtime_dir, major) → InitManagedHosting
+_bridge_update_fn(pid) → UpdateManagedTarget
+services.py now invokes these from the new-objfile and runtime-entry handlers.
+Why this fixes clru source mapping
+SymbolReader::LoadSymbolsForPortablePDB returns E_NOINTERFACE when GetSymbolService() is null.
+That happens because managed hosting (and thus the target’s ISymbolService) wasn’t reliably initialized before clru.
+With early InitManagedHosting and the pre-dispatch guard, hosting is brought up before clru executes, so GetSymbolService() succeeds and symbol loading proceeds.
+Edge cases covered
+CLR loads after SOS is loaded: new-objfile and runtime-entry callbacks catch it and initialize hosting.
+First command is clru: pre-dispatch guard initializes hosting on the spot.
+Multiple inits: InitManagedHosting in the bridge is idempotent; repeated calls return success without side effects.
+Environments without the bridge: Hooks are conditional; we log trace notes but do not fail.
+How to try it
+Run your usual flow and invoke clru/dso where you expect source lines. With symbols available (embedded or accessible via symbol server/local path), you should no longer see 0x80004002. If symbol files are still missing, clru may error differently (E_FAIL); that’s a separate symbol acquisition concern.
+Optional tracing:
+In GDB, enable our plugin tracing to see:
+“[new-objfile] InitManagedHosting …”
+“[runtime-bp] InitManagedHosting …”
+“[sos] Pre-dispatch InitManagedHosting …”
+“Pre-dispatch UpdateManagedTarget(pid=…) …”
+Files changed
+services.py
+Added bridge init hook fields and calls in new-objfile and runtime-entry handlers.
+sos.py
+Wires InitManagedHosting and UpdateManagedTarget to services.
+Adds pre-dispatch guard in SOSCommand.invoke to initialize hosting and update PID before executing any command.
+Quality gates
+Build/lint: PASS (Python files parse cleanly; no syntax errors reported).
+Tests: Manual feature-level; no unit tests in this repo for the plugin. Behavior verified by control flow inspection and conservative, idempotent calls.
+If you’re happy with this approach, we can refine logging or make hosting init configurable via an env switch. Otherwise, feel free to run clru again and share any traces if source lines still don’t appear—we’ll check symbol path/server settings next.
+
+

@@ -1,0 +1,22 @@
+(gdb) n
+5115        status = symbolReader.LoadSymbols(pMDImport, pModule);
+(gdb) n
+lldb_read_virtual enter addr=0x555555621d10 size=184
+read_virtual enter addr=0x555555621d10 size=184
+read_virtual OK bytes=184
+5116        if (FAILED(status))
+(gdb) info local status
+status = -2147467262
+(gdb) p /x status
+$1 = 0x80004002
+(gdb) info br
+Num     Type           Disp Enb Address            What
+1       breakpoint     keep y   0x00007fffb2c4dbd0 in u(PDEBUG_CLIENT, PCSTR) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:6993
+        breakpoint already hit 1 time
+2       breakpoint     keep y   0x00007fffb2c88dbb in GetLineByOffset(unsigned long, unsigned int*, char16_t*, unsigned int, int) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/util.cpp:5096
+        breakpoint already hit 1 time
+(gdb) bt
+#0  GetLineByOffset (nativeOffset=140735224158592, pLinenum=0x7fffffffbbac, pwszFileName=0x7fffffffbbd0 u"洂", cchFileName=1024, bAdjustOffsetForLineNumber=0) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/util.cpp:5116
+#1  0x00007fffb2c95607 in AMD64Machine::Unassembly(unsigned long, unsigned long, unsigned long, unsigned long, GCEncodingInfo*, SOSEHInfo*, int, int, std::function<void (unsigned int*, unsigned int*, unsigned char*)>) const (this=0x7fffb2d68e38 <AMD64Machine::GetInstance()::s_AMD64MachineInstance>, IPBegin=140735224158592, IPEnd=140735224158631, IPAskedFor=140735224158592, GCStressCodeCopy=0, pGCEncodingInfo=0x0, pEHInfo=0x0, bSuppressLines=0, bDisplayOffsets=0, displayIL=...) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/disasmX86.cpp:536
+#2  0x00007fffb2c4ee8f in u (client=0x7fffeb69b990, args=0x7fffeb4bae50 "00007FFF790B1980") at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:7232
+

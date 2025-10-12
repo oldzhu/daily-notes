@@ -1,0 +1,36 @@
+(gdb) set pagination off
+(gdb) info br
+Num     Type           Disp Enb Address            What
+1       breakpoint     keep y   0x00007fffe94ae09d in LLDBServices::GetLineByOffset(unsigned long, unsigned int*, char*, unsigned int, unsigned int*, unsigned long*) at /workspaces/gdbsos/src/diagnostics/src/SOS/lldbplugin/services.cpp:1307
+2       breakpoint     keep y   0x00007fffe94ae657 in LLDBServices::GetSourceFileLineOffsets(char const*, unsigned long*, unsigned int, unsigned int*) at /workspaces/gdbsos/src/diagnostics/src/SOS/lldbplugin/services.cpp:1392
+4       breakpoint     keep y   0x00007fffe94aab2e in LLDBServices::Disassemble(unsigned long, unsigned int, char*, unsigned int, unsigned int*, unsigned long*) at /workspaces/gdbsos/src/diagnostics/src/SOS/lldbplugin/services.cpp:573
+        breakpoint already hit 1 time
+(gdb) bt 
+#0  LLDBServices::Disassemble (this=0x72a9e0, offset=140735224158592, flags=0, buffer=0x7fffffffc440 "\340\001W", bufferSize=1024, disassemblySize=0x0, endOffset=0x7fffffffb950) at /workspaces/gdbsos/src/diagnostics/src/SOS/lldbplugin/services.cpp:573
+#1  0x00007fffe90165ac in DebugClient::Disassemble (this=0xa77d70, offset=140735224158592, flags=0, buffer=0x7fffffffc440 "\340\001W", bufferSize=1024, disassemblySize=0x0, endOffset=0x7fffffffb950) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/xplat/dbgeng.h:158
+#2  0x00007fffe90167d2 in DisasmAndClean (IP=@0x7fffffffba18: 140735224158592, line=0x7fffffffc440 "\340\001W", length=1024) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/disasm.cpp:437
+#3  0x00007fffe9095746 in AMD64Machine::Unassembly(unsigned long, unsigned long, unsigned long, unsigned long, GCEncodingInfo*, SOSEHInfo*, int, int, std::function<void (unsigned int*, unsigned int*, unsigned char*)>) const (this=0x7fffe9168e38 <AMD64Machine::GetInstance()::s_AMD64MachineInstance>, IPBegin=140735224158592, IPEnd=140735224158631, IPAskedFor=140735224158592, GCStressCodeCopy=0, pGCEncodingInfo=0x0, pEHInfo=0x0, bSuppressLines=0, bDisplayOffsets=0, displayIL=...) at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/disasmX86.cpp:579
+#4  0x00007fffe904ee8f in u (client=0x72a9e0, args=0x9baa40 "00007FFF790B1980 ") at /workspaces/gdbsos/src/diagnostics/src/SOS/Strike/strike.cpp:7232
+#5  0x00007fffe94a6cab in sosCommand::DoExecute (this=0x72c880, debugger=..., arguments=0xa77dd8, result=...) at /workspaces/gdbsos/src/diagnostics/src/SOS/lldbplugin/soscommand.cpp:80
+#6  0x00007ffff72af486 in ?? () from /lib/x86_64-linux-gnu/liblldb-14.so.1
+#7  0x00007ffff75a0f67 in ?? () from /lib/x86_64-linux-gnu/liblldb-14.so.1
+#8  0x00007ffff7595b97 in ?? () from /lib/x86_64-linux-gnu/liblldb-14.so.1
+#9  0x00007ffff7599981 in ?? () from /lib/x86_64-linux-gnu/liblldb-14.so.1
+#10 0x00007ffff74e283f in ?? () from /lib/x86_64-linux-gnu/liblldb-14.so.1
+#11 0x00007ffff74c373c in ?? () from /lib/x86_64-linux-gnu/liblldb-14.so.1
+#12 0x00007ffff759b3d9 in ?? () from /lib/x86_64-linux-gnu/liblldb-14.so.1
+#13 0x00007ffff72cdeda in lldb::SBDebugger::RunCommandInterpreter(bool, bool) () from /lib/x86_64-linux-gnu/liblldb-14.so.1
+#14 0x0000000000407d4a in ?? ()
+#15 0x0000000000408f85 in ?? ()
+#16 0x00007fffecaebd90 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#17 0x00007fffecaebe40 in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+#18 0x0000000000404125 in ?? ()
+
+
+    // symlines will be non-zero only if SYMOPT_LOAD_LINES was set in the symbol options
+    ULONG symlines = 0;
+    if (!bSuppressLines && SUCCEEDED(g_ExtSymbols->GetSymbolOptions(&symlines)))
+    {
+        symlines &= SYMOPT_LOAD_LINES;
+    }
+    bSuppressLines = bSuppressLines || (symlines == 0);
