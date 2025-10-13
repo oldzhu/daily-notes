@@ -1,0 +1,87 @@
+
+Thanks for the trace — it shows exactly why the Python host path isn’t relevant and why you saw the NULL-host path.
+
+Here’s what your log means:
+
+“[sos][warn] Native host not available; proceeding with NULL host …” happened because SOSInitializeByHost was called before the native bridge returned an IHost*. At that time, GetHostForSos returned null, so libsos was initialized with a NULL host.
+Only later, the new-objfile and runtime-entry hooks initialized hosting and updated the target:
+“[new-objfile] InitManagedHosting hr=0x00000000”
+“[update] UpdateManagedTarget(pid=…) => 0x00000000”
+“[runtime-bp] InitManagedHosting hr=0x00000000”
+Since libsos had already been initialized with a NULL host, Python’s host_get_current_target never enters the picture. We’re on the native-host path, just too late for SOSInitializeByHost.
+What I changed to fix this (native-host only, no Python host)
+
+I updated sos.py so that if GetHostForSos returns null right before SOSInitializeByHost, we eagerly call bridge InitManagedHosting and requery GetHostForSos, then pass the now-available native IHost* to SOSInitializeByHost.
+I did not modify Python’s host_get_current_target or try to use a Python host at all. Your concern stands: we rely on the native host only.
+Expected behavior after the change
+
+You should no longer see the NULL-host warning. Instead you should see:
+“[sos] InitManagedHosting eager hr=0x00000000”
+“[sos] Native IHost acquired after eager init: 0x…”
+“SOS GDB Python extension loaded (native host).”
+This ensures SOS gets a proper target from the native host before any SOS commands run, so target->GetService(ISymbolService) has a chance to succeed when clru/source mapping is used.
+How to try it quickly
+
+The test harness defaults to an artifacts sos.py. To try this change immediately without rebuilding artifacts, point PLUGIN_PATH at the updated source sos.py:
+sos.py
+Optionally ensure host usage is enabled (it is by default):
+SOS_GDB_USE_HOST=1
+Then run your test as usual. You should see the two “[sos] InitManagedHosting eager …” and “Native IHost acquired …” lines before “SOS GDB Python extension loaded (native host).”
+Notes
+
+This keeps us 100% on the native-host path, and doesn’t rely on the Python host at all.
+If you’d prefer this eager-hosting behavior to be optional, I can gate it behind an env var (for example, SOS_GDB_EAGER_HOST=0 to revert to the previous “wait for runtime load” behavior).
+Files changed
+
+sos.py — eagerly initialize managed hosting when GetHostForSos returns null right before SOSInitializeByHost, then requery and pass the native host pointer to SOS.
+Completion summary
+
+Root cause: SOSInitializeByHost was called before the bridge could provide a native IHost*; later hosting init didn’t help that initial NULL-host path.
+Fix: Eagerly call InitManagedHosting if no host is available pre-initialization; pass the native IHost* to SOSInitializeByHost.
+Verification: Look for “InitManagedHosting eager …”, “Native IHost acquired after eager init …”, and “loaded (native host)” in the log; clru/source lookups should now see ISymbolService through the native target.
+
+==========
+questions - eagerly call InitManagedHosting even when the target libcoreclr.so hasnt been loaded, is it fine? if it is fine, r u sure would that change would fix the target->m_symbolservie is null issue? as for this early managedhosting initialization, the target is even not avaiable at the time..
+
+====================
+
+Good questions. Short answer: yes, it’s safe to call InitManagedHosting before libcoreclr.so is loaded, but that alone won’t make ISymbolService non-null—you also need UpdateManagedTarget(pid) to run before the first command that uses it.
+
+Here’s why:
+
+What InitManagedHosting does: It brings up the managed hosting and service container in the native bridge. It does not depend on the target’s libcoreclr.so being mapped. This matches how the LLDB plugin initializes hosting early.
+Why the host needs to exist early: Passing a non-NULL IHost to SOSInitializeByHost ensures SOS talks to the native host (not the Python host or NULL). That’s necessary for per-target services to be reachable later.
+When ISymbolService becomes available: ISymbolService is retrieved from the current target via target->GetService(ISymbolService). That requires a native target to exist. The target is created/updated by UpdateManagedTarget(pid). So:
+InitManagedHosting → makes the host available
+UpdateManagedTarget(pid) → makes the per-target services (including ISymbolService) available
+So will the change fix m_pSymbolService being null?
+
+Eager hosting alone: not sufficient by itself.
+Eager hosting + UpdateManagedTarget(pid) before the first symbol-dependent command: yes, that makes target->GetService(ISymbolService) succeed. In our flow, we already call UpdateManagedTarget(pid) at:
+libcoreclr load (new-objfile hook)
+runtime entry breakpoint
+pre-dispatch guard (right before executing a managed SOS command)
+This ensures that by the time a command like clru needs ISymbolService, a target exists.
+About “target not available” at the time of eager InitManagedHosting:
+
+That’s fine. The IHost can be created without a target. As soon as the PID is known (live session) we call UpdateManagedTarget(pid). If there’s still no PID (pre-run help, etc.), we proceed with NULL target; no symbol service is needed yet. Once the process starts and PID is known, UpdateManagedTarget wires the per-target services and ISymbolService is then available.
+What you’ll see after the change:
+
+Before SOSInitializeByHost:
+[sos] InitManagedHosting eager hr=0x00000000
+[sos] Native IHost acquired after eager init: 0x…
+SOS GDB Python extension loaded (native host).
+Around CLR load/runtime entry:
+[new-objfile] UpdateManagedTarget(pid=…) => 0x00000000
+[runtime-bp] UpdateManagedTarget(pid=…) => 0x00000000
+Pre-dispatch (belt and suspenders):
+[sos] Pre-dispatch UpdateManagedTarget(pid=…) => 0x00000000
+Optional hardening
+
+If you want absolute certainty, we can add a tiny trace-only probe in the bridge (under a debug flag) to call GetSymbolService once after UpdateManagedTarget and log whether it’s non-null. This doesn’t change behavior—just confirms readiness.
+Note on test harness env
+
+Your test.sh already sets DOTNET_EnableWriteXorExecute=${DOTNET_EnableWriteXorExecute:-0} which is a good default for JIT/bpmd tests.
+If you prefer eager UpdateManagedTarget right after eager InitManagedHosting (when a PID is already known), I can add that too; it’ll pre-warm the target even earlier and further reduce any race before the first command.
+
+

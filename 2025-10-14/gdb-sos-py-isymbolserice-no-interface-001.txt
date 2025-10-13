@@ -1,0 +1,84 @@
+Good call—let’s pinpoint exactly where ISymbolService is created, registered, and later retrieved so you can breakpoint and see why it’s null in your GDB path.
+
+where ISymbolService is created and registered (managed)
+File: HostServices.cs
+Constructor: SOS.Extensions.HostServices.HostServices(string, IntPtr)
+Instantiates the managed symbol service:
+_symbolService = new SymbolService(_host);
+Method: SOS.Extensions.HostServices.RegisterDebuggerServices(IntPtr self, IntPtr iunk)
+Registers services into the global service container (this is where ISymbolService is “set” for the current host/target):
+serviceContainer.AddService<ISymbolService>(_symbolService);
+Breakpoints to set:
+
+Managed (via SOS bpmd after CLR loads):
+SOS.Extensions.HostServices.Initialize
+SOS.Extensions.HostServices.RegisterDebuggerServices
+SOS.Extensions.HostServices.CreateTarget
+SOS.Extensions.HostServices.UpdateTarget
+These confirm that:
+
+the host is initialized,
+DebuggerServices is wrapped,
+ISymbolService is added to the container,
+a target exists for your debuggee PID.
+where native SOS retrieves ISymbolService
+File: extensions.cpp
+Function: InitializeHostServices(IUnknown* punk)
+Native entrypoint called by managed HostServices.Initialize; stores IHostServices, registers debugger services, and calls UpdateTarget(processId).
+Method: Extensions::GetSymbolService()
+Retrieves the service from the current target:
+target->GetService(__uuidof(ISymbolService), (void**)&m_pSymbolService);
+Method: Extensions::GetTarget()
+Uses host->GetCurrentTarget(&m_pTarget) to get the ITarget.
+Breakpoints to set (native):
+
+InitializeHostServices
+Extensions::InitializeHostServices
+Extensions::GetTarget
+Extensions::GetSymbolService
+What to inspect:
+
+In Extensions::GetTarget: verify host->GetCurrentTarget returns a non-null target.
+In Extensions::GetSymbolService: check HRESULT from target->GetService(ISymbolService, …) and whether m_pSymbolService is set.
+likely cause in your GDB path
+Your Python IHost/ITarget currently returns E_NOINTERFACE for per-target services:
+
+File: services.py
+def target_get_service(self, this_ptr, guid_ptr, out_ptr):
+Comment: “No per-target native services yet; return E_NOINTERFACE”
+Behavior: Always returns 0x80004002 (E_NOINTERFACE)
+Native SOS calls target->GetService(ISymbolService). Because the Python target’s target_get_service returns E_NOINTERFACE, Extensions::GetSymbolService() ends up null, which leads to E_NOINTERFACE in SymbolReader paths (exactly what you see at clru time).
+
+In other words:
+
+Managed side does create and register ISymbolService (HostServices.RegisterDebuggerServices).
+Native side asks the current target for ISymbolService.
+The GDB Python target doesn’t expose ISymbolService, so retrieval fails.
+quick tracing while you debug
+With your new sostrace controls, you can keep noise low:
+
+Enable and suppress “read”:
+sostrace on
+sostrace off read
+See status:
+sostrace status
+Re-allow read:
+sostrace allow read
+Useful categories to keep on while you debug this: host, bpmd, new-objfile, misc.
+
+tl;dr breakpoints checklist
+Managed
+
+SOS.Extensions.HostServices.Initialize
+SOS.Extensions.HostServices.RegisterDebuggerServices
+SOS.Extensions.HostServices.CreateTarget
+SOS.Extensions.HostServices.UpdateTarget
+Native
+
+InitializeHostServices
+Extensions::InitializeHostServices
+Extensions::GetTarget
+Extensions::GetSymbolService
+Expect to see the managed ISymbolService created and added, but native retrieval fail at Extensions::GetSymbolService due to target->GetService(ISymbolService) returning E_NOINTERFACE from the Python target.
+
+If you want, I can wire target_get_service in services.py to forward ISymbolService to the managed HostServices target (via the bridge) so native SOS can finally get a non-null ISymbolService and clru can load lines.

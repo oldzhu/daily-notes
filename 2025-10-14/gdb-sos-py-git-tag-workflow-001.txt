@@ -1,0 +1,26 @@
+now I woud like to create a new release package on this commit. we have workflow to build/upload the release whenever v* tag created now I would like to create a new tag v0.1.1 and push to trigger the workflow, please give me the git commands
+===========
+You’re on main at the right commit, so just create an annotated tag and push it to trigger the release workflow.
+
+Commands (bash):
+
+
+# Make sure local is up to date (optional but recommended)
+git pull --ff-only
+
+# Create an annotated tag on the current commit
+git tag -a v0.1.1 -m "gdbsos v0.1.1: eager native host init; quiet traces; clru source mapping"
+
+# Push the tag to trigger the workflow
+git push origin v0.1.1
+
+# (Optional) Verify
+git show --stat v0.1.1
+
+If the tag name already exists and you want to recreate it:
+
+
+git tag -d v0.1.1
+git push origin :refs/tags/v0.1.1
+git tag -a v0.1.1 -m "gdbsos v0.1.1: eager native host init; quiet traces; clru source mapping"
+git push origin v0.1.1

@@ -1,0 +1,33 @@
+gdb --args gdb --args dotnet src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee.dll
+...
+(gdb) [Thread 0x7fff3751a640 (LWP 42249) exited]
+
+Thread 1 "gdb" received signal SIGINT, Interrupt.
+0x00007ffff7003c3f in poll () from /lib/x86_64-linux-gnu/libc.so.6
+(gdb) source artifacts/bin/linux.x64.Debug/sos.py
+(gdb) dumpheap -stat
+SOS GDB Python extension loaded (native host).
+Internal cached state reset
+Managed hosting initialized.
+Managed command 'dumpheap' failed (HRESULT=0x80004005). Unspecified failure. Try 'sostrace on' for details.
+(gdb) dso
+Managed command 'dso' failed (HRESULT=0x80004005). Unspecified failure. Try 'sostrace on' for details.
+(gdb) q
+A debugging session is active.
+
+lldb -- gdb --args dotnet src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee.dll
+...
+(gdb) Process 46064 stopped
+* thread #1, name = 'gdb', stop reason = signal SIGSTOP
+    frame #0: 0x00007ffff7003c3f libc.so.6`__poll + 79
+libc.so.6`__poll:
+->  0x7ffff7003c3f <+79>: cmpq   $-0x1000, %rax            ; imm = 0xF000 
+    0x7ffff7003c45 <+85>: ja     0x7ffff7003c78            ; <+136>
+    0x7ffff7003c47 <+87>: movl   %r8d, %edi
+    0x7ffff7003c4a <+90>: movl   %eax, 0x8(%rsp)
+(lldb) plugin load src/diagnostics/artifacts/bin/linux.x64.Debug/libsosplugin.so
+(lldb) dumpheap -stat
+Statistics:
+          MT Count TotalSize Class Name
+7fff383a9b50     1        24 System.Collections.Generic.GenericEqualityComparer<System.String>
+7fff383ab5f8     1        24 System.OrdinalCaseSensitiveComparer

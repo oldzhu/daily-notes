@@ -1,0 +1,28 @@
+Process 46064 stopped
+* thread #1, name = 'gdb', stop reason = step in
+    frame #0: 0x00007fffb6c96fd0 libsos.so`Extensions::GetSymbolService(this=0x00005555561a2000) at extensions.cpp:143:26
+   140  /// </summary>
+   141  ISymbolService* Extensions::GetSymbolService()
+   142  {
+-> 143      if (m_pSymbolService == nullptr)
+   144      {
+   145          ITarget* target = GetTarget();
+   146          if (target != nullptr)
+(lldb) fr var
+(Extensions *) this = 0x00005555561a2000
+(lldb) p *this
+(Extensions) $2 = {
+  m_pHost = 0x0000555556234090
+  m_pTarget = 0x00005555562342e0
+  m_pDebuggerServices = 0x00007fffd8695990
+  m_pHostServices = nullptr
+  m_pSymbolService = nullptr
+}
+(lldb) bt 5
+* thread #1, name = 'gdb', stop reason = step in
+  * frame #0: 0x00007fffb6c96fd0 libsos.so`Extensions::GetSymbolService(this=0x00005555561a2000) at extensions.cpp:143:26
+    frame #1: 0x00007fffb6c1f551 libsos.so`::GetSymbolService() at extensions.h:157:39
+    frame #2: 0x00007fffb6c1fd3c libsos.so`SymbolReader::LoadSymbolsForPortablePDB(this=0x00007fffffffc7e8, pModuleName=u"/workspaces/gdbsos/src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee.dll", isInMemory=NO, isFileLayout=YES, peAddress=140737267359744, peSize=13824, inMemoryPdbAddress=0, inMemoryPdbSize=0) at symbols.cpp:468:37
+    frame #3: 0x00007fffb6c1fb4d libsos.so`SymbolReader::LoadSymbols(this=0x00007fffffffc7e8, pMD=0x00005555566f5f50, pModule=0x00005555569856a0) at symbols.cpp:343:12
+    frame #4: 0x00007fffb6c88f88 libsos.so`GetLineByOffset(nativeOffset=140735224355140, pLinenum=0x00007fffffffcaec, pwszFileName=u"揠翿", cchFileName=1024, bAdjustOffsetForLineNumber=YES) at util.cpp:5115:27
+(lldb) 
