@@ -1,0 +1,951 @@
+I am not very satisfied with your above implementation. It does too much coding with how to get register, context, memory, local variables specifically for gdb or lldb, what I want is we can get these from the command output of the gdb or lldb or any other debuggers and no need from gdb or lldb python api, it is copilot while I am doing debugging in gdb,lldb or any other console debugger, which basic function is to anwer any questions I asked related with the debugging such as
+1. summary and analyze command output.
+2. suggest the command can be used
+3. give the goal , auto analysis - plan, task
+most functions and workflow should be implemented, driven and extended through prompts or prompt templates but not by python or any other coding unless it is really necessary. what do u think?
+
+=============
+You're absolutely right, and I apologize for misunderstanding your vision. Your approach is much more elegant, flexible, and aligned with the "copilot" metaphor. Let me redesign this concept based on your clarification.
+
+Rethinking the Architecture: Output-Driven, Prompt-Based Approach
+Core Concept
+Instead of tightly integrating with debugger APIs, we're creating a universal debugging assistant that:
+
+Analyzes command outputs from any console debugger
+Suggests commands based on current context and goals
+Provides autonomous analysis when given specific objectives
+Is primarily driven by sophisticated prompts rather than hardcoded logic
+Architecture Overview
+
+Line Wrapping
+
+Collapse
+Copy
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Console       │    │  Debugging       │    │   AI Backend    │
+│   Debugger      │◄──►│  Copilot         │◄──►│  (LLM API)      │
+│   (GDB/LLDB/etc)│    │  (Side Process)  │    │                 │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+         │                       │                       │
+         │                       │                       │
+    ┌─────────┐            ┌──────────┐           ┌─────────────┐
+    │ Command │            │Prompt    │           │ Prompt      │
+    │ Output  │            │Templates │           │ Engineering │
+    └─────────┘            └──────────┘           └─────────────┘
+Implementation Approach
+1. Terminal Integration Method
+python
+
+Line Wrapping
+
+Collapse
+Copy
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+class DebuggingCopilot:
+    def __init__(self, ai_backend):
+        self.ai_backend = ai_backend
+        self.prompt_manager = PromptTemplateManager()
+        self.session_history = []
+        self.context_cache = {}
+        
+    def process_debugger_output(self, command, output):
+        """Process output from any debugger command"""
+        # Create a context entry
+        context_entry = {
+            'command': command,
+            'output': output,
+            'timestamp': time.time()
+        }
+        
+        # Add to session history
+        self.session_history.append(context_entry)
+        
+        # Update context cache
+        self._update_context_cache(context_entry)
+        
+        # Check if we should provide proactive analysis
+        if self._should_analyze_proactively(command, output):
+            analysis = self.analyze_output(command, output)
+            return analysis
+            
+        return None
+        
+    def ask_copilot(self, question):
+        """Answer a user's question about the debugging session"""
+        # Get relevant context
+        relevant_context = self._get_relevant_context()
+        
+        # Use the appropriate prompt template
+        prompt = self.prompt_manager.get_prompt(
+            'question_answering',
+            question=question,
+            context=relevant_context,
+            history=self.session_history[-10:]  # Last 10 entries
+        )
+        
+        # Query the AI
+        response = self.ai_backend.query(prompt)
+        
+        return response
+        
+    def suggest_commands(self, goal=None):
+        """Suggest next commands based on current context and optional goal"""
+        # Get current context
+        current_context = self._get_current_context()
+        
+        # Use the command suggestion prompt template
+        prompt = self.prompt_manager.get_prompt(
+            'command_suggestion',
+            context=current_context,
+            goal=goal
+        )
+        
+        # Query the AI
+        response = self.ai_backend.query(prompt)
+        
+        return response
+        
+    def autonomous_analysis(self, goal):
+        """Perform autonomous analysis to achieve a specific debugging goal"""
+        # Get current context
+        current_context = self._get_current_context()
+        
+        # Use the autonomous analysis prompt template
+        prompt = self.prompt_manager.get_prompt(
+            'autonomous_analysis',
+            goal=goal,
+            context=current_context,
+            history=self.session_history
+        )
+        
+        # Query the AI
+        response = self.ai_backend.query(prompt)
+        
+        # Parse the response for a plan
+        plan = self._parse_analysis_plan(response)
+        
+        return plan
+2. Prompt Template Manager
+This is the core of your prompt-driven approach:
+
+python
+
+Line Wrapping
+
+Collapse
+Copy
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+class PromptTemplateManager:
+    def __init__(self):
+        self.templates = {
+            'output_analysis': """
+You are a debugging assistant analyzing the output of a debugger command.
+
+Command: {command}
+Output:
+{output}
+
+Previous context:
+{context}
+
+Please analyze this output by:
+1. Summarizing what the output shows
+2. Identifying any potential issues or anomalies
+3. Suggesting what this means for the debugging process
+4. Recommending next steps or commands to run
+
+Be concise but thorough in your analysis.
+""",
+            
+            'command_suggestion': """
+You are a debugging assistant suggesting the next commands to run.
+
+Current debugging context:
+{context}
+
+{goal_section}
+
+Based on the current context, suggest 3-5 commands that would be most useful to run next.
+For each command, provide:
+1. The exact command to run
+2. What information the command will provide
+3. Why this command is relevant to the current situation
+
+Format your response as a numbered list.
+""",
+            
+            'autonomous_analysis': """
+You are an autonomous debugging assistant with the goal of: {goal}
+
+Current debugging context:
+{context}
+
+Recent debugging history:
+{history}
+
+Please create a step-by-step plan to achieve the debugging goal. Your plan should:
+1. Break down the goal into specific tasks
+2. Identify the commands needed for each task
+3. Explain what information you expect to get from each command
+4. Specify how you'll interpret the results
+
+Format your response as a clear, actionable plan.
+""",
+            
+            'question_answering': """
+You are a debugging assistant answering a developer's question.
+
+Question: {question}
+
+Current debugging context:
+{context}
+
+Recent debugging history:
+{history}
+
+Please answer the question based on the debugging context and history.
+If you need to suggest commands to gather more information, include them in your response.
+"""
+        }
+        
+    def get_prompt(self, template_name, **kwargs):
+        """Get a formatted prompt template"""
+        if template_name not in self.templates:
+            raise ValueError(f"Unknown template: {template_name}")
+            
+        template = self.templates[template_name]
+        
+        # Handle special cases
+        if template_name == 'command_suggestion' and 'goal' in kwargs:
+            if kwargs['goal']:
+                kwargs['goal_section'] = f"Debugging goal: {kwargs['goal']}"
+            else:
+                kwargs['goal_section'] = "No specific debugging goal provided."
+                
+        return template.format(**kwargs)
+        
+    def add_template(self, name, template):
+        """Add a new prompt template"""
+        self.templates[name] = template
+        
+    def update_template(self, name, template):
+        """Update an existing prompt template"""
+        if name not in self.templates:
+            raise ValueError(f"Template not found: {name}")
+        self.templates[name] = template
+3. Context Management
+python
+
+Line Wrapping
+
+Collapse
+Copy
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+        
+    def get_current_context(self, max_tokens=2000):
+        """Get a formatted context string"""
+        # Start with the most recent entries
+        recent_entries = self.session_history[-10:]
+        
+        # Format the context
+        context_parts = []
+        
+        # Add important events
+        if self.important_events:
+            context_parts.append("Important Events:")
+            for event in self.important_events[-5:]:
+                context_parts.append(f"- {event}")
+                
+        # Add recent commands
+        context_parts.append("\nRecent Commands:")
+        for entry in recent_entries:
+            context_parts.append(f"Command: {entry['command']}")
+            context_parts.append(f"Output: {entry['summary']}")
+            context_parts.append("")
+            
+        # Add key variables
+        if self.key_variables:
+            context_parts.append("\nKey Variables:")
+            for name, value in self.key_variables.items():
+                context_parts.append(f"{name} = {value}")
+                
+        # Join and truncate if needed
+        context = "\n".join(context_parts)
+        
+        if len(context) > max_tokens * 4:  # Rough estimate of tokens
+            # Truncate from the beginning
+            context = context[-max_tokens * 4:]
+            
+        return context
+        
+    def _extract_important_info(self, entry):
+        """Extract important information from a command output"""
+        command = entry['command'].lower()
+        output = entry['output']
+        
+        # Check for crashes
+        if 'segmentation fault' in output or 'exception' in output:
+            self.important_events.append(f"Crash detected: {entry['command']}")
+            
+        # Check for breakpoints
+        if command.startswith('break') or command.startswith('b '):
+            # Extract breakpoint location
+            location = output.split('\n')[0] if output else "Unknown location"
+            self.breakpoints.append(location)
+            
+        # Extract variable values
+        if command.startswith('print') or command.startswith('p '):
+            # Try to extract variable name and value
+            var_match = re.search(r'p\s+(\w+)', entry['command'])
+            if var_match:
+                var_name = var_match.group(1)
+                # Extract value from output
+                value_match = re.search(r'= (.+)', output)
+                if value_match:
+                    self.key_variables[var_name] = value_match.group(1)
+                    
+    def _summarize_output(self, command, output):
+        """Create a brief summary of command output"""
+        # Simple summarization - could be enhanced with AI
+        lines = output.split('\n')
+        
+        if command.startswith('backtrace') or command.startswith('bt'):
+            return f"Stack trace with {len(lines)} frames"
+        elif command.startswith('info registers'):
+            return f"Register values"
+        elif command.startswith('print') or command.startswith('p '):
+            return f"Variable value: {lines[0] if lines else 'No output'}"
+        else:
+            # Return first line or first 50 characters
+            first_line = lines[0] if lines else ""
+            return first_line[:50] + "..." if len(first_line) > 50 else first_line
+4. Terminal Integration
+python
+
+Line Wrapping
+
+Collapse
+Copy
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+class TerminalCopilot:
+    def __init__(self, copilot):
+        self.copilot = copilot
+        self.original_stdout = sys.stdout
+        self.copilot_output = []
+        
+    def start_monitoring(self):
+        """Start monitoring terminal output"""
+        # Redirect stdout to capture debugger output
+        sys.stdout = self
+        
+    def stop_monitoring(self):
+        """Stop monitoring terminal output"""
+        sys.stdout = self.original_stdout
+        
+    def write(self, text):
+        """Override stdout.write to capture debugger output"""
+        # Write to original stdout
+        self.original_stdout.write(text)
+        
+        # Process the text through the copilot
+        if text.strip():
+            # Try to identify if this is a debugger command
+            if self._is_debugger_command(text):
+                # Wait for the output
+                self.copilot_output = []
+            else:
+                # This might be command output
+                self.copilot_output.append(text)
+                
+                # Check if this looks like the end of command output
+                if self._is_command_output_complete(text):
+                    # Process the complete output
+                    command = self._get_last_command()
+                    output = "".join(self.copilot_output)
+                    
+                    # Get analysis from copilot
+                    analysis = self.copilot.process_debugger_output(command, output)
+                    
+                    if analysis:
+                        # Display the analysis
+                        self.original_stdout.write("\n[Copilot Analysis]\n")
+                        self.original_stdout.write(analysis)
+                        self.original_stdout.write("\n")
+                        
+    def _is_debugger_command(self, text):
+        """Check if text looks like a debugger command"""
+        # Simple heuristic - could be enhanced
+        text = text.strip()
+        if not text:
+            return False
+            
+        # Check for common debugger prompts
+        if text.endswith('(gdb) ') or text.endswith('(lldb) '):
+            return True
+            
+        # Check for common debugger commands
+        common_commands = ['break', 'print', 'info', 'backtrace', 'step', 'next', 'continue']
+        if any(text.startswith(cmd) for cmd in common_commands):
+            return True
+            
+        return False
+        
+    def _is_command_output_complete(self, text):
+        """Check if this looks like the end of command output"""
+        # Simple heuristic - could be enhanced
+        return '(gdb)' in text or '(lldb)' in text
+        
+    def _get_last_command(self):
+        """Get the last debugger command"""
+        # This would need to be implemented based on your terminal setup
+        # Could use readline history or other methods
+        pass
+Key Advantages of This Approach
+Debugger Agnostic: Works with any console debugger without specific knowledge of their APIs
+Prompt-Driven: Most functionality is implemented through prompts rather than code
+Flexible: Easy to extend by adding new prompt templates
+Non-Intrusive: Doesn't interfere with the normal debugging workflow
+Context-Aware: Builds understanding of the debugging session over time
+Example Prompt Templates for Specific Scenarios
+Crash Analysis Template
+python
+
+Line Wrapping
+
+Collapse
+Copy
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+crash_analysis_template = """
+You are analyzing a program crash in a debugging session.
+
+Crash details:
+{crash_details}
+
+Stack trace:
+{stack_trace}
+
+Recent commands leading to the crash:
+{recent_commands}
+
+Please analyze this crash by:
+1. Identifying the most likely cause of the crash
+2. Explaining what the code was trying to do when it crashed
+3. Suggesting specific commands to gather more information
+4. Recommending a strategy to fix the issue
+
+Be specific and actionable in your recommendations.
+"""
+Memory Issue Analysis Template
+python
+
+Line Wrapping
+
+Collapse
+Copy
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+memory_analysis_template = """
+You are analyzing a potential memory issue in a debugging session.
+
+Memory-related output:
+{memory_output}
+
+Variable values:
+{variables}
+
+Recent memory-related commands:
+{recent_memory_commands}
+
+Please analyze this memory issue by:
+1. Identifying signs of memory problems (leaks, corruption, etc.)
+2. Explaining what might be causing these issues
+3. Suggesting specific commands to investigate further
+4. Recommending a strategy to resolve the memory issue
+
+Focus on practical debugging steps rather than theoretical explanations.
+"""
+Performance Analysis Template
+python
+
+Line Wrapping
+
+Collapse
+Copy
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+performance_analysis_template = """
+You are analyzing a performance issue in a debugging session.
+
+Performance-related information:
+{performance_info}
+
+Function call information:
+{call_info}
+
+Recent performance-related commands:
+{recent_perf_commands}
+
+Please analyze this performance issue by:
+1. Identifying potential bottlenecks or inefficiencies
+2. Explaining what might be causing the performance problem
+3. Suggesting specific commands to profile or investigate further
+4. Recommending a strategy to improve performance
+
+Focus on actionable debugging steps.
+"""
+Implementation Workflow
+Start the debugging copilot in a separate terminal or window
+Begin your normal debugging session with GDB, LLDB, or any other console debugger
+The copilot monitors your debugging session, analyzing command outputs
+Ask questions directly to the copilot about the debugging session
+Request command suggestions when you're unsure what to do next
+Set goals for autonomous analysis when you want the copilot to take the lead
+This approach is much more aligned with your vision of a prompt-driven, flexible debugging assistant that works alongside any console debugger. It leverages the power of LLMs through carefully crafted prompts rather than trying to program every possible debugging scenario.
