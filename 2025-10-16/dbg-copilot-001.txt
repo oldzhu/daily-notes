@@ -1,0 +1,270 @@
+I would like to develop a debugger AI copilot when I am doing debugging in gdb,lldb or any other console debugger in linux, which basic function is that it can anwer any questions I asked related with the debugging such as
+
+summary and analyze debugging command output.
+suggest the command can be used
+give the goal , auto analysis - planning, auto debugging, generate report
+most functions and workflow is better to be implemented, driven and extended through prompts or prompt templates but not by coding unless it is really necessary. we can start from gdb 1st and using lanchain to do a quick POC and then gadually extend its functions and also extend to support other debuggers - lldb. Let us work on this step by step together. start from initial planning and design - class, files and folder layout, pls hold on any real changes to the current folder until I review and confirm.
+
+==========
+
+I'll set up a clear task list for the initial planning/design and then draft the architecture, folder layout, and prompt-driven workflow for a GDB-first POC without making any file changes yet.
+
+Created 8 todos
+
+Here's the initial planning/design. I’ll track progress with a todo list and update it as I complete each section.
+
+Updated todo list
+
+Progress update: I’ll document the high-level goals and constraints first, then mark that todo complete and move on to architecture.
+
+Starting (2/8) Propose architecture and components
+
+I’ll draft the initial plan for a GDB-first, prompt-driven debugger copilot POC (architecture, components, folder layout, and workflow) without making any file changes yet.
+
+High-level goals and constraints
+Scope
+
+Start with GDB on Linux, interactive console debugging.
+Use LangChain to wire an agent with minimal code; maximize prompt/prompt-template driven behavior.
+Provide: (1) summarize/analyze command output, (2) suggest commands, (3) goal-driven planning, auto-debug loop, and final report.
+Be easily extensible to LLDB later by swapping backends, reusing prompts.
+Non-goals (POC)
+
+Full automation for every debugging scenario.
+Heavy structured parsing of all GDB outputs (keep light-weight; prefer prompt summarization).
+GUI or TUI front-end beyond a simple CLI.
+Constraints
+
+Linux shell (bash).
+Avoid writing code unless necessary; when needed, keep it minimal and adapter-based.
+Privacy: No sensitive data exfiltration. Redact PII in reports when requested.
+Progress update: Captured goals/constraints and set the stage. Next I’ll propose the architecture and component breakdown.
+
+Architecture overview
+Chat Orchestrator (Agent)
+
+LangChain agent with custom Tools for interacting with GDB.
+Conversation memory (short buffer + summarizer) to keep the session context compact.
+Uses prompt templates for: summarize output, suggest next commands, plan steps, auto mode, and report generation.
+Debugger Backend Abstraction
+
+Interface: DebuggerBackend (run_command, attach/launch, session init, teardown).
+Implementation: GdbBackend for POC.
+Future: LldBBackend reusing the same interface.
+Command Runner
+
+Minimal wrapper around gdb interactive session; prefer pexpect/pty for interactivity.
+Init: set pagination off, disable paging, adjust width/height to avoid “—More—”.
+Handles timeouts, truncates overly long outputs, strips ANSI color if present.
+Tools (LangChain)
+
+gdb_run: execute an arbitrary GDB command string and return stdout.
+gdb_quick: convenience variants for common tasks (optional POC): bt, info threads, frame N, p EXPR, x/… MEM.
+session_tools: set goal, toggle auto mode, generate report.
+State, Memory, and Logs
+
+SessionState: user goal, known facts, hypotheses, attempted commands, errors, and artifacts (core file path, binary, PID).
+TranscriptStore: chronological record of prompts, commands, outputs, and agent reasoning (strip hidden chain-of-thought from persisted logs).
+ReportBuilder: compiles final summary with evidence snippets.
+Configuration
+
+YAML/TOML config for model provider, temperature, max_tokens, tool timeouts, and default gdb init commands.
+Environment-driven credentials (e.g., OPENAI_API_KEY) but provider-agnostic (OpenAI, Azure OpenAI, Anthropic, local).
+CLI Driver (POC)
+
+Launch or attach to a process (binary path or PID).
+Chat loop (user question ↔ agent ↔ optional tool calls).
+Optional “auto” mode to run a short plan without prompts.
+Folder and file layout (proposal; no changes yet)
+src/dbgcopilot/
+agent/
+orchestrator.py — LangChain agent setup, tool wiring, memory.
+memory.py — conversation buffer + summarizer configuration.
+report.py — report construction logic.
+backends/
+base.py — DebuggerBackend protocol/interface.
+gdb_backend.py — GDB implementation (pexpect/pty).
+lldb_backend.py — placeholder/skeleton for later.
+tools/
+gdb_tools.py — LangChain Tool wrappers around backend.
+session_tools.py — goal, auto-mode toggler, report generation.
+models/
+state.py — SessionState, KnownFact, Hypothesis, Artifact (Pydantic).
+messages.py — message/event schemas, transcript entries.
+config.py — app/config models.
+prompts/
+summarize_output.md
+suggest_commands.md
+plan_and_analyze.md
+auto_debug_loop.md
+report_template.md
+tool_instructions.md — ground rules for tool usage.
+safety.md — guardrails and confirmation steps.
+cli/
+main.py — Typer/Rich CLI (launch/attach, chat, auto, report).
+utils/
+io.py — ANSI stripping, truncation, diffs.
+logging.py — structured logging, redaction helpers.
+configs/
+default.yaml — model, timeouts, gdb init commands.
+providers/ — optional provider-specific config variants.
+examples/
+crash_demo/ — small C app that segfaults for demo.
+reports/ — output markdown reports.
+tests/
+Unit tests with a FakeBackend (simulated GDB output).
+Basic e2e smoke for CLI with FakeBackend.
+Core abstractions and class outlines
+DebuggerBackend (base.py)
+
+launch(target: str, args: list[str]) -> None
+attach(pid: int) -> None
+run_command(cmd: str, timeout: float = …) -> str
+initialize_session() -> None (set pagination off, etc.)
+close() -> None
+GdbBackend (gdb_backend.py)
+
+Uses pexpect/pty to start gdb with the target or --pid.
+Sends commands and reads until prompt (gdb).
+Handles pager and timeout; config-driven.
+AgentOrchestrator (orchestrator.py)
+
+Initializes LLM, tools, memory, and prompt templates.
+Chat loop: routes user message to LLM; LLM chooses tools; returns answers.
+Maintains SessionState and call limits.
+ReportBuilder (report.py)
+
+Inputs: SessionState, transcript, highlights.
+Output: Markdown report stored under reports/.
+SessionState (models/state.py)
+
+goal: str
+mode: "manual"|"auto"
+known_facts: list[KnownFact]
+hypotheses: list[Hypothesis]
+attempts: list[Attempt] (command, result)
+artifacts: dict (paths, cores)
+summary: str (rolling)
+Tools
+
+gdb_run(command: str) -> str
+Optional convenience: gdb_bt(), gdb_info_threads(), gdb_frame(n), gdb_print(expr), gdb_examine(fmt, addr, count)
+Core prompt templates (initial drafts)
+tool_instructions.md
+
+“You can run GDB commands using the gdb_run tool. Prefer minimal, focused commands. Confirm before destructive operations (e.g., set, kill, detach). Never invent output; always quote from tool results.”
+summarize_output.md
+
+Input: last command, raw output (truncated if needed), context (goal, known facts).
+Output: concise bullet summary, key signals (crash site, signal), actionable notes.
+suggest_commands.md
+
+Given the last outputs and the goal, suggest 1–3 next commands.
+Include rationale for each. Prefer read-only diagnostic commands.
+Format: bullets with “command — why”.
+plan_and_analyze.md
+
+Given goal and current status, produce a short plan: steps (max 5), expected signals, stop conditions.
+Mark steps that require confirmation.
+auto_debug_loop.md
+
+Instructions for iterative execution in auto mode: run one step at a time, evaluate, update facts, stop on ambiguous output or risk.
+Hard limits on iterations/time.
+report_template.md
+
+Sections: Title, Context, Repro, Observations, Root Cause Candidates, Evidence, Next Steps, Appendix (transcript excerpts).
+safety.md
+
+Guardrails: confirm before modifying state, respect redaction policies, avoid infinite loops, handle timeouts gracefully.
+POC workflow (end-to-end)
+Start session (CLI)
+
+User provides binary or PID, sets goal (e.g., “Find cause of SIGSEGV on startup”).
+Backend launches/attaches GDB and initializes session (pagination off).
+Manual mode (default)
+
+User asks a question (e.g., “Summarize current crash”).
+Agent may run limited commands (e.g., bt, info r) via gdb_run.
+Agent summarizes output and suggests next commands.
+Auto mode (optional opt-in)
+
+Agent produces a short plan (max 5 steps).
+Executes one step at a time with gdb_run; after each step, evaluates and updates state.
+Stops on success, ambiguity, or risk; asks user to confirm if needed.
+Reporting
+
+Agent compiles a Markdown report, citing evidence snippets.
+Saves to reports/<timestamp>-<session>.md.
+Minimal data models
+Message/TranscriptEntry
+
+role: user|assistant|tool
+content: str
+meta: {cmd?: str, truncated?: bool, tokens?: int}
+KnownFact/Hypothesis
+
+fact: str, source: [output snippet], confidence: 0–1
+hypothesis: str, rationale, confidence
+Config
+
+model: provider, name, temperature, max_tokens
+gdb: timeout, init_cmds, prompt pattern
+limits: max_auto_steps, max_output_chars
+Edge cases and error handling
+GDB pager output (“—More—”): disable pagination (set pagination off, set height 0).
+Long outputs: truncate with tail+head, offer to refine queries (e.g., frame N).
+Timeouts/hangs: per-command timeout; suggest narrower commands.
+Invalid commands: capture errors, suggest corrected syntax.
+Multithreaded and corefiles: prompt awareness of info threads, thread apply, corefile path.
+Binary without symbols: suggest installing debuginfo or adding -g, add-symbol-file.
+Extending to LLDB
+Implement LldbBackend with the same interface.
+LLDB tool mapping:
+bt → bt (similar)
+info threads → thread list
+frame → frame select
+p expr → expr
+x/… → memory read variants
+Reuse prompts with a “debugger_flavor” context variable to adjust command suggestions.
+Dependencies (POC)
+Python 3.11+
+LangChain (core + community) and an LLM provider (OpenAI/Azure/Anthropic or local).
+pexpect (or ptyprocess) for GDB I/O.
+Typer + Rich for CLI UX.
+Pydantic v2 for models.
+Optional: python-dotenv for local dev, ruamel.yaml or PyYAML for configs.
+Acceptance criteria (POC)
+Manual mode
+
+Can launch or attach to GDB, run core diagnostic commands, and summarize outputs.
+Suggests specific next commands with rationale.
+Auto mode
+
+Given a goal, produces a short plan and executes up to N steps safely.
+Stops on ambiguity/risk and asks for confirmation.
+Reporting
+
+Generates a readable Markdown report with evidence snippets.
+Extensibility
+
+Swappable backend; placeholder LLDB backend compiles and can be wired next.
+Reliability
+
+Handles pager, timeouts, long output truncation, and common GDB errors.
+Next steps (pending your review)
+Confirm architecture and folder layout.
+Once approved:
+Scaffold the minimal code skeleton (no heavy logic).
+Add prompt templates as files.
+Implement GdbBackend with pexpect, and a gdb_run tool.
+Wire agent in orchestrator.py with the prompt templates.
+Provide a tiny example program and a smoke test using FakeBackend.
+Questions for you
+
+Preferred LLM provider(s) for the POC?
+Do you want auto mode enabled by default or always opt-in?
+Any organizational requirements for logs/reports (redaction, storage path)?
+Will you primarily: attach to live PIDs, run binaries under gdb, or load core files?
+If this plan looks good, I’ll proceed to scaffold the structure and placeholder files exactly as outlined (no business logic yet) for your review.
+
+

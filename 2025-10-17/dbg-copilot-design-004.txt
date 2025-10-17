@@ -1,0 +1,49 @@
+I’ve scaffolded the project for the nested copilot> POC plus a lightweight “view,” keeping logic minimal so you can review and iterate. Nothing heavy was implemented; the structure is ready to wire LangChain and the in-process GDB backend next.
+
+Actions taken
+Created a clean skeleton with GDB plugin commands and a nested copilot> REPL placeholder.
+Added core modules (orchestrator, state, report) and prompt templates.
+Included configs, utils, a basic README, and a smoke test.
+Validated no syntax errors.
+Files added (high level)
+README.md — overview and usage notes.
+src/dbgcopilot/
+init.py — package init.
+core/
+orchestrator.py — placeholder agent orchestrator.
+state.py — simple session state and attempt models.
+report.py — minimal Markdown report builder and writer.
+backends/
+base.py — DebuggerBackend protocol.
+gdb_inprocess.py — placeholder; returns canned outputs.
+prompts/ — initial prompt templates:
+tool_instructions.md, suggest_commands.md, summarize_output.md,
+plan_and_analyze.md, auto_debug_loop.md, report_template.md, safety.md
+utils/
+io.py — ANSI stripping and head/tail truncation.
+plugins/gdb/
+copilot_cmd.py — registers copilot new/ask/summary.
+repl.py — nested copilot> loop: ask, exec, goal, summary.
+default.yaml — default settings.
+test_smoke_structure.py — basic import test.
+How it behaves now (placeholder)
+In GDB, you can source the plugin and run:
+(gdb) copilot new → starts a new session and enters copilot> prompt.
+copilot> ask Why did it crash? → placeholder suggests bt with a prompt-like message.
+copilot> exec bt → uses a canned backend output, logs attempt.
+copilot> goal …, summary → store goal, show placeholder summary.
+No real LLM or GDB API calls yet; that’s next.
+Suggested next steps
+Prompt templates: refine content for gdb flavor (short, actionable).
+Wire real GDB in-process calls:
+Use gdb.execute('cmd', to_string=True) and set pagination/height off in initialize_session.
+Introduce LangChain:
+Load prompts and implement suggest/ask/plan/auto in orchestrator.
+Add a minimal provider config parser honoring default.yaml and environment variables.
+Add “view”:
+A small function to write/update reports/<session>.md after each interaction and a copilot view command to open/refresh.
+If you’re happy with this scaffold, I’ll proceed to:
+
+Implement the real GDB backend methods (initialize_session, run_command).
+Draft the initial prompt texts more concretely.
+Integrate a simple LLM call (provider flag-gated) for copilot ask and suggest, while keeping confirmations in the REPL.

@@ -1,0 +1,227 @@
+that is not exactly what I want, what I want to is it is like gdb or lldb extenstion or plugin commands, commands like copilot config, copilot new, copilot ask, copilot mode, copilot summary...
+copilot config - configure langchain LLM backend
+copilot new - save previous copilot chat session if there is and start a new one chat session
+copilot mode - interractive mode or auto mode.
+copilot summary - summary the current copilot chat session.
+after copilot new, we will have copilot prompt like colipot> the default copilot mode is interactive, which means we will intactive with backend LLM and gdb with copilot> ptompt, such as ask llm debugging questions, run gdb command and ask llm to analtsis, one same flow is lke -
+ask llm what command can be used for what? llm reply with the suggested command, ask if want to execute, you can say yes to go execute or no to ask to execute another command or ask anoher question, if command executed, u can ask to explain the output or ask the next question, in auto mode, u just give the gonal,copilot will plan and execute automatoically until archive the goal or reached the max intetrations reached.
+=======
+
+’m updating the plan to reflect a GDB/LLDB plugin-style command set, then I’ll lay out the concrete command UX, architecture fit, and folder layout—no file changes yet.
+
+Starting (3/9) Specify command set and UX
+
+Got it — we’ll design this as a GDB/LLDB plugin-style command set that adds “copilot …” commands directly in the debugger, with an interactive copilot> prompt and an auto mode. Here’s a focused plan for the command UX, architecture, and layout (no file changes yet).
+
+What we’ll design now
+Command set and UX inside GDB/LLDB
+How those commands map to the LangChain agent and backend
+Folder layout that supports gdb/lldb plugins, prompt-driven behavior, and sessions
+Prompt templates needed to power the flows
+I’ve updated the todo list to reflect the plugin model and started detailing the command UX and architecture.
+
+Command set and UX
+Core commands (GDB and LLDB names the same):
+
+copilot config [key] [value]
+
+Configure LLM provider/model/temperature, timeouts, auto limits.
+Examples:
+copilot config provider openai
+copilot config model gpt-4o-mini
+copilot config auto.max_steps 5
+No restarts needed; updates session config.
+copilot new
+
+Save previous copilot chat session (transcript, report) if present.
+Create a new session and show copilot> prompt.
+Mode defaults to interactive.
+copilot mode [interactive|auto]
+
+Switch mode. In auto: requires a goal to begin.
+If no goal set, prompt user to set one:
+copilot> goal Find the cause of SIGSEGV on startup
+copilot ask [freeform question]
+
+Send a question to LLM with the current context: last command/output, session facts, goal.
+Typical flows:
+Suggest commands: LLM proposes 1-3 GDB commands with rationale.
+Copilot asks: “Execute ‘bt’? [y/N/other]”
+y: run via GDB, show output, then copilot offers analysis/suggestions.
+N: user can type another question or “exec <alt-cmd>”.
+Post-execution, user can ask: “Explain the output” or “What next?”
+copilot summary
+
+Summarize the current session so far: goal, key findings, commands run, next steps.
+Output concise bullets, with short evidence snippets.
+Interactive loop
+
+After copilot new, a nested copilot> prompt is available (runs inside debugger context).
+At copilot>:
+ask Why did it crash?
+suggest bt
+exec bt
+analyze last
+goal Diagnose SIGSEGV in foo()
+Confirmations: destructive or state-modifying commands require confirmation (e.g., set, kill, detach).
+User can always run standard GDB commands outside copilot> or via exec within it.
+Auto mode loop
+
+Mode set to auto and a goal provided:
+LLM plans up to N steps (configurable).
+Executes step-by-step:
+Run command, capture output, analyze, update facts.
+Stop on success, ambiguity, or risk; ask for confirmation when needed.
+On stop, produce a brief status and recommended next steps.
+User can switch back to interactive anytime: copilot mode interactive.
+Optional extended commands
+
+copilot suggest [topic?] — ask LLM “what commands now?”
+copilot exec [raw gdb cmd] — run a GDB command within copilot context (logged and analyzable).
+copilot analyze [context?] — force an analysis pass on the last outputs.
+copilot report — generate a Markdown report and persist it.
+Architecture fit
+GDB/LLDB plugin layer
+
+GDB: Python pretty-printer/plugins via python command or source a .py file to register copilot command namespace. Implement a CopilotCommand that dispatches subcommands: config/new/mode/ask/summary/exec/…
+LLDB: Scripted command via Python binding: command script add -f module.handler copilot.
+Both call into a shared Python package dbgcopilot that:
+Holds session state per debugger instance.
+Provides a copilot REPL handler for the nested copilot> prompt.
+Shared Copilot core (LangChain)
+
+Agent orchestrator: tools include:
+run_gdb_command(cmd) — executes in current debugger session and returns plaintext.
+session tools: set_goal, get_summary, generate_report.
+Prompts drive most behaviors: suggest commands, explain output, plan steps, auto loop instructions.
+Backend abstraction
+
+For GDB plugin, the backend is an “in-process” adapter that invokes the debugger’s own Python API to run commands and read results.
+For LLDB later, a sibling adapter.
+State and transcript
+
+SessionState: goal, mode, facts, attempts, last_output, tokens used.
+Transcript logs: user q, LLM suggestions, confirmations, gdb outputs (with truncation), and analysis.
+Saved under sessions/<timestamp> with report in reports/.
+Configuration
+
+Resides in memory and optionally persisted to dotfile/configs file.
+copilot config updates live settings.
+Folder and file layout (proposal; no changes yet)
+src/dbgcopilot/
+core/
+orchestrator.py — LangChain agent setup, tools, memory
+state.py — SessionState, Facts, Attempts (Pydantic)
+report.py — Markdown report builder
+prompts/
+tool_instructions.md
+summarize_output.md
+suggest_commands.md
+plan_and_analyze.md
+auto_debug_loop.md
+report_template.md
+safety.md
+backends/
+base.py — DebuggerBackend interface (run_command, get_context)
+gdb_inprocess.py — Uses GDB Python API to run commands and capture output
+lldb_inprocess.py — Placeholder for future
+plugins/
+gdb/
+init.py
+copilot_cmd.py — Registers copilot with subcommands
+repl.py — Implements the nested copilot> REPL loop
+lldb/
+init.py
+copilot_cmd.py — LLDB scripted command handler (later)
+utils/
+io.py — truncation, ansi-strip, snippets
+config.py — load/save config, defaults
+logging.py — structured logs, redaction
+sessions/
+<session-id>/transcript.jsonl
+<session-id>/artifacts/
+reports/
+<session-id>.md
+configs/
+default.yaml
+tests/
+test_plugins_gdb_fakebackend.py — unit tests with a fake backend
+test_core_prompts.py — checks that prompts load and format
+test_auto_loop.py — simulates a short auto run with fake outputs
+examples/
+crash_demo/ (tiny C segfault demo)
+Prompts needed
+tool_instructions.md
+
+How to use tools safely; confirmations for destructive commands; prefer minimal diagnostic commands; never fabricate outputs, quote evidence.
+suggest_commands.md
+
+Inputs: goal, known facts, last output snippet.
+Output: 1–3 commands with rationale and estimated signal; always low-risk first.
+summarize_output.md
+
+Inputs: last command, output (truncated), context.
+Output: concise bullets, key findings, next questions.
+plan_and_analyze.md
+
+Inputs: goal, current facts, unknowns.
+Output: short plan (<=5 steps), expected signals, stop conditions.
+auto_debug_loop.md
+
+Execution guidance for one-step-at-a-time auto mode; when to stop/confirm; iteration cap; redaction awareness.
+report_template.md
+
+Structure: Context, Repro, Observations, Hypotheses, Evidence, Next Steps, Appendix.
+safety.md
+
+Guardrails: no state-changing commands without explicit confirmation; timeouts; token output limits.
+POC workflow (command-driven)
+Setup in GDB:
+
+(gdb) source /path/to/plugins/gdb/copilot_cmd.py
+(gdb) copilot config provider openai
+(gdb) copilot new
+copilot> ask What’s the likely first command?
+LLM: Suggests “bt” — Execute now? [y/N/other]
+y → runs bt; prints output; offers explain/next steps.
+copilot> ask Explain the output
+copilot> mode auto
+copilot> goal Diagnose SIGSEGV in foo()
+Auto loop runs 1 step at a time until done or needs confirmation.
+Summary/report:
+
+(gdb) copilot summary
+(gdb) copilot report
+Minimal data models
+SessionState
+
+goal: str
+mode: interactive|auto
+facts: list[str] with optional confidence
+attempts: [{cmd, output_hash, truncated, ts}]
+last_output: str (truncated)
+config: provider/model/limits
+tokens_used: int
+TranscriptEntry
+
+role: user|assistant|tool
+content: str
+meta: {command?, truncation?, time?}
+Edge cases
+Pagers and long outputs: set pagination off; truncation with head/tail; offer filters like “frame N”.
+Blocking commands: timeouts; suggest safer alternatives.
+Detached/killed processes: detect and report; propose new attach or corefile flow.
+Symbols missing: suggest debuginfo, set substitute-path, add-symbol-file.
+Multi-threading: prefer info threads, focused thread apply patterns.
+LLDB parity plan
+Mirror command namespace copilot ….
+Implement lldb_inprocess.py backend adapter with LLDB Python API.
+Map common commands in prompts via a debugger_flavor variable to adjust examples/suggestions.
+What I need from you to proceed
+Confirm this command set and UX behavior (including the nested copilot> prompt).
+Any additional commands you want on day one (e.g., copilot run-plan, copilot stop)?
+Preferred LLM provider and default model for initial tests.
+Should auto mode default limits be conservative (e.g., 4 steps) and always require confirmation before any state change?
+Once you approve, I’ll scaffold the plugin files and placeholders (no heavy logic) for your review before wiring LangChain and the in-process GDB adapter.
+
+

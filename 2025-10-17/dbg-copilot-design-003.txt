@@ -1,0 +1,165 @@
+lets us start from Option 1 + hybrid view for POC and delay the full sidecar option to future somtime if need.
+===========
+Great—Option 1 (nested copilot>) plus a lightweight “view” for summaries/reports is locked for the POC. I’ll outline the concrete folder/file layout, command behaviors, and the prompts we’ll need so you can review before we scaffold anything.
+
+What I’ll deliver in this step
+Folder/file layout tailored for nested copilot> and hybrid view
+Explicit command specs and semantics for the POC
+Prompt template list with inputs/outputs
+POC workflow with edge cases
+I’ve marked command set/UX decided and wrapped up the architecture update. Next up is the folder layout and prompts.
+
+Folder and file layout (proposed; no changes yet)
+src/dbgcopilot/
+core/
+orchestrator.py — LangChain agent wiring, tool registry, memory.
+state.py — SessionState, Facts, Attempts (Pydantic v2).
+report.py — Builds Markdown/HTML report and “view” output.
+telemetry.py — token counting, performance timings (optional).
+prompts/
+tool_instructions.md
+suggest_commands.md
+summarize_output.md
+plan_and_analyze.md
+auto_debug_loop.md
+report_template.md
+safety.md
+backends/
+base.py — DebuggerBackend interface (run_command, init, close, context getters).
+gdb_inprocess.py — Uses GDB Python API (execute CLI, capture output).
+lldb_inprocess.py — Placeholder for future.
+plugins/
+gdb/
+copilot_cmd.py — Registers “copilot” command, parses subcommands.
+repl.py — Implements nested copilot> loop, confirmation prompts, quiet/verbose formatting.
+view.py — Writes/refreshes Markdown/HTML “live view” file.
+lldb/
+copilot_cmd.py — Placeholder with stubs.
+tools/
+gdb_tools.py — LangChain Tool wrappers (gdb_run, suggest, analyze, report).
+session_tools.py — set_goal, set_mode, summary/report generation.
+utils/
+io.py — truncation, ansi-strip, snippet extraction.
+config.py — load/save runtime config, defaults, env overrides.
+logging.py — structured logging, redaction helpers.
+sessions/
+<session-id>/transcript.jsonl
+<session-id>/state.json
+<session-id>/artifacts/
+reports/
+<session-id>.md
+<session-id>.html (optional, for “view”)
+configs/
+default.yaml
+tests/
+test_gdb_plugin_repl.py — REPL behaviors with fake backend.
+test_prompts_minimal.py — prompt load/format smoke tests.
+test_auto_mode_fake.py — simulate short auto plan, ensure stop conditions.
+examples/
+crash_demo/ — minimal C segfault app for demonstration.
+Notes
+
+The gdb plugin files sit under plugins/gdb/ and are “sourced” from within gdb.
+The shared core is debugger-agnostic; we pass a backend that knows how to run commands.
+Command specs (POC)
+copilot config [key] [value]
+
+Examples:
+provider openai | anthropic | local
+model gpt-4o-mini
+temperature 0.2
+auto.max_steps 4
+output.truncate_chars 20000
+Behavior:
+Validate keys; show current config if no args.
+Persist to session; optionally save to user-level config on request:
+copilot config save
+copilot new
+
+If a session exists, save transcript and current report.
+Create new session-id, clear state, start nested copilot> prompt.
+Defaults: mode=interactive, safe_mode=on, quiet=false.
+copilot mode [interactive|auto]
+
+Switches mode. If auto and no goal set, ask for goal.
+In auto: runs one step at a time with stop conditions.
+copilot ask <question>
+
+Sends question to LLM with context (goal, last command/output, facts).
+LLM may suggest commands; REPL asks for confirmation to execute.
+After execution, offers to explain output or propose next steps.
+copilot summary
+
+Prints concise summary: goal, key findings, last recommended steps.
+Also updates the “view” file if enabled.
+Optional shortcuts (non-blocking for POC)
+
+copilot suggest — ask LLM for 1–3 next commands + rationale.
+copilot exec <gdb-cmd> — run a gdb command within copilot and log it.
+copilot view open|refresh|path — generate or refresh Markdown/HTML view; print path.
+Guardrails
+
+Safe mode: confirm before “dangerous” commands (kill, detach, set, continue).
+Quiet mode: suppress verbose LLM chatter; keep essentials and final suggestions.
+Truncation: show head+tail of long outputs; allow “show last full” if needed.
+Prompt templates (inputs/outputs)
+tool_instructions.md
+
+Inputs: mode, safe_mode flag, backend flavor, current constraints.
+Output: Behavior rules and tool usage reminders for the LLM.
+suggest_commands.md
+
+Inputs: goal, last output snippet, known facts, flavor=gdb.
+Output: 1–3 commands with rationale and expected signal. Mark if risky.
+summarize_output.md
+
+Inputs: last_command, output snippet, session context.
+Output: 3–7 bullets: key signals, what it means, likely next questions.
+plan_and_analyze.md
+
+Inputs: goal, facts, unknowns, limits (steps/time).
+Output: short plan with steps; each step has command(s), expected signals, stop conditions.
+auto_debug_loop.md
+
+Inputs: current step, last output, plan, constraints.
+Output: run-or-stop decision; updated short summary; next command(s) proposal.
+report_template.md
+
+Inputs: session state, transcript highlights.
+Output: Markdown report: Context, Observations, Hypotheses, Evidence, Next Steps.
+safety.md
+
+Inputs: safe_mode flag, allowed/disallowed categories.
+Output: Hard rules, confirmation phrases, and refusal guidance.
+POC workflow (nested + hybrid view)
+Start in GDB
+(gdb) source /path/to/plugins/gdb/copilot_cmd.py
+(gdb) copilot config provider openai
+(gdb) copilot new
+copilot> ask What should I run first?
+[copilot] Suggests: bt — Execute? [y/N]
+y
+gdb output printed (truncated if long)
+[copilot] Summary + next steps
+copilot> mode auto
+copilot> goal Find cause of SIGSEGV on startup
+Auto loop executes up to N steps; asks confirmations when risky; stops on ambiguity.
+copilot> summary
+copilot> view open (optional) — writes reports/<session>.md or .html and keeps refreshing on each interaction.
+Edge cases handled
+
+Pager: Set pagination off and height 0.
+Long output: truncation + on-demand full view.
+Timeouts: per-command timeout configurable; suggest narrower queries.
+Lost target: detect detach/kill; propose attach or core load flow.
+Next decisions to confirm
+Default limits: auto.max_steps=4, per-command timeout=5–10s, truncate to ~20k chars.
+Default safe-mode=on; “continue”, “set”, “kill”, “detach” require explicit yes.
+Default quiet=false (verbose helpful while exploring).
+Initial provider/model defaults (can set to environment variables if available).
+If this layout and behavior look good, I’ll proceed next to:
+
+Draft the exact prompt template texts (concise, tuned for gdb flavor).
+Add a precise spec for the nested REPL interactions (confirmation prompts, formatting).
+Then, with your go-ahead, scaffold the directories and placeholder files without business logic so you can review the structure before we wire functionality.
+
