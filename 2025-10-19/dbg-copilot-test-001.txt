@@ -1,0 +1,69 @@
+Great — here’s a short, concrete POC workflow so you can test OpenRouter from copilot> using an environment variable key. I’ll also explain a few gotchas and how to verify everything is wired correctly.
+
+Summary of steps
+
+Install runtime dependency (requests)
+Export your OpenRouter API key (env var)
+Build the example binary and start GDB (or use your own target)
+Source the copilot plugin and open copilot> prompt
+Switch to the OpenRouter provider and run a short test question
+How to test bt output (two options) and what to expect
+Commands to run (copy/paste)
+
+Install requests (if not already installed in your env / container)
+
+# inside your dev container or local venvpip install requests
+Set your OpenRouter API key in the environment (do NOT commit this)
+
+export OPENROUTER_API_KEY="sk-....your-openrouter-key..."
+Build the example crash binary and start gdb (optional; you can use your own binary)
+
+cd /workspace/examples/crash_demomake        # builds ./crashgdb ./crash
+Inside GDB: source the copilot plugin and start copilot
+
+(gdb) source /workspace/plugins/gdb/copilot_cmd.py(gdb) copilot# or if you prefer to force a fresh session:# (gdb) copilot new
+In the copilot> prompt: list providers and switch to OpenRouter
+
+copilot> /llm list# you should see "mock-local" and "openrouter" (if requests is installed and openrouter module registered)copilot> /llm use openrouter# confirmation: Selected provider: openrouter
+Quick LLM test (ask a simple question)
+
+copilot> What command should I run next to investigate a crash?
+You should get a reply from OpenRouter (if API key & network ok). If you see an error like [copilot] LLM provider error: ..., paste that error here and I’ll help debug.
+
+Testing explanation of real bt output
+Option A — run the program and capture the backtrace with /exec inside copilot:
+
+
+# in copilot> run the program to produce a crash (or from gdb prompt before starting copilot)copilot> /exec bt# this runs the gdb 'bt' command and stores the output in the session (SESSION.last_output)# copy the output shown and then ask:copilot> Please explain the following backtrace:\n<paste the bt output here>
+Note: current orchestrator.ask does not automatically attach SESSION.last_output to the prompt. For now paste the output into your natural-language question, or include it inline as shown.
+
+Option B — (manual) run bt in the GDB prompt, then paste its output in copilot> as part of your question.
+
+Verify provider registration from a Python shell (optional)
+
+
+python - <<'PY'from dbgcopilot.llm import providersprint("Providers:", providers.list_providers())PY
+If openrouter is not listed, ensure requests is installed and OPENROUTER_API_KEY is set. The registry registers openrouter lazily — it may skip registration if requests isn't importable.
+
+How secrets are handled here (important)
+
+This POC uses the environment variable OPENROUTER_API_KEY. That’s safe for short-term dev/testing.
+Do not put the API key into source files, reports, or commits.
+Later we can add OS keyring support or a /llm config command that stores keys to keyring instead of file or env.
+If something goes wrong
+
+If you get an HTTP/requests error, run the same prompt in a small Python snippet to see the error message (I can help interpret it).
+If openrouter is not in /llm list, check that requests is installed and restart GDB after installing.
+If you see timeouts, we can tune timeouts and add retries.
+Follow-up offer
+
+After you test, tell me:
+Did /llm use openrouter show as available and did your question get an answer?
+Any errors you saw (paste them here) so I can debug.
+If you want, I can:
+Make AgentOrchestrator.ask automatically include SESSION.last_output and some context when you ask “explain the last output”.
+Add /llm config set openrouter model=<model> (and masking on /llm config show) so you can select specific OpenRouter models from the REPL.
+Improve error handling, retries and response parsing for OpenRouter.
+Ready when you are — run the steps above and tell me how the provider responds or paste any error output here.
+
+

@@ -1,0 +1,27 @@
+gdb --args gdb --args gdb --args dotnet src/diagnostics/artifacts/bin/TestDebuggee/Debug/net8.0/TestDebuggee.dll
+...
+(gdb) c
+Continuing.
+clrstack
+_scan_coreclr found path=/usr/share/dotnet/shared/Microsoft.NETCore.App/8.0.19/libcoreclr.so base=0x7fff36613000
+_scan_coreclr found path=/usr/share/dotnet/shared/Microsoft.NETCore.App/8.0.19/libcoreclr.so base=0x7fff36613000
+[New Thread 0x7fff3711a640 (LWP 43183)]
+call into lldb_get_processor_type
+[detect] frame.architecture().name()=i386:x86-64
+[detect] frame.architecture().name()=i386:x86-64
+[detect] name='i386:x86-64'
+[detect] -> AMD64 (name match)
+[lldb_get_processor_type] arch_name='i386:x86-64', machine=0x8664 (AMD64)
+Failed to load data access module, 0x80004002
+Can not load or initialize libmscordaccore.so. The target runtime may not be initialized.
+
+For more information see https://go.microsoft.com/fwlink/?linkid=2135652
+Command 'clrstack' failed with HRESULT -2147467262.
+(gdb) dso[Thread 0x7fff3711a640 (LWP 43183) exited]
+
+_scan_coreclr found path=/usr/share/dotnet/shared/Microsoft.NETCore.App/8.0.19/libcoreclr.so base=0x7fff36613000
+_scan_coreclr found path=/usr/share/dotnet/shared/Microsoft.NETCore.App/8.0.19/libcoreclr.so base=0x7fff36613000
+_scan_coreclr found path=/usr/share/dotnet/shared/Microsoft.NETCore.App/8.0.19/libcoreclr.so base=0x7fff36613000
+call into lldb_get_current_thread_system_id
+[New Thread 0x7fff3711a640 (LWP 43238)]
+Managed command 'dso' failed (HRESULT=0x80004005). Unspecified failure. Try 'sostrace on' for details.

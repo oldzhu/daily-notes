@@ -1,0 +1,79 @@
+(gdb) source $(dbgcopilot-plugin-path)
+$(dbgcopilot-plugin-path): No such file or directory.
+(gdb) !dbgcopilot-plugin-path
+/workspace/.venv/lib/python3.12/site-packages/dbgcopilot/plugins/gdb/copilot_cmd.py
+(gdb) source $(dbgcopilot-plugin-path)
+$(dbgcopilot-plugin-path): No such file or directory.
+
+===========
+
+Thanks — this is expected. GDB does not perform shell-style command substitution with 
+(
+.
+.
+.
+)
+,
+𝑠
+𝑜
+‘
+(
+𝑔
+𝑑
+𝑏
+)
+𝑠
+𝑜
+𝑢
+𝑟
+𝑐
+𝑒
+(...),so‘(gdb)source(dbgcopilot-plugin-path)fails (GDB treats $(...) as a convenience variable, not a shell expansion). You saw the correct path when you ran!dbgcopilot-plugin-path, which runs a shell command and prints the path — but GDB won't substitute that output into source`.
+
+Pick any of these three simple, dependable ways to load the installed plugin inside GDB.
+
+Easiest — import the module from inside GDB's Python
+This registers the copilot command directly (no file path needed):
+
+(gdb) python import dbgcopilot.plugins.gdb.copilot_cmd
+After that you can run:
+
+(gdb) copilot
+This is the recommended option because it avoids path quoting/expansion issues and uses Python's import system directly.
+Single-line Python that calls GDB's source for you
+If you prefer using source, run this one-liner inside GDB which builds the path and executes source:
+
+(gdb) python import dbgcopilot, os, gdb; gdb.execute('source ' + os.path.join(os.path.dirname(dbgcopilot.__file__), 'plugins','gdb','copilot_cmd.py'))
+(It does the same as option 1 but issues source under the hood.)
+Shell + manual copy/paste (what you already tried)
+Run the helper in the shell to print the installed path:
+
+$ dbgcopilot-plugin-path[copilot_cmd.py](http://_vscodecontentref_/0)
+In GDB paste that path:
+
+(gdb) source [copilot_cmd.py](http://_vscodecontentref_/1)
+Bonus: auto-load on GDB startup
+
+Add a line to your global ~/.gdbinit or repo .gdbinit to register the command automatically:
+
+python import dbgcopilot.plugins.gdb.copilot_cmdend
+(Place the single-line import in .gdbinit — no need for source.)
+Why the $(...) form failed
+
+$(...) is a shell (bash) feature. Inside GDB the source command does not run your shell to expand $(...) before calling source. You can run shell commands from GDB with ! or shell, but their output isn't automatically substituted into subsequent GDB arguments.
+If you want, I can:
+
+Add a tiny convenience GDB command or gdbinit snippet in the repo (e.g., .gdbinit) that uses the python import above so you can start GDB in the repo and have the copilot command available automatically.
+Or add a short README line recommending the python import dbgcopilot.plugins.gdb.copilot_cmd command (I'll add that if you want).
+Which option do you want me to add to the README or to a .gdbinit file for you? (Place the single-line import in .gdbinit — no need for source.)
+
+Why the $(...) form failed
+
+$(...) is a shell (bash) feature. Inside GDB the source command does not run your shell to expand $(...) before calling source. You can run shell commands from GDB with ! or shell, but their output isn't automatically substituted into subsequent GDB arguments.
+If you want, I can:
+
+Add a tiny convenience GDB command or gdbinit snippet in the repo (e.g., .gdbinit) that uses the python import above so you can start GDB in the repo and have the copilot command available automatically.
+Or add a short README line recommending the python import dbgcopilot.plugins.gdb.copilot_cmd command (I'll add that if you want).
+Which option do you want me to add to the README or to a .gdbinit file for you?
+
+

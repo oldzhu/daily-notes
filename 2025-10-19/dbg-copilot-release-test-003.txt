@@ -1,0 +1,42 @@
+What I changed
+
+Added a top-level Makefile with targets:
+make build — build wheel + sdist.
+make install-wheel — install the wheel into the active environment.
+make test-smoke — build + install + run dbgcopilot-plugin-path.
+make clean — remove build artifacts.
+Appended README with a short snippet showing how to build, install the wheel, and source the plugin from GDB.
+What I ran for you
+
+Ran make test-smoke, which:
+Built the wheel and sdist.
+Installed the wheel into the active venv.
+Ran dbgcopilot-plugin-path, which printed the installed plugin path:
+copilot_cmd.py
+Answers to your question
+
+For future local tests after modifications, do I need to build, install the new wheel, then test?
+
+Short answer: For local development you have two options:
+
+Fast dev workflow (recommended during development)
+Use an editable install in your venv:
+
+pip install -e .   # or python -m pip install -e .
+After this, Python imports reference your working tree directly and you don't need to rebuild the wheel for every change. Useful for quick iterative development and testing in GDB. Re-source plugin if you changed plugin files.
+Release-accurate workflow (recommended before publishing)
+Build a wheel and install it (this simulates what end-users will get):
+
+make buildpip install --upgrade dist/*.whl
+Use this to validate packaging, entry points, and that the installed layout works as expected.
+Which to use when:
+
+During active development: pip install -e . (editable install) — fast.
+Before release or when you want to test the packaged artifact exactly: use the wheel build + install flow.
+Next steps I can take
+
+Add pip install -e . instruction to README, if you want editable install recommended.
+Add a simple GitHub Actions workflow to run tests and build wheels on push/tag.
+Implement /llm config set openrouter api_key=... which will store the key in SESSION.config (or optionally add keyring support later).
+Which of these would you like me to do next?
+

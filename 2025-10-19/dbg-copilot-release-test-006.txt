@@ -1,0 +1,78 @@
+Got it — let’s keep a first-class dbgcopilot-gdb launcher in addition to the other methods so you can choose how GDB loads/imports the package.
+
+High-level steps:
+
+Implement a launcher that sets PYTHONPATH to the installed site-packages and can preload the plugin.
+Wire it via console script so it’s on PATH when the package is installed.
+Show you three supported ways to make import/usage work inside GDB.
+Provide quick validation commands; we can document it in README if you want.
+actions taken
+Added a launcher at gdbwrap.py and wired it to the console script dbgcopilot-gdb (already present in pyproject.toml under [project.scripts]).
+Behavior:
+Sets PYTHONPATH to the site-packages that contain dbgcopilot.
+Optional flags:
+--import-plugin preloads the copilot command (via python import).
+--source-plugin preloads by sourcing the installed copilot_cmd.py.
+Passes through any additional args to GDB unchanged.
+It doesn’t touch your GDB config or the package itself; it only adjusts the environment for the GDB process it launches.
+Note: I couldn’t run the build/install in this session (tool call was skipped), so below are the exact commands for you to run.
+
+how to build and install
+If your venv isn’t active, activate it first.
+Build and install the wheel so the new console script is available:
+
+# activate your venv if neededsource .venv/bin/activate# build and reinstall the wheel into the venvpython -m buildpip install --upgrade --force-reinstall dist/*.whl# verify the launcher existswhich dbgcopilot-gdb
+ways to use inside GDB
+Pick any of these based on your preference.
+
+Launcher (recommended for local dev)
+Ensure the venv is active so the console script is on PATH.
+Simple: starts GDB with PYTHONPATH so “python import dbgcopilot” works.
+
+dbgcopilot-gdb -q -ex "python import dbgcopilot; print('IMPORTED')" -ex quit
+Auto-register the copilot command (import method):
+
+dbgcopilot-gdb --import-plugin -q# now inside gdb:# (gdb) copilot
+Auto-register by sourcing (alternative):
+
+dbgcopilot-gdb --source-plugin -q# (gdb) copilot
+You can pass your program/core args after the flags:
+
+dbgcopilot-gdb --import-plugin -- -q ./examples/crash_demo/crash
+Environment variable (no launcher)
+One-off run:
+
+PYTHONPATH=/workspace/.venv/lib/python3.12/site-packages gdb -q \  -ex "python import dbgcopilot; print('IMPORTED')" -ex quit
+Make it persistent for your shell:
+
+echo "alias gdb='PYTHONPATH=/workspace/.venv/lib/python3.12/site-packages gdb'" >> ~/.bashrcsource ~/.bashrc
+GDB init file
+Global ~/.gdbinit (applies to all GDB sessions on this machine):
+
+pythonimport sitesite.addsitedir('/workspace/.venv/lib/python3.12/site-packages')end
+Project-local .gdbinit.local (source it per session, keeps config close to the repo):
+
+pythonimport sitesite.addsitedir('/workspace/.venv/lib/python3.12/site-packages')endsource $(dbgcopilot-plugin-path)
+Use it with:
+
+
+gdb -q -ex "source /workspace/.gdbinit.local"
+quick sanity checks
+Launcher makes imports work:
+
+dbgcopilot-gdb -q -ex "python import dbgcopilot; print('OK')" -ex quit
+Launcher preloads plugin:
+
+dbgcopilot-gdb --import-plugin -q -ex "help copilot" -ex quit
+Manual source still works:
+
+gdb -q -ex "source $(dbgcopilot-plugin-path)" -ex "help copilot" -ex quit
+todo status
+Implement gdb launcher script: completed (added gdbwrap.py).
+Add packaging entry point: already present in pyproject.toml and aligned with the implementation.
+Build and validate launcher: deferred to your run (commands provided).
+Update README: pending—say the word and I’ll add a concise section with these options.
+Smoke tests: optional—happy to run once the build/install step is done.
+If you’d like, I can also add a small docs/snippets/.gdbinit.local.example and a README section so teammates can adopt whichever method they prefer with minimal friction.
+
+

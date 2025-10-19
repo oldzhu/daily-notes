@@ -1,0 +1,42 @@
+Done — I added an OpenRouter provider POC and registered it in the LLM registry.
+
+What I implemented
+
+New provider module: openrouter.py
+Minimal OpenRouter HTTP client using requests.
+Uses API key from OPENROUTER_API_KEY env var or session.config['openrouter_api_key'].
+Default model set to gpt-4o-mini (configurable via provider meta).
+Registry registration: providers.py
+Registers openrouter provider lazily (only if import succeeds). If requests isn't installed, OpenRouter registration is skipped so tests still pass.
+pyproject.toml
+Added requests to dependencies (loose version for POC).
+Notes and testing
+
+Tests: I ran the test suite — all tests passed.
+The openrouter provider will only work when requests is installed and an API key is provided. To use it inside the REPL:
+Install dependencies (in your environment or dev container). In the container you can install via pip; since the project uses pyproject, use your preferred method. Example:
+
+pip install -r <your requirements>  # or pip install requests
+Set your API key (do not commit it):
+
+export OPENROUTER_API_KEY="sk-..." 
+Start GDB, source the plugin, start copilot, then:
+/llm list — you should see openrouter (if requests is available).
+/llm use openrouter — switch to the OpenRouter provider.
+Ask questions naturally and the orchestrator will forward them to OpenRouter.
+Security & configuration notes
+
+Do not commit API keys. Prefer storing keys in environment variables or a secure secrets manager.
+For more flexible configuration, we can:
+Add /llm add openrouter api_key=<key> model=<model> to persist provider-specific settings into the session.
+Add secure key storage for sessions (file encryption) or read from OS keychains.
+Next recommended tasks
+
+Add a wrapper that accepts provider-specific options from the REPL (e.g., /llm config openrouter model=gpt-4o-mini) and persists them to SESSION.config.
+Improve error handling and timeouts for OpenRouter calls and add retries with exponential backoff.
+Add unit tests that mock requests to ensure OpenRouter provider behavior is correct without real network calls.
+Would you like me to:
+
+Install and wire a small /llm config subcommand to set model and api_key per-session (stored in SESSION.config), or
+Implement robust request error handling & retries first?
+

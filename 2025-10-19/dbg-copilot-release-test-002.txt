@@ -1,0 +1,33 @@
+Build complete — I created both sdist and wheel artifacts.
+
+What I did
+
+Installed the build tool in the environment.
+Ran python -m build which produced:
+dbgcopilot-0.0.1-py3-none-any.whl
+dbgcopilot-0.0.1.tar.gz
+What’s included in the wheel
+
+The dbgcopilot package with cli, core, backends, llm, utils and the registered entry point dbgcopilot-plugin-path.
+Note: examples and tests are included in sdist (by default), but tests are not installed into site-packages by pip install of the wheel.
+How users install and use it
+
+Install the wheel (local test):
+
+pip install dist/dbgcopilot-0.0.1-py3-none-any.whl
+Verify the CLI path printer:
+
+dbgcopilot-plugin-path# prints the absolute path to copilot_cmd.py
+In GDB, source the plugin using the helper:
+
+(gdb) source $(dbgcopilot-plugin-path)
+Notes & next steps
+
+I fixed pyproject.toml to declare requests>=2.28 and added the console script dbgcopilot-plugin-path.
+The wheel was built inside an isolated build environment; all tests were run earlier and are passing.
+If you'd like, I can:
+Publish the wheel to PyPI/TestPyPI (requires credentials).
+Add a small Makefile or GitHub Actions workflow that runs tests and publishes on tag.
+Add a short README snippet in the repo describing how to install the wheel and source the plugin from GDB.
+Would you like me to install the wheel into the current environment and run a quick smoke test (import and run dbgcopilot-plugin-path), or should I pause here for you to test locally?
+
