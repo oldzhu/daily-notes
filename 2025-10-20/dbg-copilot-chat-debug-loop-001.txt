@@ -1,0 +1,47 @@
+Thanks for the log — I see two issues behind the “yes-loop” after recommending info locals:
+
+The model suggested info locals inside a fenced block, and our extractor treated any line in that block as a command to confirm. That’s fine, but then GDB displayed an interactive debuginfod prompt that isn’t our confirmation prompt. Your “yes/y” replies got consumed by GDB’s debuginfod question, keeping our pending command alive and creating a confusing loop.
+
+Our extractor was a bit permissive; I tightened it to only accept real GDB commands and to scan code blocks line-by-line, not grab arbitrary text.
+
+What I changed just now:
+
+Disabled debuginfod prompt at session init
+Backend now runs set debuginfod enabled off during GDB initialization, which prevents GDB from asking to enable it. This removes the competing prompt that was eating your “yes” replies.
+Safer command extraction
+For fenced blocks (gdb … ), we now scan each line and only accept lines that look like real GDB commands (whitelist/prefix-based).
+We also scan plain text line-by-line and only confirm when a line matches a likely GDB command. Assembly or arbitrary code won’t trigger confirmation.
+Confirmation flow remains strict
+We only consume yes/y to confirm a pending command we proposed, and we clear pending afterward. We do not treat yes/y as a command, and we won’t spawn a pending command for explanation/translation prompts.
+Improved capture after run/continue
+
+After run/continue/next/step/finish/start, we append info program and bt 5 to the command’s output, then store that as last_output and include the first line as a fact. This keeps SIGSEGV context visible to the LLM and in /chatlog.
+What to try now:
+
+In GDB:
+copilot
+why SIGSEGV?
+When it suggests info locals:
+yes
+You should see the locals output without any debuginfod prompt or confirmation loops.
+/chatlog should include the SIGSEGV lines and a short backtrace after run/continue.
+If you still hit a prompt loop anywhere, paste the transcript and I’ll add another guard (e.g., we can auto-answer “set confirm off” or add more init settings like set confirm off/set pagination off already done).we now scan each line and only accept lines that look like real GDB commands (whitelist/prefix-based).
+
+We also scan plain text line-by-line and only confirm when a line matches a likely GDB command. Assembly or arbitrary code won’t trigger confirmation.
+Confirmation flow remains strict
+We only consume yes/y to confirm a pending command we proposed, and we clear pending afterward. We do not treat yes/y as a command, and we won’t spawn a pending command for explanation/translation prompts.
+Improved capture after run/continue
+
+After run/continue/next/step/finish/start, we append info program and bt 5 to the command’s output, then store that as last_output and include the first line as a fact. This keeps SIGSEGV context visible to the LLM and in /chatlog.
+What to try now:
+
+In GDB:
+copilot
+why SIGSEGV?
+When it suggests info locals:
+yes
+You should see the locals output without any debuginfod prompt or confirmation loops.
+/chatlog should include the SIGSEGV lines and a short backtrace after run/continue.
+If you still hit a prompt loop anywhere, paste the transcript and I’ll add another guard (e.g., we can auto-answer “set confirm off” or add more init settings like set confirm off/set pagination off already done).
+
+

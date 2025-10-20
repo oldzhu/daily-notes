@@ -1,0 +1,70 @@
+It works now, pls refer the below
+copilot> hi how r u?
+I'm just a computer program, so I don't have feelings, but I'm here and ready to help you! How can I assist you today?
+copilot> what command can be used to list call stacks in gdb?
+In GDB (GNU Debugger), you can use the backtrace command to list the call stacks. This command displays the function call stack at the point where the program is currently stopped. You can also use the shorthand bt for the same purpose.
+
+Here’s how you can use it:
+
+Start GDB and load your program.
+Run your program until it hits a breakpoint or crashes.
+Type backtrace or bt and press Enter.
+This will show you a list of the function calls that led to the current point in the program, along with their respective line numbers and source file information.
+copilot> bt
+Hello! It seems like your message might be incomplete. How can I assist you today?
+copilot> /exec bt
+#0 0x00000000 in ?? ()
+#1 main () at demo.c:12
+copilot> could u list the source of main to me?
+It seems like you might be asking for the sources or references for a specific topic or concept, but your question is a bit unclear. Could you please provide more context or specify what you mean by "the source of main"? Are you referring to a particular subject, book, article, or something else? This will help me assist you better!
+but seems like the reponse is lacking of context of our chat, he(llm mode selected) does not know we are in gdb and he is expert of the debugging of the gdb/lldb/or other debugger which our tool started with. another issue is after I run /exec bt and the output like the below
+#0 0x00000000 in ?? ()
+#1 main () at demo.c:12
+then I ask could u list the source of the main to me?
+he(llm mode selected) also does not waht I mean is I want he help to list the source code of main using gdb/lldb/other debugger command. Could we use prompts(system or users) to improve on that(when answer the questions he does aware of the debuging context like what we are currently use gdb, lldb or other debugger, what command executed during the session and what output the questions could be related)?
+===============
+
+Awesome—that’s a great signal. Let’s make the answers feel “debugger-aware” and follow-ups like “list the source of main” resolve to concrete debugger commands.
+
+Plan:
+
+Prime the LLM with debugger context (what tool we’re in, recent commands/outputs, goal).
+Ensure the backend captures real GDB output so we can include it in context.
+Teach it to propose the exact command when asked for code/listings.
+What I changed for you
+
+Context priming in orchestrator:
+Injects a short “system” preamble: you are a debugging copilot inside gdb; prefer low-risk commands; quote real outputs; ask before state changes; when users ask for code listings, suggest the exact debugger command.
+Adds recent commands and the last output into the question sent to the LLM, plus your goal if set.
+Real GDB execution:
+The in-process backend now uses gdb.execute with pagination off/height 0/width 0, so /exec bt and future commands capture actual GDB output for the context.
+Backend identity:
+Backend exposes name="gdb", which is included in the priming.
+Try these in your current session
+
+Let the model see context by running a command before asking:
+copilot> /exec bt
+copilot> show me the source for main
+Expected behavior: It should suggest using list main or frame;list or similar, and you can then:
+copilot> /exec list main
+If you want it to proactively run the command, we can add a “/auto” mode later. For now, it will recommend and you can “/exec” it.
+Tips for phrasing
+
+Ask follow-ups in the debugger frame of reference:
+“Which command to show the source of main?”
+“List lines around the current frame.”
+“How do I switch to frame 1 and print locals?”
+Optional next improvements (say the word and I’ll add them)
+
+REPL shortcuts:
+/run <natural language>: LLM replies with a command, and we auto-exec it after a yes/no confirmation.
+Explicit “tool_call” pattern:
+We can format the prompt to coax responses into a “command:” line when it intends to run something.
+Session memory tuning:
+Include a few more previous outputs or an extracted summary of them for longer sessions.
+Provider model setting:
+Add /llm config model <name> to store OPENROUTER_MODEL per session.
+You’re unblocked now. If any response still feels generic (e.g., “Hello!”), try preceding with /exec or set a goal:
+
+copilot> /goal Investigate crash in main and inspect its source and locals
+Then ask your question again. The goal and recent outputs will be part of the LLM prompt it sees.

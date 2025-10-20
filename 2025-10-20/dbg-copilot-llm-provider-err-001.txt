@@ -1,0 +1,54 @@
+Thanks for the logs—your REPL error “LLM provider error: Expecting value: line 1 column 1 (char 0)” was coming from the OpenRouter client trying to parse a non‑JSON response. I’ve hardened the provider:
+
+Correct endpoint: /api/v1/chat/completions
+Sends JSON body (not form-encoded), adds Accept, Referer, and Title headers
+Clearer error messages on HTTP errors and non‑JSON responses
+Model selection: default openai/gpt-4o-mini, overridable via OPENROUTER_MODEL or session config
+What to do now
+
+Ensure the updated package is installed in your venv
+If you haven’t reinstalled since this change, reinstall the wheel (or pip install -e .). After that, any new GDB session launched with the venv will use the updated provider.
+Set your key (you already did)
+bash
+export OPENROUTER_API_KEY="…"
+Start GDB in a way that can see the venv’s site-packages
+Easiest: use the launcher (preloads copilot)
+bash
+dbgcopilot-gdb -q
+Inside GDB:
+copilot
+/llm use openrouter
+hello how are you?
+If you prefer plain gdb:
+
+Add the venv site-packages just for this session, then import:
+gdb
+python
+import site
+site.addsitedir('/workspace/.venv/lib/python3.12/site-packages')
+end
+python import dbgcopilot.plugins.gdb.copilot_cmd
+copilot
+/llm use openrouter
+ask your question
+Optional model override
+
+bash
+export OPENROUTER_MODEL="openai/gpt-4o-mini" # or any model you prefer on OpenRouter
+Why your earlier error happened
+
+It’s the typical symptom when the API returns HTML/text (e.g., 401/403 or a gateway page) and the client tries to json() it. With the new code, you’ll see a clear message like “OpenRouter HTTP 401: …” or “OpenRouter returned non‑JSON response: …”.
+If you still hit an error
+
+Double‑check the key and that you’re launching GDB through the venv (or using the launcher).
+Try a tiny direct check inside Python (outside GDB) to confirm:
+python
+from dbgcopilot.llm.openrouter import _ask_openrouter
+print(_ask_openrouter("Say hello in one short sentence."))
+If this works in Python but not in GDB, it’s almost always a path/environment issue—use the launcher or the site.addsitedir snippet.
+Next small improvements I can add if you’d like
+
+A /llm config set model <name> command in the REPL
+Retry/backoff and timeouts tuning on OpenRouter requests
+A README Troubleshooting section with these exact snippets
+

@@ -1,0 +1,29 @@
+Good call—that was too eager to propose a command for explanatory questions. I’ve tightened the logic so explanation/translation requests stay conversational and, when you ask in Chinese, the assistant will answer in Chinese without proposing execution.
+
+What I changed:
+
+Avoid proposing commands for explanations/translations
+Added an explanation/translation detector and suppress command proposals when you ask things like “could you explain…”, “what does…”, “in Chinese/中文/解释/说明…”.
+This applies both before calling the model and when parsing the model’s reply, so quoted assembly like movq $0x0,-0x8(%rbp) won’t be mistaken for a GDB command.
+Command extraction is whitelist-based
+Only proposes commands that look like real GDB commands (run, continue, bt, info …, break …, print …, x …, etc.). Arbitrary code snippets won’t trigger confirmations.
+Language preference honored
+If you ask “in Chinese” or use Chinese text, the orchestrator hints the model to reply in Simplified Chinese.
+Rebuilt and reinstalled:
+
+The wheel is rebuilt and force-reinstalled so your current environment picks up these changes.
+Try these in GDB:
+
+Explanations should be pure answers now:
+copilot> could you explain what movq $0x0,-0x8(%rbp) is doing?
+You’ll get an explanation without “I will use the command …”.
+Chinese answers:
+copilot> 请用中文解释 movq $0x0,-0x8(%rbp) 在做什么？
+The reply should be中文 and still not propose any command.
+Command proposal still works when appropriate:
+copilot> pls run the program
+copilot> yes
+Runs ‘run’ and shows output.
+copilot> pls set breakpoint at boom
+copilot> yes
+If you see any remaining false positives or want more phrases treated as “explain mode,” share an example and I’ll add it to the detector.

@@ -1,0 +1,39 @@
+U mentioned
+Directly import the packaged plugin (bypasses sys.path concerns for the command itself)
+gdb
+python import dbgcopilot.plugins.gdb.copilot_cmd
+copilot
+but that does not work as the below
+(gdb) python import dbgcopilot.plugins.gdb.copilot_cm
+Python Exception <class 'ModuleNotFoundError'>: No module named 'dbgcopilot'
+Error occurred in Python: No module named 'dbgcopilot'
+(gdb)
+=========
+You’re hitting ModuleNotFoundError because GDB’s embedded Python doesn’t know about your venv’s site-packages, so it can’t see the dbgcopilot package. Also, your example has a small typo (copilot_cm vs copilot_cmd), but even with the correct name the import fails first at import dbgcopilot due to sys.path.
+
+Pick one of these fixes:
+
+Use the launcher (fastest)
+It sets PYTHONPATH for GDB and preloads the plugin by default.
+
+# import sanity checkdbgcopilot-gdb -q -ex "python import dbgcopilot; print('IMPORTED')" -ex quit# start with copilot preloadeddbgcopilot-gdb -q# start without preloading, import manually in GDBdbgcopilot-gdb --no-preload -q# inside gdb:# (gdb) python import dbgcopilot.plugins.gdb.copilot_cmd# (gdb) copilot
+One-off environment variable
+Launch plain GDB with your venv’s site-packages on PYTHONPATH:
+
+PYTHONPATH=/workspace/.venv/lib/python3.12/site-packages gdb -q# (gdb) python import dbgcopilot.plugins.gdb.copilot_cmd# (gdb) copilot
+Inside GDB, add your venv site-packages then import
+
+(gdb) pythonimport sitesite.addsitedir('/workspace/.venv/lib/python3.12/site-packages')end(gdb) python import dbgcopilot.plugins.gdb.copilot_cmd(gdb) copilot
+Source the packaged plugin directly (bypasses import)
+Get the path:
+
+dbgcopilot-plugin-path
+Then in GDB:
+
+(gdb) source /absolute/path/printed/above(gdb) copilot
+Why this happens
+
+GDB embeds Python and initializes sys.path from the system installation, not from your shell’s virtualenv. That’s why command-line python sees /workspace/.venv/.../site-packages, but (gdb) python does not. The methods above bridge that gap.
+If you want, I can add a short Troubleshooting section in README that lists these exact snippets for quick reference.
+
+

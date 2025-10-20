@@ -1,0 +1,30 @@
+You’re right—that wasn’t doing what you asked. I’ve made two improvements so “start the program example/crash_demo/crash” works end-to-end and we don’t show placeholder output when we are inside GDB.
+
+What I changed:
+
+Path-aware start
+If you ask to run a specific program path, I now infer a multi-command sequence: file <path>; run
+You’ll get a confirmation with the exact sequence, and on yes it executes both commands in order.
+Real GDB output and better multi-command execution
+Backend now supports multiple commands in one request (split by ; or newlines) and returns real gdb output per command.
+When running/continuing/stepping, it appends info program and bt 5 so the stop reason/backtrace are captured.
+When inside GDB, we never return the generic “(placeholder output) ran: …” anymore; that fallback only applies outside GDB.
+Also in place already:
+
+Debuginfod prompt disabled at session init to avoid yes-loops.
+Explanation/translation queries won’t trigger command proposals.
+Try this flow:
+
+In GDB:
+copilot
+could u start the program examples/crash_demo/crash?
+yes
+You should see:
+Actual output of file … (or quiet if successful)
+Then run output with SIGSEGV details and a short backtrace in the same response
+Ask:
+why SIGSEGV?
+The answer should reference the crash line/function, not drift into libthread_db.
+If you still see odd output, paste the /chatlog snippet around the file/run step and I’ll tune the parsing further.
+
+

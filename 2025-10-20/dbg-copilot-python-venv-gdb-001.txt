@@ -1,0 +1,60 @@
+(.venv) root ➜ /workspace (main) $ python -c "import sys; print('--- Command Line Python ---'); print('Version:', sys.version); print('Path:'); [print(p) for p in sys.path]"
+--- Command Line Python ---
+Version: 3.12.3 (main, Aug 14 2025, 17:47:21) [GCC 13.3.0]
+Path:
+
+/usr/lib/python312.zip
+/usr/lib/python3.12
+/usr/lib/python3.12/lib-dynload
+/workspace/.venv/lib/python3.12/site-packages
+...
+(gdb) python import sys
+(gdb) python print('Version:', sys.version)
+Version: 3.12.3 (main, Aug 14 2025, 17:47:21) [GCC 13.3.0]
+(gdb) python [print(p) for p in sys.path]
+/usr/share/gdb/python
+/usr/lib/python312.zip
+/usr/lib/python3.12
+/usr/lib/python3.12/lib-dynload
+/usr/local/lib/python3.12/dist-packages
+/usr/lib/python3/dist-packages
+(gdb) q
+see above, in my venv,python sys.path has he different list paths as the gdb python sys.path(pls not gdb is also started under venv), why they havet the different list
+===========
+
+You’re seeing different sys.path lists because GDB embeds its own Python interpreter and initializes it independently of your virtualenv’s “python” executable.
+
+Why they differ even when gdb is started inside the venv
+
+Virtualenv activation affects the python you run from the shell. It sets PATH and a few env vars so the python binary adjusts sys.path to the venv’s site-packages when it starts.
+GDB is a separate executable that embeds libpython. When GDB initializes Python (via the C API), it sets sys.path based on how GDB/Python were built and the system install prefix, not your venv.
+Result: Command-line python shows the venv’s site-packages. GDB’s Python shows system paths (e.g., /usr/lib/python3.12, /usr/share/gdb/python) and does not include your venv’s site-packages.
+Ways to make import dbgcopilot work inside GDB
+
+One-off environment
+bash
+PYTHONPATH=/workspace/.venv/lib/python3.12/site-packages gdb
+Use the launcher (convenient)
+bash
+dbgcopilot-gdb -q # preloads the plugin; import works
+dbgcopilot-gdb --no-preload # if you prefer to import manually in GDB
+Persist via ~/.gdbinit (your machine)
+gdb
+python
+import site
+site.addsitedir('/workspace/.venv/lib/python3.12/site-packages')
+end
+Project-local config you source per session
+gdb
+source /workspace/.gdbinit.local
+where .gdbinit.local contains the site.addsitedir snippet above
+Directly import the packaged plugin (bypasses sys.path concerns for the command itself)
+gdb
+python import dbgcopilot.plugins.gdb.copilot_cmd
+copilot
+Notes
+
+PYTHONHOME generally isn’t recommended here—it can cause unexpected behavior. Prefer PYTHONPATH or the site.addsitedir approach.
+Seeing the same Python version in both places is normal; both use Python 3.12, but their module search paths are initialized differently.
+If you’d like, I can add a short Troubleshooting section to the README with these explanations and snippets for quick reference.
+

@@ -1,0 +1,40 @@
+Thanks for the clear repro — you’re right: the SIGSEGV lines weren’t making it into the captured context, so the LLM didn’t “see” the crash. I’ve just adjusted the backend and recording so the stop reason is always captured and fed back into the chat/session state.
+
+High-level fixes:
+
+Capture stop reason and backtrace after run/continue/step
+After state-changing commands (run/continue/next/step/finish/start), we now append:
+info program (stop reason like “Program received signal SIGSEGV…”)
+bt 5 (a short backtrace)
+This guarantees the crash context appears in the returned output even if inferior/program text is noisy.
+Record run output for LLM context
+last_output is updated with the full command output (including the appended stop reason and bt).
+We also record the first output line as a fact (O: …) so the summary and context priming have a crisp signal to key off (like “Program received signal SIGSEGV…”).
+Chat transcript
+The REPL stores “Assistant: ok” followed by the exact command output, so /chatlog should now include the SIGSEGV line(s) and bt after a run/continue.
+Try this to verify:
+
+Start GDB and enter copilot:
+dbgcopilot-gdb -q
+file examples/crash_demo/crash
+copilot
+Run with confirmation:
+pls run the program
+yes
+Inspect the transcript:
+/chatlog
+You should now see lines like:
+Program received signal SIGSEGV, Segmentation fault.
+… boom () at crash.c:6
+followed by info program output and a short backtrace (bt 5)
+Ask again:
+pls explain what is wrong and why?
+The assistant should now mention the SIGSEGV and the crashing line/function, not just thread/libthread_db notes.
+Optional cleanups in GDB (to reduce noise):
+
+set debuginfod enabled off
+set pagination off
+set height 0
+set width 0
+The backend already sets pagination/height/width for you; the debuginfod line is still up to your GDB config if you want to silence it permanently.
+If you still don’t see the SIGSEGV in /chatlog or the explanation ignores it, share that snippet and I’ll tighten the capture further (e.g., include disassemble/frame info or signal-specific details).
