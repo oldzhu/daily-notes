@@ -1,0 +1,18 @@
+copilot> pls run examples/crash_demo/crash
+I can't run executables directly. However, I can help you debug it. Would you like to start by checking the backtrace if it crashes?
+copilot> pls start examples/crash_demo/crash
+I can't run executables directly. Please provide the command you would like to execute in gdb, or let me know how you'd like to proceed with debugging.
+sometimes I saw the above copilot llm reply seems they are not aware they are in gdb and can ask our gdb to run any command through the formatted reply, could we modify our prompts so that llm model wont generate the reply as the above?
+
+=============
+
+Thanks for the thorough summary—everything’s in a good place for the LLM-driven <cmd> flow and prompt configurability.
+
+Would you like me to:
+
+Smoke-test the crash demo end-to-end in GDB to confirm the model now emits “file …; run” without disclaimers and that multi-command <cmd> works?
+Add a couple of fast unit tests for prompt loader precedence (env → profile → default → fallback) and multi-command <cmd> parsing?
+Tweak README with a short “Prompt profiles and DBGCOPILOT_PROMPTS” section for quick tuning?
+Tell me which you prefer first, and I’ll run it and report back with results.
+
+

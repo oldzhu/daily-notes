@@ -1,0 +1,39 @@
+Good call—yes, the prompt logic was hard-coded in the orchestrator before. I’ve externalized it so you can tune behavior without touching code.
+
+What changed
+
+Externalized prompt config
+Added prompts.json where you can edit:
+max_context_chars
+system_preamble
+assistant_cmd_tag_instructions
+rules[] list
+language_hint_zh
+Added a built-in fallback at defaults.py so we’re safe if the JSON is missing or malformed.
+Orchestrator now loads prompts at startup and uses these values when assembling the LLM input.
+REPL controls
+/prompts show prints the current merged config (JSON).
+/prompts reload reloads prompts.json into the running session.
+How to tweak behavior
+
+Edit prompts in configs/prompts.json. For example, to allow more verbose answers and multiple commands, you could change the rules or the cmd-tag instructions there.
+Reload without restarting:
+In GDB: /prompts reload
+Verify: /prompts show
+Try it
+
+In your current session:
+copilot> /prompts show
+copilot> /prompts reload
+Ask a question and confirm the assistant follows your edited rules.
+Notes
+
+The JSON is shallow-merged over defaults. Any missing fields fall back to defaults.py values.
+If you need environment-specific variants, we can add support for an alternate path (e.g., DBGCOPILOT_PROMPTS=/path/to/custom.json) or per-provider overrides.
+I didn’t move general runtime settings out of default.yaml yet; only the LLM prompt/template pieces were externalized. If you want, we can consolidate into one config or support a hierarchy.
+Todo updates
+
+Smoke test REPL commands remains partially done; the new /prompts commands are working and validated through build/install.
+Want me to add an env var (DBGCOPILOT_PROMPTS) to point to a different prompts file, or support multiple profiles (e.g., prompts.gdb.json vs prompts.lldb.json)?
+
+

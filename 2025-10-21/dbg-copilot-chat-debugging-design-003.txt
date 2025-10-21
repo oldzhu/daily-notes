@@ -1,0 +1,36 @@
+Great run-through—thanks for the detailed /chatlog. I see exactly what you’re asking for: make it feel like you typed commands in GDB yourself and show the same “Reading symbols…”, “Starting program…”, etc.
+
+Here’s what I’ve done and how to try it:
+
+Capture real GDB TTY-style output
+Commands are now executed with from_tty=True while still capturing output. This surfaces lines like:
+Reading symbols from …
+Starting program: …
+debuginfod messages (if enabled)
+Echo the executed command
+When the LLM returns <cmd>…</cmd>, we echo that command before its output in the copilot response.
+In /exec, we print the command line first, then the output—mirroring GDB’s UX.
+Optional debuginfod control
+Added /debuginfod [on|off] and /debuginfod (show) so you can enable it when you want those downloads and extra diagnostics; we still default to off in session init to avoid interactive prompts.
+Try it
+
+In your current GDB session:
+At copilot>:
+/debuginfod on
+ask the copilot to “load examples/crash_demo/crash and run”
+You should see:
+file examples/crash_demo/crash
+Reading symbols from examples/crash_demo/crash…
+run
+Starting program: /workspace/examples/crash_demo/crash
+debuginfod activity (as applicable)
+Use /exec to confirm echo behavior:
+/exec info locals
+You’ll see:
+info locals
+No locals.
+Notes
+
+We already append stop context after run/continue/step (info program + bt 5). With from_tty, you’ll keep that plus the new “typed” output flavor.
+If you prefer to keep debuginfod off by default (to avoid network churn), you can toggle it per session via /debuginfod on when you want the richer experience.
+If you want a toggle to always echo commands for every LLM-executed command or to switch off the echo, I can add a /echo on|off setting tied to the session state.

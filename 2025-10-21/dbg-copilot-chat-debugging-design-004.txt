@@ -1,0 +1,28 @@
+Love that idea—color makes the flow much clearer. I added optional colored output with a simple toggle and kept raw GDB output unmodified to avoid masking important details.
+
+What you get now
+
+Assistant replies in green
+Command echoes in cyan and bold (both <cmd> execution and /exec)
+Errors in red
+Raw debugger output stays as-is (no color), so “Reading symbols…/Starting program…” look exactly like native GDB
+/colors on|off to toggle
+/debuginfod on|off (from previous step) to get debuginfod messages when desired
+Try it
+
+In your current GDB session:
+copilot> /colors on
+Ask: “load examples/crash_demo/crash and run”
+You’ll see:
+Cyan bold echo of file … and run
+Native GDB output in default colors (Reading symbols…, Starting program…, etc.)
+Use /colors off to disable coloring at any time.
+/debuginfod on if you want download messages.
+Notes
+
+Coloring is controlled by a new session flag colors_enabled (default on).
+Chat transcript (/chatlog) is stored without ANSI codes; only printed REPL output is colored. That keeps logs clean and copy/paste friendly.
+If you’d like, we can tweak colors to your taste (e.g., magenta for assistant, gray for boilerplate) or add a /theme command later.
+Want me to set a different color scheme or adjust which lines get colored?
+
+

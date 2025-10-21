@@ -1,0 +1,58 @@
+I would like to change the behavior of the orchestrator, the goal is 
+1. to make the interaction with copilot llm model more "natural" 
+2. to use natural language to do debugging.  
+3. Let user and llm model control the flow not the code
+currently:
+========
+Responsibilities
+Accepts a user utterance and decides:
+Is this a confirmation (“yes/y”/“no/n”) to execute pending_cmd?
+Is it a direct natural instruction that maps to a GDB command (e.g., “run the program” → run, or “start program <path>” → file <path>; run)?
+Otherwise, call the LLM with debugger-aware context and try to extract a suggested command from the LLM’s reply.
+Enforces a confirmation flow before executing potentially state-changing commands.
+==========
+don't let the code to decide is this  confirmation or it is a direct natural instruction that maps to a GDB command, just call llm with debugger-aware context for all user typed things and let llm mode decide is this confirmation to suggested command or it is direct natual instructions that maps to a gdb command. If llm decide it is confirmation or it is maps to one  gdb command, just reply <cmd>[debugger command]</cmd>, orchestrator code need to filter and parse that format reply and then as llm asked, it will call gdb to execute  the "debugger command" and capture the command output. In addition, I would like whenever user ask new questons or typed new chat msgs in this chat session,orchestration will call llm with all  previous chat msgs + all previous debugging outout so llm have all context in the chat session. Regarding the limit of the context length of the llm mode, at the current stage, we can simply handle like this, in case it reached the llimit, we can warn the user and ask if want to summary the curret session and create a new session with that summary as the starting or just create new session wihtout summary.
+
+===========
+
+I’ll finish wiring the LLM-driven flow, fix the build issue, and make sure the session summary works cleanly—then share what changed and how to try it.
+
+actions taken
+Build fix
+Updated Makefile to default to python3 so builds don’t fail when python isn’t on PATH.
+Orchestrator: LLM-driven flow
+AgentOrchestrator.ask() now always calls the selected LLM with full chat history and high-signal context (goal, recent commands, last output).
+The system prompt instructs the model to emit exactly one debugger command wrapped in <cmd>THE_SINGLE_GDB_COMMAND</cmd> when it wants execution; otherwise it should answer normally.
+If the response includes a <cmd>…</cmd>, we execute it via the backend, capture output, and record attempts, facts, chatlog, and last_output.
+Added a context-length guard (character-based, conservative): if the assembled chat becomes too large, the orchestrator returns a concise warning that suggests “summarize and new session” or “new session” instead of calling the LLM.
+Preserved Chinese answer preference detection.
+Summary method bug
+Fixed AgentOrchestrator.summary() so it’s a proper method, not nested, and REPL’s /summary works reliably.
+README
+Updated UX to reflect the new LLM-driven <cmd>…</cmd> execution protocol (no more yes/y confirmation flow text).
+files changed
+Makefile
+Set PYTHON ?= python3.
+orchestrator.py
+Implemented LLM-first ask() behavior with <cmd> parsing and execution.
+Added a simple context-length guard.
+Fixed summary() placement and formatting.
+README.md
+Documented the new <cmd>…</cmd> behavior.
+how to try
+Build and install: run the existing tasks to build and reinstall the wheel (already validated here).
+In GDB, load the plugin and start the REPL:
+Use the launcher or import/source the packaged plugin per README.
+At copilot>, ask questions like:
+“run the program” or “continue”
+“where did it crash?”
+When the LLM wants to run something, it will reply with <cmd>…</cmd> and the command will execute automatically; the output is recorded and used for subsequent context.
+quality gates
+Build: PASS
+Lint/Typecheck: PASS (no errors reported)
+Tests: PASS (1 test in tests/test_smoke_structure.py)
+notes and next steps
+Context guard follow-up: Today, when the context is too large, we warn and ask whether to “summarize and new session” or “new session.” The automatic handling of those responses (creating a new session and optionally seeding it with a summary) is not yet wired; the REPL’s /new command still works as a manual alternative. If you want, I can add a small flow so that typing “summarize and new session” at copilot> generates a summary, starts a fresh SessionState, and seeds it with the summary as the starting fact/goal.
+Makefile cleanup: There are duplicate docker targets (warnings about overriding). Not urgent, but we can de-duplicate those blocks.
+Prompt tuning: If you want the model to propose multi-step sequences, we can relax “single command” to “one per turn” explicitly—right now it must return exactly one <cmd>…</cmd>.
+Completion summary: Implemented the LLM-driven orchestrator that executes commands only when the assistant returns a <cmd>…</cmd> tag, added a context-size guard, fixed the summary method, updated docs, and validated via build and tests. If you’d like, I can wire the “summarize and new session” action next and tidy the Makefile targets.

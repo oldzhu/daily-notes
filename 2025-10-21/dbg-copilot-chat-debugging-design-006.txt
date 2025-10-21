@@ -1,0 +1,45 @@
+Great idea—done. I added flexible prompt loading with an env var and per-backend profiles so you can swap behaviors without touching code.
+
+what’s included
+Env var override
+Set DBGCOPILOT_PROMPTS to point to a JSON file; it takes top priority.
+Backend profiles
+If no env var is set, we look for configs/prompts.<backend>.json (e.g., prompts.gdb.json or prompts.lldb.json).
+Default fallback
+If no profile exists, we use configs/prompts.json; if that’s missing, we fall back to built-in defaults.
+Runtime controls
+/prompts show prints the merged prompt config plus the current source path.
+/prompts reload reloads the selected file so you can tweak JSON live.
+Precedence
+
+DBGCOPILOT_PROMPTS file
+configs/prompts.gdb.json or configs/prompts.lldb.json (based on backend name)
+prompts.json
+built-in defaults
+how to use
+Use a single custom file for all sessions
+
+export DBGCOPILOT_PROMPTS=/workspace/configs/my_prompts.json
+Then in GDB:
+
+
+copilot> /prompts reloadcopilot> /prompts show
+Use per-backend profiles
+Create either or both of:
+configs/prompts.gdb.json
+configs/prompts.lldb.json
+Then:
+
+copilot> /prompts reloadcopilot> /prompts show
+Example JSON (works for both GDB/LLDB)
+
+{  "max_context_chars": 20000,  "system_preamble": "You are a debugging copilot inside {debugger}.\nInteraction mode: LLM-driven.\n",  "assistant_cmd_tag_instructions": "When you want execution, return exactly one line with <cmd>...</cmd>.\n",  "rules": [    "Prefer small, low-risk diagnostic commands first.",    "Never fabricate output; quote exact snippets from tool results.",    "Keep answers concise and actionable.",    "Only output one debugger command between <cmd>...</cmd> when executing."  ],  "language_hint_zh": "Please answer in Simplified Chinese (中文).\n"}
+Tip: if you want prompts.gdb.json and prompts.lldb.json to be the same for now, copy the same file to both names.
+
+status and notes
+Implemented: env var and profile loading, source tracking, /prompts show|reload.
+Quality gates: Build PASS. Tests unchanged.
+You’ll see “[copilot] Prompt source: …” in /prompts show to confirm which file is active.
+If you want, I can also add an env var for a directory of prompt profiles (e.g., DBGCOPILOT_PROMPTS_DIR) and provider/model-specific overrides next.
+
+
