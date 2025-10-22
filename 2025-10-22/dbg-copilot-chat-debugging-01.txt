@@ -1,0 +1,66 @@
+copilot> pls run examples/crash_demo/crash
+Crash demo starting...
+
+Program received signal SIGSEGV, Segmentation fault.
+0x000055555555515d in boom () at crash.c:6
+6           *p = 42; // segfault
+file examples/crash_demo/crash; run
+Reading symbols from examples/crash_demo/crash...
+
+Starting program: /workspace/examples/crash_demo/crash 
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+Last stopped for thread 1 (Thread 0x7ffff7da3740 (LWP 44447)).
+        Using the running image of child process 44447.
+Program stopped at 0x55555555515d.
+It stopped with signal SIGSEGV, Segmentation fault.
+#0  0x000055555555515d in boom () at crash.c:6
+#1  0x000055555555518d in main (argc=1, argv=0x7fffffffdb08) at crash.c:11
+copilot> what is wrong?
+backtrace
+#0  0x000055555555515d in boom () at crash.c:6
+#1  0x000055555555518d in main (argc=1, argv=0x7fffffffdb08) at crash.c:11
+copilot> why crash?
+frame 0; info locals
+#0  0x000055555555515d in boom () at crash.c:6
+6           *p = 42; // segfault
+
+p = 0x0
+copilot> why?
+The pointer `p` is `0x0`, which means it is a null pointer. Dereferencing a null pointer (as seen in the line `*p = 42;`) leads to the segmentation fault. To resolve this issue, we need to ensure that `p` is properly initialized before it is dereferenced. Would you like to check where `p` is defined and how it is initialized?
+copilot> how to fix?
+To fix the segmentation fault, you need to ensure that the pointer `p` is initialized to point to a valid memory location before dereferencing it. This can be done by allocating memory for `p` or pointing it to an existing variable. 
+
+Would you like to see the code where `p` is defined and initialized? If so, I can help you inspect that part of the code.
+copilot> yes
+list boom
+1       #include <stdio.h>
+2       #include <stdlib.h>
+3
+4       static void boom(void) {
+5           int *p = NULL;
+6           *p = 42; // segfault
+7       }
+8
+9       int main(int argc, char **argv) {
+10          printf("Crash demo starting...\n");
+copilot> how to fix?
+To fix the segmentation fault, you can initialize the pointer `p` to point to a valid memory location. For example, you can allocate memory for `p` using `malloc`. Here's how you can modify the `boom` function:
+
+```c
+static void boom(void) {
+    int *p = malloc(sizeof(int)); // Allocate memory for p
+    if (p == NULL) {
+        // Handle memory allocation failure
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(1);
+    }
+    *p = 42; // Now this is safe
+    free(p); // Don't forget to free the allocated memory
+}
+```
+
+Would you like to modify the code and recompile, or do you need help with something else?
+===========
+
+

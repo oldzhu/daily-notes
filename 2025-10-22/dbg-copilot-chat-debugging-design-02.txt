@@ -1,0 +1,31 @@
+I tested but seems it is not exacthly what I want, pls see below output of he testing:
+....
+To gather more information about the current state of the program, I propose the following commands:
+
+1. `gdb> backtrace` - to see the call stack.
+2. `gdb> info registers` - to check the current values of the CPU registers.
+
+Would you like to proceed with these commands?
+copilot> yes
+[copilot] I plan to run:
+gdb> backtrace
+gdb> info registers
+Confirm? (yes/no)
+copilot> yes
+....
+if u see the above, llm ask for the confirmation if execute the commands, then I see yes,  then I see another asking confirmation like copilot>I plan to run:....  that is not what I want, I reviewed the code, I plan to run confirmation asking is from the local python code but not llm, what I want is that after llm code get our confirmation, it will reply with the <cmd>...<cmd> with the proposed command or commands(we ask llm model should only issue <cmd>...<cmd> reply after our confirmation), local python code should execute the command or commands directly without the duplicate comfirmation.
+
+=============
+
+Thanks. I don't want any code checking of user typing msgs like _is_negarive and _is_affimative, I prefer let llm model to decide or judge what meaning of user typing msgs and decide how to reply. that is why I am asking in our prompt to let llm only reply <cmd>...<cmd> formatted msgs after get our confirmation, so the principle is that pls do not checking what meaning of user typed msgs is and let llm mdel reply and the end user typing driver the flow and the processing. is it ok?
+=============
+Good callout—and yes, it’s now exactly wired that way:
+
+When the model replies with <cmd>…</cmd>, the orchestrator immediately:
+echoes the commands with a gdb> prefix,
+executes them,
+then sends the fresh output back to the model for a single follow-up to decide next steps.
+There’s no local “yes/no” parsing anymore and no duplicate local confirmation; the model drives the flow and only emits <cmd> after your confirmation per the prompt.
+I rebuilt and reinstalled the wheel so you can test this behavior right away. If you want to ensure the latest prompt text is in effect during your session, run /prompts reload inside copilot> after starting.
+
+If anything feels off in the back-and-forth, we can tighten the prompt wording to make “only emit <cmd> after user confirmation” even more explicit.

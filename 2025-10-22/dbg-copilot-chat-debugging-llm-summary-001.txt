@@ -1,0 +1,42 @@
+Great—let’s switch the overflow “summarize and new session” path to use an LLM-produced summary with a safe, trimmed context. I’ve implemented that and kept “new session” as a quick local reset.
+
+What changed
+
+LLM summary on demand
+
+When the context limit is exceeded and you reply with “summarize and new session”, we now:
+Build a compact prompt (goal, last 5 command snippets, last output truncated, last ~40 chat lines).
+Ask the configured provider to produce a concise 5–8 bullet summary plus one next step, returning only the summary text.
+Reset the session (new session_id, clear chatlog/attempts/facts/last_output).
+Seed the new session with the first line of the summary as a fact for future turns.
+Return: “Started a new session …” plus the summary text.
+If the provider call fails, we fall back to the existing local summary.
+No more loop on overflow
+
+We don’t append the overflow warning to chatlog.
+We act locally only on the exact phrases:
+“summarize and new session” (now LLM-based summary, then reset)
+“new session” (just reset)
+Where in code
+
+In ask(), the overflow branch calls _llm_summarize_session(self) when you choose “summarize and new session”.
+New helper _llm_summarize_session(self) at the bottom of orchestrator.py:
+Uses _call_llm(...) to invoke the provider with a concise summary prompt.
+Falls back to self.summary() on errors.
+Current behavior recap (relevant to your earlier preferences)
+
+Confirmation-first: The LLM proposes commands and asks for confirmation without <cmd>.
+Execution: Only when the LLM emits <cmd>…</cmd>, we echo with gdb>, execute, and send the fresh output back to the LLM for the next step.
+No local yes/no parsing: The LLM decides when to emit <cmd> after your confirmation.
+Status
+
+Tests: PASS (pytest -q).
+Rebuilt/reinstalled wheel so you can try it immediately.
+No commits made yet.
+Try it
+
+If you hit the context warning, reply with one of:
+summarize and new session
+new session
+You should see the LLM-produced summary (for the first option) and a fresh session ready to continue.
+If you want the summary to persist as the first assistant message in the new session’s chatlog (instead of just a fact), I can wire that in too.

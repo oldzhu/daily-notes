@@ -1,0 +1,27 @@
+Thanks for flagging the overflow loop—you’re right, it was caused by us appending the warning to the chatlog and not handling your follow-up locally.
+
+What I changed
+
+No more loop on context overflow:
+If the context is too large, we now show the warning without appending it to the chatlog.
+If you reply with either “summarize and new session” or “new session”, the orchestrator handles it locally:
+summarize and new session: generates a brief summary of the prior session, clears history, assigns a new session id, and returns the summary + “Started a new session …”.
+new session: clears history, assigns a new session id, and returns “Started a fresh session …”.
+Kept the “LLM drives confirmations” principle intact:
+We don’t parse yes/no for command confirmations anymore.
+We execute immediately only when the model emits <cmd>…</cmd>, then send the output back for the model’s next step.
+Minor robustness:
+Improved parsing of proposals that use inline gdb> in backticks/quotes so initial proposals are recognized even if formatted that way.
+Validation
+
+Tests: PASS (pytest -q).
+Rebuilt and reinstalled the wheel so you can test this now.
+How to try the overflow fix
+
+If you hit the “[copilot] Your session context is quite large …” message, reply with one of:
+summarize and new session
+new session
+You should see the session reset and no further looping.
+If you want the reset to also preserve the goal or seed the new session with a compact summary note, I can add that too.
+
+

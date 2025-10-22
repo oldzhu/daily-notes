@@ -1,0 +1,27 @@
+Got it—proposals will no longer use “gdb> …”, and instead be formatted as backticked command plus a short description. I updated both the built-in defaults and the workspace prompts so the model proposes like:
+Propose: info type p - describe what the command does
+and still only emits a single <cmd>…</cmd> after you confirm.
+
+changes made
+defaults.py
+
+Proposal instruction now: “Propose: command - <short description>” (no gdb>).
+Example updated accordingly.
+Added a rule: don’t prefix with gdb> during proposals; use backticks + short description.
+prompts.json
+
+Same instruction and example updates so your runtime config matches defaults.
+Added the same rule for proposal formatting.
+Rebuilt and reinstalled the wheel; tests still pass.
+
+Quality gates:
+
+Build: PASS
+Tests: PASS
+how it behaves now
+Planning: Assistant proposes exactly one command using backticks and includes a brief “what/why” description, then asks you to confirm.
+Execution: After you confirm, it replies with ONLY <cmd>the-one-command</cmd>, which runs immediately and echoes with gdb> before the raw output.
+Iteration: Based on that output, it proposes the next single command with a new short description.
+If you want me to tighten the required description length or style (e.g., 5–12 words, imperative voice), say the word and I’ll encode that constraint in the prompts too.
+
+
