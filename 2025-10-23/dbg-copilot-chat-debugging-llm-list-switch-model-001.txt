@@ -1,0 +1,70 @@
+I would like to work on the below things today:
+
+Add /llm subcommand to list and switch models support by a secified llm provider - for example - list models and switch models supported by openrouter.
+Add /llm subcommand to set api key for the specified porivder
+Add support for using lldb besides gdb - prefer most prompts can be shared between different debuggers, lets us avoid write debugger specific prompts in commont prompts unlesee necessary.As we add more debuggers into our dbgcopilot, I am considering to change the way how dbgcopilot is launched, currently we launch dbgcopilot as gdb/lldb plugin or extension,I would like to change to launch dbgcopilot as main standalone which gives copilot> prompt 1st and then the user can choose to use which debugger from the debuggers our dbgcopilot supported(gdb/lldb/other debugger), then dbgclopliot will start and copperate with the started debugger the user choose.  
+Let us work on the above 3 1 by 1, start from list and switch models for the llm provide openrouter,after code done done and testing works, we can move to work on next.
+==========
+
+Great—let’s tackle item 1 (model listing/switching for OpenRouter) and item 2 (set API key). I’ve implemented both and rebuilt so you can try them right away in GDB.
+
+what I changed
+OpenRouter provider
+
+Added list_models(session_config) in openrouter.py
+Calls https://openrouter.ai/api/v1/models
+Uses the session API key if present (OPENROUTER_API_KEY env or session config openrouter_api_key)
+Returns a list of model IDs (e.g., openai/gpt-4o-mini)
+REPL /llm subcommands in repl.py
+
+/llm list
+Lists available LLM providers (existing behavior)
+/llm use <provider>
+Selects a provider (existing behavior)
+NEW /llm models [provider]
+Lists models for the provider (defaults to currently selected provider)
+Currently implemented for openrouter; others print a friendly “not supported yet”
+NEW /llm model [provider] <model>
+Sets the model for the provider (defaults to selected provider)
+For openrouter, saves in-session as openrouter_model
+NEW /llm key <provider> <api_key>
+Sets the API key for the provider in-session (no echo of the key)
+For openrouter, saves openrouter_api_key
+Prompts and orchestrator were left unchanged for this step; orchestrator already recreates the OpenRouter ask function using the current session config each time, so switching models/keys takes effect on the next LLM call.
+
+Build/tests:
+
+Tests: PASS
+Rebuilt and reinstalled the wheel
+try it
+Inside GDB:
+
+Load copilot:
+python import dbgcopilot.plugins.gdb.copilot_cmd
+copilot
+Set provider to OpenRouter:
+/llm use openrouter
+Set API key (session-only):
+/llm key openrouter sk-or-xxxxx
+List models:
+/llm models # uses selected provider
+or /llm models openrouter
+Switch model:
+/llm model gpt-4o-mini # sets for selected provider
+or /llm model openrouter openai/gpt-4o-mini
+Note
+
+The API key is stored in-session (SessionState.config) under openrouter_api_key; it will not be printed.
+Selected model is stored under openrouter_model; the next assistant reply will use it.
+next up
+Item 3 (LLDB support and a standalone copilot> launcher) is larger; I’ll draft a small plan next and we can iterate:
+Abstract debugger backend interface for both gdb and lldb
+Shared prompts by default, add minimal debugger-specific hints only when needed
+New entrypoint that starts copilot> first, then lets user choose debugger (gdb/lldb/other)
+If you hit any hiccups listing models (e.g., empty list), it likely means the API key is required by your environment—set it with /llm key openrouter <key> and retry.
+
+=========
+testing - issue
+[copilot] OpenRouter API key set for this session.
+copilot> pls help to start examples/crash_demo/crash
+[copilot] LLM provider error: OpenRouter HTTP 400: {"error":{"message":"Provider returned error","code":400,"metadata":{"raw":"{\n  \"error\": {\n    \"message\": \"Unsupported parameter: 'temperature' is not supported with this model.\",\n    \"type\

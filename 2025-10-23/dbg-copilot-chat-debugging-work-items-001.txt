@@ -1,0 +1,15 @@
+1. prompt to not propose the next command if user just ask to run some commands even if there is error in the output of the executed command.
+2. add list and switch between the models supported in openrouter.
+3. /cmd - pass all cmds not in the copilot command list to backend debugger directly.
+4. add modelscope free model support.
+5. adding lldb or other debugger - prefer most prompts can be shared between different debuggers, try to void write debugger specific prompts in commont prompts.
+6. summary and new session still not working - temporarily disable the function by setting a very large context limit
+7. press up and down key does not go through typed history in copilot>
+8. Add local llm support
+
+design thinking:
+copilot: user, debugger(may be other tools compiler,git, how to call different tools in copilot? mcp?), llm model
+
+hard mode - usr drive
+easy mode - llm model drive - fullatuo mode on this
+

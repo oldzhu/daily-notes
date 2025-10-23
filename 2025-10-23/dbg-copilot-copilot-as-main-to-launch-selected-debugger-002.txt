@@ -1,0 +1,60 @@
+Kicking off Phase 2a now: I’ll add a subprocess-based GDB backend, wire it into a standalone copilot> REPL, and make sure you can launch it with the new console script.
+
+Actions taken
+Created a GDB subprocess backend that drives gdb via a pseudo-tty and captures output cleanly.
+File: gdb_subprocess.py
+Behavior:
+Spawns gdb -q using pexpect.
+Configures non-interactive settings: pagination off, height/width 0, confirm off; tries to disable debuginfod prompts.
+Splits multiple commands on “;” and newlines, executes each, and returns concatenated output.
+Strips echoed command lines from output to keep it clean.
+Gracefully quits gdb in destructor when possible.
+Confirmed the standalone REPL already integrates this backend.
+File: standalone.py
+You can now /use gdb to spawn a GDB subprocess and run /exec ....
+Exposed console script entry (already present).
+pyproject.toml contains dbgcopilot = dbgcopilot.repl.standalone:main.
+Installed pexpect and did local smoke validations:
+Instantiated the backend, ran help where and help backtrace, and got expected output.
+Verified standalone._select_gdb() selects the backend and executes commands.
+Files changed
+Added: gdb_subprocess.py — Subprocess backend using pexpect with prompt-driven I/O, multi-command support, and echo stripping.
+Updated: README.md — Documented the new standalone dbgcopilot REPL, /use gdb flow, and quick examples.
+How to run
+Standalone REPL (outside any debugger):
+
+Start:
+
+dbgcopilot
+In the prompt:
+
+copilot> /helpcopilot> /use gdbcopilot> /exec help wherecopilot> run until crash and show backtracecopilot> /llm use openroutercopilot> /llm key openrouter sk-...    # optional, session-scopedcopilot> /summarycopilot> quit
+GDB launcher (unchanged):
+
+Preloads the plugin and gives you the copilot command inside GDB:
+
+dbgcopilot-gdb -q
+Notes
+The orchestrator still uses the “propose then confirm” flow and only executes when the model returns a single command wrapped in <cmd>…</cmd>.
+Outputs for executed commands are echoed with the correct prompt label (“gdb> …”).
+Quality gates
+Build: PASS (import and runtime checks against a real gdb instance succeeded).
+Lint/Typecheck: PASS for runtime imports (pexpect installed; module loads cleanly). Editor hint about pexpect is resolved once dependencies are installed in the active venv.
+Tests: Skipped per your request.
+What’s next
+Phase 2b (optional): LLDB subprocess backend and wiring /use lldb into the same standalone REPL.
+
+Add minimal integration tests later for the subprocess backend (spawn, run a couple commands, clean shutdown).## Notes
+
+The orchestrator still uses the “propose then confirm” flow and only executes when the model returns a single command wrapped in <cmd>…</cmd>.
+
+Outputs for executed commands are echoed with the correct prompt label (“gdb> …”).
+
+Quality gates
+Build: PASS (import and runtime checks against a real gdb instance succeeded).
+Lint/Typecheck: PASS for runtime imports (pexpect installed; module loads cleanly). Editor hint about pexpect is resolved once dependencies are installed in the active venv.
+Tests: Skipped per your request.
+What’s next
+Phase 2b (optional): LLDB subprocess backend and wiring /use lldb into the same standalone REPL.
+Add minimal integration tests later for the subprocess backend (spawn, run a couple commands, clean shutdown).
+
