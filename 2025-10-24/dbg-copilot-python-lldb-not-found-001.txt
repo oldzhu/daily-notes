@@ -1,0 +1,63 @@
+(.venv) root ➜ /workspace (main) $ sudo apt install python3-lldb-18
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+python3-lldb-18 is already the newest version (1:18.1.3-1ubuntu1).
+python3-lldb-18 set to manually installed.
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+python3-lldb-18 is already installed.
+but why dbgcopilot still complains python API is not avaiable
+copilot> /use lldb
+[copilot] Using LLDB (subprocess backend; Python API unavailable).
+Hint: install LLDB Python bindings: sudo apt install lldb python3-lldb
+
+let us troubleshoot and try to fix it
+
+=============
+
+You’ve got python3-lldb-18 installed, but your virtualenv likely isn’t seeing the system’s LLDB Python module. I added a robust auto-discovery in our LLDB API backend and improved hints so this “Python API unavailable” case should now self-heal when possible.
+
+what I changed
+LLDB API backend auto-discovery
+lldb_api.py now tries multiple ways to find and import the lldb module:
+LLDB_PYTHON_DIR or LLDB_PYTHONPATH env vars (if set)
+The path from lldb -P (recommended; works on Ubuntu/macOS)
+Common Debian/Ubuntu locations like /usr/lib/llvm-*/lib/python3*/dist-packages and /usr/lib/python3*/dist-packages
+If it still can’t import, the error includes concrete next steps (use lldb -P to set PYTHONPATH, or install via apt/Conda).
+Better runtime hints already in place
+The REPL’s /use lldb fallback message includes a platform-specific one-liner.
+The subprocess backend will now suggest switching to API/in-process if it sees multiple empty/timeout outputs.
+Tests: all pass.
+
+how you can verify quickly
+In your environment:
+Start the REPL: dbgcopilot
+Run: /use lldb
+With python3-lldb-18 installed, we’ll now try lldb -P and known paths automatically. If successful, you should see:
+[copilot] Using LLDB (API backend).
+If you still see subprocess fallback:
+Check what lldb -P prints:
+Run inside your shell:
+
+lldb -P
+If it prints a path (e.g., /usr/lib/llvm-18/lib/python3/dist-packages), the backend now adds it to sys.path automatically.
+If lldb isn’t on PATH, install it (on Ubuntu):
+
+sudo apt updatesudo apt install lldb
+Optionally, try setting PYTHONPATH for the REPL run:
+
+PYTHONPATH="$(lldb -P)" dbgcopilot
+why it was failing
+Virtualenv isolation: Your .venv typically won’t include system-wide dist-packages, so import lldb fails even when python3-lldb-18 is installed system-wide.
+Fix: We now proactively discover the right directory (preferably via lldb -P) and add it to sys.path before importing.
+optional next steps
+If you want the API path always available in your venv sessions:
+Add this to your shell profile (bash example):
+
+export PYTHONPATH="$(lldb -P):${PYTHONPATH}"
+If you prefer the in-process plugin when you’re already inside LLDB:
+In LLDB:
+
+(lldb) command script import dbgcopilot.plugins.lldb.copilot_cmd(lldb) copilot
+If you try /use lldb again now, it should pick up the API backend automatically. If it doesn’t, share the output of lldb -P and I’ll tune the search logic further.If you try /use lldb again now, it should pick up the API backend automatically. If it doesn’t, share the output of lldb -P and I’ll tune the search logic further.
+

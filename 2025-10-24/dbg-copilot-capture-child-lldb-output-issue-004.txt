@@ -1,0 +1,48 @@
+I’ll add the OS-specific install hint to the LLDB fallback and make the subprocess backend auto-suggest switching when it sees repeated empty/timeout outputs.
+
+actions taken
+REPL LLDB selection hints
+Updated standalone.py:
+Added _lldb_install_hint() that returns a one-liner based on sys.platform.
+Appended this hint in all LLDB API fallback messages:
+When failing to import LLDB API and importing subprocess backend fails.
+When failing to start subprocess backend.
+When the API is unavailable but subprocess is used: we now print the hint right after the “Using LLDB (subprocess…)” line.
+Subprocess backend consecutive-empty suggest
+Updated lldb_subprocess.py:
+Track consecutive empty or timeout responses with self._empty_count, threshold 2, and self._suggested_once to avoid repeating.
+On threshold, append a suggestion block:
+Prefer LLDB Python API backend for reliable capture.
+OS-specific one-liner to install lldb Python bindings.
+If you’re inside LLDB, use the in-process plugin:
+(lldb) command script import dbgcopilot.plugins.lldb.copilot_cmd; copilot
+Count timeouts as empties; reset on non-empty output.
+Ran tests: all passing.
+how it behaves
+When you run /use lldb:
+If LLDB API import fails but subprocess works:
+You’ll see “[copilot] Using LLDB (subprocess backend; Python API unavailable).”
+Followed by a one-liner hint tailored to your OS (e.g., Linux: “sudo apt install lldb python3-lldb”).
+If both the API path and subprocess import/start fail:
+The error message includes the OS-specific install hint.
+When using the LLDB subprocess backend:
+If LLDB returns 2 consecutive empty or timeout outputs, you’ll get an auto-suggest:
+Use the LLDB Python API backend for reliable capture.
+Quick install hint for your OS.
+If you’re actually inside LLDB, prefer the in-process plugin and how to launch it.
+try it
+Start the standalone REPL:
+dbgcopilot
+Switch to LLDB:
+/use lldb
+If API import isn’t available, you’ll see the OS-tailored hint after the subprocess selection line.
+Trigger the empty-output suggestion:
+Run a couple of commands that produce no output or cause a timeout (e.g., “settings show not-a-setting” or similar no-op). After two empties/timeouts in a row, the suggestion appears.
+notes
+This keeps the subprocess backend fully usable while nudging the user toward the more reliable API path or in-process plugin when we detect likely capture issues.
+The suggestion fires once per session after hitting the threshold and won’t spam on subsequent commands.
+quality gates
+Build: N/A (library-only changes)
+Lint/Typecheck: N/A (not configured)
+Tests: PASS (pytest)
+If you’d like, I can add a small smoke test that simulates the empty-output detection logic to guard against regressions.

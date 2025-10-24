@@ -1,0 +1,63 @@
+i tried the below code in python directly and saw the above error. Does that mean lldb only can be imported in inprocess lldb and can not be loaded diretcly by standalone python code direcly?
+>>> import sys
+>>> import lldb
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'lldb'
+>>> p="/usr/lib/llvm-18/lib/python3.12/site-packages"
+>>> sys.path.insert(0,p)
+>>> import lldb
+Traceback (most recent call last):
+  File "/usr/lib/llvm-18/lib/python3.12/site-packages/lldb/__init__.py", line 39, in <module>
+    import _lldb
+ModuleNotFoundError: No module named '_lldb'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/usr/lib/llvm-18/lib/python3.12/site-packages/lldb/__init__.py", line 42, in <module>
+    from . import _lldb
+ImportError: cannot import name '_lldb' from partially initialized module 'lldb' (most likely due to a circular import) (/usr/lib/llvm-18/lib/python3.12/site-packages/lldb/__init__.py)
+
+===========
+
+You’re seeing that error because the Python package “lldb” depends on a native extension (“_lldb”) that in turn links to the liblldb shared library. In your venv, Python can find the package, but it can’t load the native bits because liblldb isn’t on the dynamic linker’s path. That’s why you get “No module named ‘_lldb’” and then a circular import message.
+
+Short answer: No, lldb is not restricted to in-process. You can import it from standalone Python, but you must:
+
+Add the lldb Python path to sys.path (or PYTHONPATH), usually from lldb -P
+Ensure the dynamic linker can find liblldb (typically via installing liblldb-18 and/or having /usr/lib/llvm-18/lib on the loader path)
+What I changed for you
+
+I enhanced the lldb_api backend to:
+Auto-discover the lldb Python path via lldb -P and common Ubuntu paths.
+As a last resort, find and preload liblldb with RTLD_GLOBAL, then re-try import.
+Provide actionable hints including installing liblldb-18 if import still fails.
+Why your manual import failed
+
+You inserted /usr/lib/llvm-18/lib/python3.12/site-packages, which is correct for the pure-Python wrapper, but the extension _lldb requires liblldb.so. On your machine, that shared lib likely isn’t installed or not findable by the loader. Our quick probe also showed trying to preload /usr/lib/llvm-18/lib/liblldb.so.18 failed because the file was missing.
+How to fix on Ubuntu 24.04
+
+Install the liblldb runtime and ensure lldb is present:
+sudo apt update
+sudo apt install liblldb-18 lldb
+Test from your venv:
+PYTHONPATH="$(lldb -P)" python3 -c "import lldb; import sys; print('OK', lldb.file); print('SBDebugger?', hasattr(lldb,'SBDebugger'))"
+If you still hit loader issues, try:
+LD_LIBRARY_PATH=/usr/lib/llvm-18/lib PYTHONPATH="$(lldb -P)" python3 -c "import lldb; print('OK')"
+What to try now in dbgcopilot
+
+Just run the REPL and switch to LLDB:
+dbgcopilot
+/use lldb
+With liblldb-18 installed (and lldb on PATH), the improved backend will:
+Use lldb -P to add the right Python path,
+Attempt to preload liblldb if needed,
+And then import the API. You should see “[copilot] Using LLDB (API backend).”
+If it still falls back to the subprocess backend, paste the output of:
+
+lldb -P
+ls -l /usr/lib/llvm-18/lib/liblldb*.so*
+python3 -c "import sys; print(sys.executable); import platform; print(platform.platform())"
+I can use that to tweak the loader hint or path discovery further.

@@ -1,0 +1,37 @@
+Thanks for the detailed repro. Given your environment’s behavior, I’ve taken three concrete steps so we stop crashing and behave predictably:
+
+Removed all liblldb preloading and direct extension hacks. These can trigger the fatal PyImport_AppendInittab error you’re seeing.
+Added a conservative import probe. Before importing the LLDB Python API in-process, we now launch a tiny helper process that sets PYTHONPATH from lldb -P (and optional env vars) and attempts import lldb. If the probe fails (or crashes), we don’t import in the REPL process at all; we fall back to the subprocess backend with a clear hint. This prevents your main REPL from crashing.
+Exposed an opt-out. Set DBGCOPILOT_LLDB_API=0 to force the subprocess backend immediately in environments where the API is known-broken.
+What this means for you
+
+/use lldb will no longer hang or crash your REPL. If your system’s lldb Python API import is unsafe, our probe will detect that and we’ll stick to the subprocess backend with a one-line hint. You can keep using LLDB via the subprocess backend, and if/when you fix the system packaging (e.g., via liblldb-18-dev), the API route will start working automatically.
+In-process LLDB plugin remains fully supported and is still the most reliable path on such systems.
+Why your symlink didn’t fix it
+
+Even after adding the unversioned liblldb.so symlink, the distro’s lldb/init.py can take a code path that tries to do embedding-style initialization (calling PyImport_AppendInittab) which is illegal after Python is already initialized. We can’t control that from our process; the safest thing is to avoid importing in this process if the probe suggests risk.
+How to proceed
+
+Try again:
+dbgcopilot
+/use lldb
+You should either:
+See “[copilot] Using LLDB (API backend).” if the probe was clean, or
+See the subprocess backend selected with an installation hint, with no crash.
+If you want to force the fallback:
+DBGCOPILOT_LLDB_API=0 dbgcopilot
+Optional system fix (when you want API)
+
+On Ubuntu, a combination like this usually works:
+sudo apt install lldb python3-lldb-18 liblldb-18-dev
+Then verify:
+PYTHONPATH="$(lldb -P)" python3 -c "import lldb; print('OK', lldb.file)"
+If that passes, our probe should pass and we’ll use the API backend.
+If you want, I can also add a small REPL command (/lldb doctor) to print:
+
+lldb -P
+Whether import in a probe succeeds
+The exact export you can paste (LD_LIBRARY_PATH/PYTHONPATH) to run a one-shot import in your current venv
+Want me to add that helper?
+
+

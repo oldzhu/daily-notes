@@ -1,0 +1,70 @@
+.venv) root ➜ /workspace (main) $ ls -la /usr/lib/llvm-18/lib/python3.12/site-packages/lldb/
+total 676
+drwxr-xr-x 1 root root 4096 Oct 24 07:30 .
+drwxr-xr-x 1 root root 4096 Oct 16 11:30 ..
+-rw-r--r-- 1 root root 4093 May 27 2024 embedded_interpreter.py
+drwxr-xr-x 3 root root 4096 Oct 16 11:30 formatters
+-rw-r--r-- 1 root root 657135 May 27 2024 init.py
+lrwxrwxrwx 1 root root 30 May 27 2024 lldb-argdumper -> ../../../../bin/lldb-argdumper
+lrwxrwxrwx 1 root root 19 May 27 2024 _lldb.cpython-312-x86_64-linux-gnu.so -> ../../../liblldb.so
+....
+but there is no liblldb.so under /usr/lib/llvm-18/lib and there is liblldb.so.1 under the folder. could that be the cause of the failure?
+(.venv) root ➜ /workspace (main) $ ls -la /usr/lib/llvm-18/lib/liblldb.so*
+lrwxrwxrwx 1 root root 38 May 27 2024 /usr/lib/llvm-18/lib/liblldb.so.1 -> ../../x86_64-linux-gnu/liblldb-18.so.1
+
+=============
+
+Good catch—that’s exactly the smoking gun. Your _lldb extension inside the lldb package is a symlink to ../../../liblldb.so, but there’s no unversioned liblldb.so in /usr/lib/llvm-18/lib—only liblldb.so.1 → /usr/lib/x86_64-linux-gnu/liblldb-18.so.1. When Python tries to import lldb._lldb, it follows that broken symlink target and fails, even if the versioned library exists.
+
+What this means
+
+In-process LLDB: Works because liblldb is already loaded by the LLDB executable before Python runs. The Python import doesn’t need to open the symlinked _lldb file from disk; the symbols are already resident.
+Standalone Python: Fails because lldb/_lldb.cpython-312-*.so points to a non-existent file (liblldb.so). The dynamic loader can’t open it, so you get ModuleNotFoundError for _lldb or a “partially initialized” ImportError.
+Two ways to fix locally
+
+System-level fix (cleanest):
+Install dev package providing the unversioned lib:
+sudo apt install liblldb-18-dev
+This typically provides /usr/lib/llvm-18/lib/liblldb.so symlink to the versioned lib, making the lldb/_lldb symlink valid again.
+Alternatively create the symlink yourself:
+sudo ln -s liblldb.so.1 /usr/lib/llvm-18/lib/liblldb.so
+Environment-level workaround:
+Run Python with LD_LIBRARY_PATH and PYTHONPATH set:
+LD_LIBRARY_PATH=/usr/lib/llvm-18/lib PYTHONPATH="$(lldb -P)" python -c "import lldb; print('OK', lldb.file)"
+This still won’t fix a broken _lldb symlink by itself, but if your distro’s lldb package is consistent, the import should use a non-symlinked extension. In your case it’s the symlink; so see the next section about what I implemented.
+What I implemented for you
+
+To avoid this exact failure and the prior hang:
+Removed slow recursive scanning under /usr/lib which caused the Ctrl-C hang.
+Added a fast, deterministic discovery path in lldb_api._try_import_lldb():
+Try ctypes.util.find_library('lldb')
+Honor LLDB_SHARED_LIB if set
+Probe a few common non-recursive locations:
+/usr/lib/llvm-/lib/liblldb.so*
+/usr/lib/x86_64-linux-gnu/liblldb*.so*
+/lib/x86_64-linux-gnu/liblldb*.so*
+/usr/lib/liblldb*.so*
+If we locate a concrete liblldb-*.so.1 but the package’s _lldb symlink is broken, directly load the extension from that file under the module name “_lldb” using ExtensionFileLoader, then import lldb.
+This bypasses the broken symlink by injecting _lldb into sys.modules before lldb/init.py does “import _lldb”.
+Tests still pass.
+What to try now
+
+Start the REPL and switch to LLDB:
+dbgcopilot
+/use lldb
+Because we now load _lldb from the real versioned .so when needed, you should get “[copilot] Using LLDB (API backend).”
+If it still falls back to subprocess, let me know the output of:
+lldb -P
+ls -l /usr/lib/llvm-18/lib/liblldb.so*
+ls -l liblldb-18.so.1
+Optional permanent fix
+
+Install the dev package so the unversioned lib is present:
+sudo apt install liblldb-18-dev
+Or add the symlink:
+sudo ln -s liblldb.so.1 /usr/lib/llvm-18/lib/liblldb.so
+Summary
+
+Yes: the absence of liblldb.so (with only liblldb.so.1 present) is the root cause for your standalone import failures, due to package _lldb symlink targeting a non-existent path.
+I added a robust loader that directly loads the versioned lib as the lldb extension, avoiding the broken symlink and removing the slow filesystem scan that caused the hang.
+

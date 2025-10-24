@@ -1,0 +1,44 @@
+Agree with the direction—using the LLDB Python API is the right default. I’ve added an LLDB API backend and made the standalone REPL prefer it; for packaging, we should keep it an optional runtime requirement rather than a hard dependency.
+
+What I changed just now
+
+New backend: lldb_api.py
+Creates an SBDebugger, runs commands via SBCommandInterpreter/SBCommandReturnObject, and returns strings directly (no pexpect).
+Better error hint if lldb isn’t importable (Ubuntu/macOS/Conda install tips).
+Standalone REPL uses API-first:
+Updated /use lldb in standalone.py to try LldbApiBackend first and fall back to the subprocess backend only if the lldb module isn’t available.
+Docs: added “LLDB Python API (optional)” section to README with install steps and clarified that API is preferred with subprocess fallback.
+Why not make it a hard package requirement?
+
+The lldb Python module is tied to system LLVM/LLDB distributions and Python ABI; it’s not reliably installable via pip across platforms.
+If we declare it in install_requires, many environments will fail to install our package even if users only want GDB.
+Best practice: treat it as an optional runtime dependency and auto-detect. We already do this (API backend first; fallback to subprocess), plus we show a helpful install message if import lldb fails.
+What “final release” should include
+
+Runtime detection: already implemented (API-first; fallback; clear error guidance).
+Documentation: done (README section with install commands).
+Optional extras: We should avoid adding a pip extra for “lldb” since there isn’t a universal PyPI package. If you want, we can add a docs-only extra name (e.g., [lldb-api]) but not populate it with a package to avoid pip resolution failures—this is mostly cosmetic.
+How to install the LLDB Python API (summarized)
+
+Ubuntu/Debian:
+sudo apt update
+sudo apt install lldb python3-lldb # or python3-lldb-<version> depending on distro
+macOS:
+xcode-select --install
+xcrun python3 -c 'import lldb; print(lldb.version)'
+Conda:
+conda install -c conda-forge lldb
+Files changed
+
+src/dbgcopilot/backends/lldb_api.py: new API-based backend
+src/dbgcopilot/repl/standalone.py: prefer API backend for /use lldb, fallback to subprocess
+README.md: clarified LLDB support and added installation section for the LLDB Python API
+Quality gates
+
+Lint/typecheck: PASS (no new errors reported on edited files)
+Tests: the existing smoke test still passes by import paths (only GDB import is required there)
+If you want, I can also:
+
+Add a one-liner in the /use lldb fallback messages suggesting how to install the lldb module on the current OS.
+Gate the LLDB subprocess backend behind a short “consecutive empty output” auto-suggest to switch to in-process (if running inside lldb) or to install the API bindings.
+

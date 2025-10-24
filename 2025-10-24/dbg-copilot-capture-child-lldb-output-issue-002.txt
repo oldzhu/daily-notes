@@ -1,0 +1,41 @@
+I don't like the idea about the implement the copilot.exec plugin command. How about using python api to start lldb debugger(not use pyexec), then we can use the BCommandInterpreter + SBCommandReturnObject and directly retrieve strings to capture the output(the same as in-porcess lldb backend). I think this is better than adding copilot.exec, whatdo you think?
+========
+
+Good call—driving LLDB via its Python API directly is cleaner and more robust than adding a custom copilot.exec command. I’ve implemented a new API-driven LLDB backend and wired the REPL to prefer it.
+
+Changes made
+Added lldb_api.py
+New LldbApiBackend that:
+Creates an SBDebugger via the Python lldb module
+Uses SBCommandInterpreter + SBCommandReturnObject to run commands
+Disables color and enables auto-confirm for predictable output
+Splits multi-command input on newlines/semicolons and concatenates results
+Updated standalone.py
+/use lldb now prefers the API backend:
+Tries LldbApiBackend first
+Falls back to the existing lldb_subprocess backend if the lldb Python module isn’t available
+User-facing messages reflect which path is active
+No lints/errors reported for the modified files.
+
+Why this solves the capture issue
+It mirrors ChatDBG’s approach: no pexpect, no fragile prompt matching; we pull strings straight from LLDB via SBCommandReturnObject.
+Works both in-process and in a standalone REPL (as long as the lldb Python module is available in the environment).
+How to try it
+From the standalone REPL:
+Run /use lldb (it’ll select the API backend if available)
+Use /exec <lldb command> to run commands and see robust output
+If the API isn’t available in your Python runtime, it will automatically fallback to the subprocess backend and let you know
+Example:
+
+/use lldb
+/exec version
+/exec help thread backtrace
+Notes and next steps
+If you’d like, I can add a richer display layer for results inspired by ChatDBG’s “why” output (e.g., a compact, styled printer for command + output in panels). That’s purely a UI enhancement and doesn’t affect capture stability.
+If we ever need timeouts, note that SBCommandInterpreter.HandleCommand is synchronous and doesn’t support them directly—we’d need to enforce timeouts at a higher level (e.g., worker thread or subprocess strategy) if that becomes important.
+Completion summary:
+
+Implemented API-based LLDB backend and updated the REPL to use it preferentially.
+Verified imports and syntax; no new errors.
+This should resolve the LLDB subprocess blank/timeout capture by avoiding subprocess scraping entirely.
+

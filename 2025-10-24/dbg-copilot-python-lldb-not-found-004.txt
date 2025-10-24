@@ -1,0 +1,75 @@
+the /use lldb command hang there and I press ctrl-c to break and could see the below python call stack, could investigate is there anything wrong here?
+[copilot] Standalone REPL. Type /help. Choose a debugger with /use gdb.
+copilot> /use lldb
+^CTraceback (most recent call last):
+File "/workspace/.venv/bin/dbgcopilot", line 7, in <module>
+sys.exit(main())
+^^^^^^
+File "/workspace/.venv/lib/python3.12/site-packages/dbgcopilot/repl/standalone.py", line 219, in main
+_echo(_select_lldb())
+^^^^^^^^^^^^^^
+File "/workspace/.venv/lib/python3.12/site-packages/dbgcopilot/repl/standalone.py", line 164, in _select_lldb
+BACKEND.initialize_session()
+File "/workspace/.venv/lib/python3.12/site-packages/dbgcopilot/backends/lldb_api.py", line 28, in initialize_session
+lldb = self._try_import_lldb()
+^^^^^^^^^^^^^^^^^^^^^^^
+File "/workspace/.venv/lib/python3.12/site-packages/dbgcopilot/backends/lldb_api.py", line 106, in _try_import_lldb
+lib_candidates.extend(glob("/usr/lib//liblldb.so", recursive=True))
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/usr/lib/python3.12/glob.py", line 28, in glob
+return list(iglob(pathname, root_dir=root_dir, dir_fd=dir_fd, recursive=recursive,
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/usr/lib/python3.12/glob.py", line 97, in _iglob
+for name in glob_in_dir(_join(root_dir, dirname), basename, dir_fd, dironly,
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/usr/lib/python3.12/glob.py", line 106, in _glob1
+names = _listdir(dirname, dir_fd, dironly)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/usr/lib/python3.12/glob.py", line 178, in _listdir
+return list(it)
+^^^^^^^^
+File "/usr/lib/python3.12/glob.py", line 160, in _iterdir
+with os.scandir(arg) as it:
+^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+===========
+
+Thanks for the traceback—this explains the hang clearly. The issue was in our LLDB API backend’s library discovery: we were doing a recursive glob across /usr/lib to find liblldb, which can be very slow and was interrupted by Ctrl-C.
+
+What I changed
+
+Eliminated the expensive recursive scan
+In dbgcopilot/backends/lldb_api.py::_try_import_lldb, I removed the recursive glob("/usr/lib//liblldb.so", recursive=True) that caused the hang.
+Replaced with a fast, targeted strategy
+First try ctypes.util.find_library('lldb') and preload via RTLD_GLOBAL.
+Respect LLDB_SHARED_LIB if set.
+Probe only a small set of common non-recursive paths:
+/usr/lib/llvm-/lib/liblldb.so*
+/usr/lib/x86_64-linux-gnu/liblldb*.so*
+/lib/x86_64-linux-gnu/liblldb*.so*
+/usr/lib/liblldb*.so*
+Then retry import lldb.
+Tests still pass.
+Why in-process LLDB works
+
+Yes: when you’re inside LLDB already, liblldb is loaded in the process, so the Python extension _lldb can bind immediately. The embedded Python also tends to have the right sys.path configured (equivalent to using lldb -P). In standalone Python, you need both the lldb Python path and liblldb visible to the dynamic loader; otherwise import lldb will fail with “No module named '_lldb'” or a circular import message.
+What to do next
+
+Re-run the REPL and try LLDB again:
+dbgcopilot
+/use lldb
+With the faster discovery, it shouldn’t hang. If the API import still fails, you’ll fall back to the subprocess backend and see a concise install hint.
+If you want the API import to succeed in this venv, make sure the runtime lib is installed and on the loader path; these typically work on Ubuntu:
+sudo apt update
+sudo apt install lldb liblldb-18 python3-lldb-18
+Then try:
+LD_LIBRARY_PATH=/usr/lib/llvm-18/lib PYTHONPATH="$(lldb -P)" python -c "import lldb; print('OK', lldb.file)"
+Optional helper
+
+If you’d find it handy, I can add a REPL command (e.g., /lldb doctor) that prints:
+lldb -P output
+Whether liblldb was found (find_library and quick path probes)
+The exact one-line export you can paste to make import lldb work in your current venv.
+Want me to add that /lldb doctor command?
+

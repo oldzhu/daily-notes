@@ -1,0 +1,100 @@
+[copilot] Standalone REPL. Type /help. Choose a debugger with /use gdb.
+copilot> /use lldb
+Fatal Python error: PyImport_AppendInittab: PyImport_AppendInittab() may not be called after Py_Initialize()
+Python runtime state: initialized
+
+Current thread 0x00007a66c4271080 (most recent call first):
+  File "/usr/lib/llvm-18/lib/python3.12/site-packages/lldb/__init__.py", line 4394 in Initialize
+  File "/usr/lib/llvm-18/lib/python3.12/site-packages/lldb/__init__.py", line 16172 in <module>
+  File "<frozen importlib._bootstrap>", line 488 in _call_with_frames_removed
+  File "<frozen importlib._bootstrap_external>", line 995 in exec_module
+  File "<frozen importlib._bootstrap>", line 935 in _load_unlocked
+  File "<frozen importlib._bootstrap>", line 1331 in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 1360 in _find_and_load
+  File "/workspace/.venv/lib/python3.12/site-packages/dbgcopilot/backends/lldb_api.py", line 155 in _try_import_lldb
+  File "/workspace/.venv/lib/python3.12/site-packages/dbgcopilot/backends/lldb_api.py", line 32 in initialize_session
+  File "/workspace/.venv/lib/python3.12/site-packages/dbgcopilot/repl/standalone.py", line 164 in _select_lldb
+  File "/workspace/.venv/lib/python3.12/site-packages/dbgcopilot/repl/standalone.py", line 219 in main
+  File "/workspace/.venv/bin/dbgcopilot", line 7 in <module>
+
+Extension modules: _lldb (total: 1)
+Aborted (core dumped)
+
+==============
+
+Thanks for sticking with it—let’s finish hardening the LLDB API import so it doesn’t hang or crash, and clarify what’s happening.
+
+What happened
+
+Your distro’s lldb Python package ships lldb/_lldb.cpython-312-…so as a symlink to ../../../liblldb.so, but only liblldb.so.1 exists. That symlink target doesn’t exist, so a plain import lldb fails in standalone Python.
+I first added a “direct extension loader” fallback that tried to load the versioned liblldb-*.so as the Python extension. That can trip LLDB’s bootstrap logic and resulted in a fatal “PyImport_AppendInittab may not be called after Py_Initialize()” in your environment. We’ve removed that now to avoid crashes.
+I also removed the slow recursive glob under /usr/lib that caused the earlier hang.
+What’s in place now
+
+Safe, fast discovery in lldb_api._try_import_lldb():
+Try import after adding lldb -P to sys.path.
+Try preloading liblldb using ctypes.util.find_library('lldb') and a few common non-recursive locations, then do a normal import lldb.
+If import still fails, we fall back gracefully to the subprocess backend with clear hints; we don’t attempt risky direct extension injection anymore.
+Why in-process LLDB import works
+
+Yes: LLDB already loads liblldb into the process before Python executes. The embedded interpreter has the native library available and the package path configured, so lldb import succeeds. In standalone Python, you must both:
+Put the lldb package on sys.path (often via PYTHONPATH=$(lldb -P)), and
+Ensure the loader can open the native lib for _lldb (liblldb.so or the versioned equivalent).
+What you can do to fix it system-wide
+
+The cleanest fix is to install the unversioned lib symlink so the package’s _lldb symlink is valid:
+sudo apt update
+sudo apt install liblldb-18-dev
+This typically provides /usr/lib/llvm-18/lib/liblldb.so → liblldb.so.1, satisfying the lldb/_lldb symlink.
+Alternatively, create the symlink yourself:
+sudo ln -s liblldb.so.1 /usr/lib/llvm-18/lib/liblldb.so
+Try it now
+
+Run the REPL again:
+dbgcopilot
+/use lldb
+With the dev package or symlink in place, the API import should succeed and you’ll see:
+[copilot] Using LLDB (API backend).
+If your environment still lacks the unversioned lib and you don’t want to change the system:
+You can run with both variables set for standalone Python as a one-off:
+LD_LIBRARY_PATH=/usr/lib/llvm-18/lib PYTHONPATH="$(lldb -P)" python -c "import lldb; print('OK', lldb.file)"
+For our REPL, the subprocess fallback will still work, and it will auto-suggest switching to API or in-process if it detects flaky capture.
+Optional helper
+
+I can add a quick /lldb doctor command that prints:
+lldb -P
+Whether a suitable liblldb was found (find_library + probes)
+The exact LD_LIBRARY_PATH/PYTHONPATH one-liner to make your current venv import lldb immediately
+Would you like me to add that?
+======
+
+I tetsted if I created the link for unversioned lldb library as (.venv) root ➜ /workspace (main) $ sudo ln -s /usr/lib/llvm-18/lib/liblldb.so.1 /usr/lib
+/llvm-18/lib/liblldb.so 
+that does not fix the problem and it cuase the crash with the curremt implementation.
+
+(.venv) root ➜ /workspace (main) $ dbgcopilot
+[copilot] Standalone REPL. Type /help. Choose a debugger with /use gdb.
+copilot> /use lldb
+Fatal Python error: PyImport_AppendInittab: PyImport_AppendInittab() may not be called after Py_Initialize()
+Python runtime state: initialized
+
+Current thread 0x00007515cc54c080 (most recent call first):
+  File "/usr/lib/llvm-18/lib/python3.12/site-packages/lldb/__init__.py", line 4394 in Initialize
+  File "/usr/lib/llvm-18/lib/python3.12/site-packages/lldb/__init__.py", line 16172 in <module>
+  File "<frozen importlib._bootstrap>", line 488 in _call_with_frames_removed
+  File "<frozen importlib._bootstrap_external>", line 995 in exec_module
+  File "<frozen importlib._bootstrap>", line 935 in _load_unlocked
+  File "<frozen importlib._bootstrap>", line 1331 in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 1360 in _find_and_load
+  File "/workspace/.venv/lib/python3.12/site-packages/dbgcopilot/backends/lldb_api.py", line 78 in _try_import_lldb
+  File "/workspace/.venv/lib/python3.12/site-packages/dbgcopilot/backends/lldb_api.py", line 32 in initialize_session
+  File "/workspace/.venv/lib/python3.12/site-packages/dbgcopilot/repl/standalone.py", line 164 in _select_lldb
+  File "/workspace/.venv/lib/python3.12/site-packages/dbgcopilot/repl/standalone.py", line 219 in main
+  File "/workspace/.venv/bin/dbgcopilot", line 7 in <module>
+
+Extension modules: lldb._lldb (total: 1)
+Aborted (core dumped)
+
+I think that means lldb python api could not be loaded from a standalone python process or aleast we can say
+we didn't find a way to make that working. 
+so looks the inprocess + plugin is our only choice so far.
