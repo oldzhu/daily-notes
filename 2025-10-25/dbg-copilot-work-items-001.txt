@@ -1,0 +1,14 @@
+
+1. copy and typing issue 
+
+copilot> /llm model ^[[200~qwen/qwen-2.5-coder-32b-instruct^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D^^C^C                                   
+copilot> exit 
+different model?
+
+2. lldb import issue when python > 3.12
+https://github.com/llvm/llvm-project/issues/70453
+https://github.com/JDevlieghere/llvm-project/commit/cf3ced835a1c6d05219a9a654ad880211f26e01b
+https://github.com/llvm/llvm-project/blob/release/18.x/lldb/source/Plugins/ScriptInterpreter/Python/ScriptInterpreterPython.cpp
+it is not fix in llvm-18 and fixed in llvm-19
+https://github.com/llvm/llvm-project/blob/release/19.x/lldb/source/Plugins/ScriptInterpreter/Python/ScriptInterpreterPython.cpp
+3. output print format - text and rich text printer
