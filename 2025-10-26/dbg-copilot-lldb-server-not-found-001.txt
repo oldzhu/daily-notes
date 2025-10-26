@@ -1,0 +1,68 @@
+lldb> run
+error: unable to locate lldb-server-19.1.7
+
+Propose: settings show target.lldb-server - check the current lldb-server setting to diagnose the issue. Confirm?
+copilot> /exec run
+lldb> run
+error: unable to locate lldb-server-19.1.7
+copilot>
+but lldb itself works as the below:
+
+(lldb) run
+Process 5377 launched: '/workspace/examples/crash_demo/crash' (x86_64)
+Crash demo starting...
+Process 5377 stopped
+
+thread #1, name = 'crash', stop reason = signal SIGSEGV: address not mapped to object (fault address: 0x0)
+frame #0: 0x000055555555515d crash`boom at crash.c:6:8
+3
+4 static void boom(void) {
+5 int *p = NULL;
+-> 6 *p = 42; // segfault
+7 }
+8
+9 int main(int argc, char **argv) {
+...
+what could be wrong?
+
+========
+
+You’re hitting LLDB’s “unable to locate lldb-server-19.1.7” because the process launcher expects an lldb-server binary and can’t find it on PATH or in a known location. That explains why the in-LLDB session works (its env/path is sane), but our REPL path didn’t.
+
+I added a best-effort fix in both LLDB backends to auto-configure lldb-server, and you can also set it explicitly if you prefer.
+
+What I changed
+
+LLDB API backend (lldb_api.py)
+During initialize, we now try to find lldb-server at common locations or via LLDB_SERVER_PATH and then run:
+settings set target.lldb-server <absolute_path>
+Search order (longest match first):
+/usr/bin/lldb-server*
+/usr/lib/llvm-/bin/lldb-server
+LLDB subprocess backend (lldb_subprocess.py)
+Same lldb-server detection and settings set on startup.
+Manual override (if needed)
+
+You can force a path with an environment variable when starting the REPL:
+LLDB_SERVER_PATH=/usr/lib/llvm-19/bin/lldb-server-19.1.7 dbgcopilot
+Or set it at the prompt:
+/exec settings set target.lldb-server lldb-server-19.1.7
+Then: /exec settings show target.lldb-server
+Quick check to run now
+
+In REPL:
+/use lldb
+/exec settings show target.lldb-server
+/exec version
+/exec file ./examples/crash_demo/crash
+/exec run
+Notes
+
+The auto-detect is best-effort—distros sometimes move the binary. If it still can’t locate it, the env var LLDB_SERVER_PATH is the most direct fix.
+Since your devcontainer now installs lldb-19 and liblldb-19-dev, the typical binary locations will be either /usr/bin/lldb-server-19 or /usr/lib/llvm-19/bin/lldb-server-19.x.y; both are in our search patterns.
+If you still see the error, paste the output of:
+
+/exec settings show target.lldb-server
+/exec script import os,glob; print(glob.glob('/usr/bin/lldb-server*')); print(glob.glob('/usr/lib/llvm-/bin/lldb-server'))
+I’ll adjust the detection to match your exact path.
+

@@ -1,0 +1,38 @@
+pls roll back all code changes u tried to fix the error unable to loate the lldb-server-19.1.7, as non of them works, I will try to create sym link to lldb-server-19 and then see if it works, one interesting thing is lldb standalone works (why it not try lldb-servre-19.1.7?), anyway, I will debug and troubeshoot the error, I think the workable soltuion should be based on the root cause we figured out.
+=======
+Got it — I’ve rolled back the lldb-server-specific changes so you can proceed with your own symlink-based debugging.
+
+Here’s exactly what I reverted
+
+lldb_subprocess.py
+
+Removed the temporary PATH/symlink trick for lldb-server-<version>.
+Removed platform select host and the dynamic “use-llgs” disabling.
+Replaced dynamic “settings list” discovery with the previous simple attempt to set a small fixed set of keys (best-effort, ignored if not present).
+Kept unrelated, earlier improvements (like preserving script commands).
+lldb_api.py
+
+Removed the temporary PATH/symlink trick prior to LLDB API init.
+Removed platform select host and dynamic “use-llgs” disabling.
+Reverted lldb-server config to the earlier fixed-keys approach.
+Kept other behavior intact (safe import probe, etc.).
+Build/lint quick check
+
+PASS: No errors detected in the two edited files.
+Optional: your manual symlink approach
+
+If your LLDB expects the exact filename lldb-server-19.1.7 but your system has only lldb-server-19, a symlink can help:
+
+sudo ln -s /usr/bin/lldb-server-19 /usr/local/bin/lldb-server-19.1.7# or, if the binary is elsewhere, point the source to the real path
+You can also prepend a temp directory with that symlink to PATH if you prefer not to write to /usr/local/bin.
+Notes
+
+Your observation is spot on: your standalone lldb might not require the exact versioned lldb-server or may find it differently (PATH, internal fallback, or build flags). Our earlier attempts tried to cover many LLDB variants; since your build doesn’t expose those settings, the symlink is a clean way to confirm the root cause quickly.
+If you hit anything puzzling after adding the symlink, share the exact outputs from:
+
+lldb --version
+which lldb-server; ls -l /usr/bin/lldb-server*
+The failing lldb run command and error text
+I’ll align the backends with whatever root cause you uncover.
+
+

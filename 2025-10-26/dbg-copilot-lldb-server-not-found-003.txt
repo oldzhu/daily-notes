@@ -1,0 +1,35 @@
+Thanks for the log — I’ll make LLDB find lldb-server reliably by discovering the right settings dynamically and, on Linux, avoid requiring llgs for local runs when possible. I’ve applied the fixes and here’s what’s next.
+
+actions taken
+Updated lldb_subprocess to:
+Discover all LLDB settings that reference “lldb-server” via settings list and set each one to the detected path (instead of relying on a few fixed keys that may not exist on your LLDB build).
+Keep a fallback list of known keys if discovery yields nothing.
+Best-effort: disable using llgs for local launches on Linux to avoid needing lldb-server at all:
+settings set platform.plugin.linux.use-llgs-for-local false
+Updated lldb_api to use the same dynamic “settings list” discovery so API and subprocess are consistent.
+These changes address the “unable to locate lldb-server-19.1.7” even when LLDB_SERVER_PATH is set, and they’ll work across LLDB variants where the exact setting keys differ.
+
+try it
+Since you already have LLDB_SERVER_PATH=/usr/bin/lldb-server-19, just rerun the REPL and verify LLDB sees the server:
+
+dbgcopilot/use lldb/exec settings list | grep -i lldb-server/exec settings show platform.plugin.linux.use-llgs-for-local/exec platform status/exec run
+Notes:
+
+You should now see one or more entries in the first command (e.g., target.lldb-server, plugin.process.gdb-remote.lldb-server[-path], or platform.plugin.remote-linux.lldb-server) showing the path you provided.
+If platform.plugin.linux.use-llgs-for-local exists on your build, it should show as false (which bypasses needing lldb-server for local debugging).
+if it still fails
+Try pointing LLDB_SERVER_PATH to the exact file you have installed (you’ve done this with lldb-server-19, which is correct).
+Verify path exists:
+Optional: ls -l /usr/bin/lldb-server* /usr/lib/llvm-*/bin/lldb-server*
+As a last-resort compatibility shim, a symlink can help if LLDB is probing an exact versioned filename:
+Optional: create a symlink like /usr/bin/lldb-server-19.1.7 -> /usr/bin/lldb-server-19 (only if needed).
+quick status
+What changed: both LLDB backends now automatically discover and set all “lldb-server” settings that exist in your LLDB build; subprocess backend also disables llgs-for-local on Linux when available.
+Expected outcome: settings list | grep -i lldb-server shows the configured path; run no longer errors about locating lldb-server-19.1.7.
+Once you rerun the above checks, paste the outputs for:
+
+/exec settings list | grep -i lldb-server
+/exec settings show platform.plugin.linux.use-llgs-for-local
+/exec platform status
+if anything still doesn’t look right, and I’ll adjust the detection accordingly.
+

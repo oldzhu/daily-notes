@@ -1,0 +1,69 @@
+ok after testing, I think I know the cause now
+
+lldb in process mode - can find lldb-server-19.1.7
+lldb sub process mode - can not find lldb-server-19.1.7
+actually both modes will to launch lldb-server one succeeded and on e failed. It is becuase in lldb iprocess mode, as lldb launced 1st and run command will try to launch the lldb-server-19.1.7 from the same folder as lldb binary itself (which is /usr/lib/llvm-19/bin/lldb) and then succeeded, for the lldb sub proess, as we use the python api to launch the target applcaition under lldb-server 1st, as it has no idea where is lldb-server-19.1.7 so it failed to launch lldb-server. based on this research, I think we have two workarounds:
+export LLDB_DEBUGSERVER_PATH=/path/to/lldb-server-19.1.7
+add the path of where the lldb-server-19.1.7 is to the PATH environment
+could we implment that workaaround into our code when using lldb api backend?
+
+===========
+
+Great investigation. Your read is spot-on: when driven via the Python API, LLDB ends up using the gdb-remote path and needs to locate lldb-server; the in-process CLI finds it because it resolves relative to the lldb binary directory.
+
+Here’s a minimal, review-ready plan to implement your two workarounds in the LLDB API backend, without changing any behavior unless helpful and with an easy opt-out.
+
+proposal: API-only env autoconfig (no code changes yet)
+What it does (Linux):
+If LLDB_SERVER_PATH or LLDB_DEBUGSERVER_PATH is already set:
+Prepend its directory to PATH so LLDB can find the exact filename it wants.
+Else, try to auto-locate lldb-server by:
+Finding the lldb binary path (via shutil.which("lldb")) and checking its sibling directory for:
+lldb-server-<full-version>, lldb-server-<major>, lldb-server
+Checking /usr/lib/llvm-<major>/bin for the same candidates
+If found, set both LLDB_SERVER_PATH and LLDB_DEBUGSERVER_PATH to the discovered binary and prepend that directory to PATH.
+Opt-out: DBGCOPILOT_LLDB_AUTOCONFIG=0 disables this logic entirely.
+Scope: Only in LldbApiBackend.initialize_session (subprocess backend unchanged).
+Tiny contract:
+
+Input: current process env; filesystem; lldb --version
+Output: possibly modified os.environ[PATH], LLDB_SERVER_PATH, LLDB_DEBUGSERVER_PATH
+Success: LLDB API launches target locally without “unable to locate lldb-server-…”
+Failure: If nothing found, it’s a no-op; behavior stays as-is.
+Likely edge cases handled:
+
+Only “lldb-server-<major>” exists (no full patch version) → we still set ENV and PATH to point at it.
+Settings keys for lldb-server don’t exist on your build → we don’t rely on them at all.
+You’ve already set LLDB_SERVER_PATH/LLDB_DEBUGSERVER_PATH → we respect it and just ensure PATH includes the directory.
+where this fits in code (sketch only)
+In LldbApiBackend (e.g., at the top of initialize_session):
+
+Compute version and binary dir:
+
+version_full from subprocess "lldb --version" (e.g., 19.1.7), plus major (19)
+lldb_bin = shutil.which("lldb"); lldb_dir = os.path.dirname(lldb_bin)
+Candidate directories: [lldb_dir, f"/usr/lib/llvm-{major}/bin"]
+
+Candidate names: [f"lldb-server-{version_full}", f"lldb-server-{major}", "lldb-server"]
+
+If LLDB_SERVER_PATH or LLDB_DEBUGSERVER_PATH present:
+
+Prepend its dirname to PATH
+Else:
+
+For dir in dirs:
+For name in names:
+if os.path.isfile(os.path.join(dir, name)):
+env["LLDB_SERVER_PATH"] = env["LLDB_DEBUGSERVER_PATH"] = that path
+Prepend dir to PATH
+break
+Respect DBGCOPILOT_LLDB_AUTOCONFIG=0 to skip the whole step.
+
+This keeps it simple, local, and version-agnostic, and mirrors the “LLDB CLI finds sibling lldb-server” behavior you observed.
+
+confirm the approach
+If this matches what you want, I’ll implement exactly this in the LLDB API backend, behind the DBGCOPILOT_LLDB_AUTOCONFIG flag and with careful fallback and no-op behavior when nothing is found. I’ll avoid touching the subprocess backend and won’t introduce any of the earlier experimental settings toggles.
+
+Want me to proceed with the patch?
+
+

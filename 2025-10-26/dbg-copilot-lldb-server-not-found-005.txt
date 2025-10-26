@@ -1,0 +1,49 @@
+create the sym link to lldb-server-19.1.7 did fix the issue, I also trryed to run lldb directly and found it won't start the lldb-server, so seems like when use lldb python apito start the lldb, it will try to start lldb server, any way to start the lldb using python api and meanwhile make it wont use the lldb-server, pls suggest and do not apply the real code changes unless I review and confirm
+===========
+
+Thanks for confirming the symlink fix and for the clue: LLDB via the Python API is what’s trying to start lldb-server, while standalone lldb isn’t. Let’s keep code unchanged for now and try the cleanest way to force “native/local” debugging (no lldb-server) when using the API.
+
+why LLDB might start lldb-server
+If the selected platform is not host (or is “remote-linux”), LLDB will use the gdb-remote path and spawn lldb-server.
+Some Linux builds default to using LLGS even for local runs; this is usually controlled by a setting like platform.plugin.linux.use-llgs-for-local (name varies by build; if it doesn’t exist, it’s ignored).
+do this interactively (no code changes)
+You can run these in:
+
+Standalone LLDB, or
+Your REPL with the LLDB API backend selected (so they execute through SBCommandInterpreter), or
+A tiny Python script (see next section).
+Order matters: set platform first, then flip the llgs flag if available, then run.
+
+Confirm you’re on host
+
+platform statusplatform select hostplatform status
+Try to disable LLGS-for-local (ignore “invalid property path” if your build doesn’t have it)
+
+settings set platform.plugin.linux.use-llgs-for-local false
+Sanity check, then run your binary
+
+settings list | grep -i llgsfile ./examples/crash_demo/crashrun
+If the key doesn’t exist in your build, that’s fine; just being on platform host is often enough to avoid lldb-server.
+
+same thing via the Python API (minimal snippet)
+Run this as a one-off script to verify it launches natively without lldb-server:
+
+
+import lldb, oslldb.SBDebugger.Initialize()dbg = lldb.SBDebugger.Create()dbg.SetAsync(False)interp = dbg.GetCommandInterpreter()def do(cmd):    res = lldb.SBCommandReturnObject()    interp.HandleCommand(cmd, res)    print(res.GetOutput() or res.GetError() or "")    return res.Succeeded()# 1) Force host platformdo("platform select host")do("platform status")# 2) Best-effort: disable LLGS for local if this build supports itdo("settings set platform.plugin.linux.use-llgs-for-local false")# 3) Create target and launchtarget = dbg.CreateTarget("./examples/crash_demo/crash")if not target or not target.IsValid():    raise RuntimeError("Failed to create target")launch = lldb.SBLaunchInfo([])err = lldb.SBError()process = target.Launch(launch, err)print("launch error:", err)
+Notes:
+
+If your build doesn’t have the use-llgs setting, the command prints an error and you can ignore it.
+The crucial piece is platform select host before launching.
+if it still tries to spawn lldb-server
+Double-check the selected platform is host right before launch.
+Ensure you’re using target.Launch (local) rather than any “connect”/gdb-remote workflow.
+Inspect settings that contain “gdb-remote” or “llgs” to see if a build-specific knob exists:
+settings list | grep -i 'gdb-remote'
+settings list | grep -i 'llgs'
+If you want, share the outputs of:
+
+platform status
+settings list | grep -i -E 'use-llgs|gdb-remote'
+Any error text when launching
+and I’ll tailor the exact knob to your LLDB build. Once you’re happy with the approach, I can wire these steps into the API backend’s session init—only after your review.
+

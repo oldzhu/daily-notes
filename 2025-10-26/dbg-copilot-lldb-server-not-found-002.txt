@@ -1,0 +1,45 @@
+Thanks for the details—two things were at play and I’ve addressed both in code:
+
+lldb-server path wasn’t configured
+LLDB’s gdb-remote launcher wanted a matching lldb-server binary (error: unable to locate lldb-server-19.1.7).
+I added best‑effort auto-detection in both LLDB backends:
+Search common locations: /usr/bin/lldb-server*, /usr/lib/llvm-/bin/lldb-server
+Honor LLDB_SERVER_PATH if set
+Configure several possible settings to cover LLDB version differences:
+target.lldb-server
+plugin.process.gdb-remote.lldb-server
+plugin.process.gdb-remote.lldb-server-path
+platform.plugin.remote-linux.lldb-server
+script splitting broke your inline Python
+Our command splitter used semicolons as separators. For LLDB’s “script …” this broke your Python into multiple LLDB commands, causing the unknown command error.
+I updated both backends to treat any command starting with “script ” as a single unit—no semicolon splitting.
+What to try now
+
+Start REPL and set the executable as before, then run:
+/use lldb
+/exec settings show target.lldb-server
+/exec run
+If the show command still prints nothing, try the other keys:
+/exec settings show plugin.process.gdb-remote.lldb-server
+/exec settings show plugin.process.gdb-remote.lldb-server-path
+/exec settings show platform.plugin.remote-linux.lldb-server
+To verify script works:
+/exec script import glob; print(glob.glob('/usr/bin/lldb-server*'))
+If it still can’t find lldb-server, set it explicitly via env and re-run:
+
+LLDB_SERVER_PATH=/usr/bin/lldb-server-19 dbgcopilot
+Then:
+/use lldb
+/exec run
+Why your binary should be found now
+
+Your system has:
+/usr/bin/lldb-server-19 -> lldb-server
+That matches our search patterns; we’ll pick the most specific candidate (like lldb-server-19) and set the settings with it. LLDB accepts an explicit path; it doesn’t need the minor version suffix in the filename when configured this way.
+If anything still fails, copy back the outputs of:
+
+/exec settings show target.lldb-server
+/exec settings show plugin.process.gdb-remote.lldb-server-path
+/exec version
+And we’ll adjust the setting key list or detection to match your LLDB’s exact expectation.
+

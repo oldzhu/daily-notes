@@ -1,0 +1,33 @@
+Let us make the logic changing simple:
+
+if LLDB_DEBUGSERVER_PATH was set,then do nothing as lldb internally would use it to launch lldb-server.
+if LLDB_DEBUGSERVER_PATH was not set. detect lldb major version, then add the path /usr/lib/llvm-<major>/bin to the PATH before launch target.
+
+==========
+Nice, your root-cause makes sense and the workaround scope is clear. I’ll add a small, API-only env tweak so LLDB can find lldb-server the same way the CLI does.
+
+Planned change (for your review)
+
+In the LLDB API backend only (LldbApiBackend.initialize_session):
+If LLDB_DEBUGSERVER_PATH is set: do nothing.
+If LLDB_DEBUGSERVER_PATH is not set:
+Parse lldb --version to get the major (e.g., 19).
+Prepend /usr/lib/llvm-<major>/bin to PATH if that directory exists.
+No other behavior changes. We won’t touch subprocess backend or settings.
+This mirrors how “lldb” itself finds its sibling lldb-server-<…> under the LLVM bin dir.
+If you later set LLDB_DEBUGSERVER_PATH yourself, our code won’t override anything.
+What I implemented
+
+Added a minimal PATH autoconfig at the top of initialize_session in lldb_api.py:
+Checks LLDB_DEBUGSERVER_PATH first.
+If not set, detects major from lldb --version and prepends /usr/lib/llvm-<major>/bin to PATH if it exists.
+No changes elsewhere. No settings hacks. Subprocess backend untouched.
+How to try it
+
+Unset LLDB_DEBUGSERVER_PATH and ensure /usr/lib/llvm-19/bin exists (for your case):
+Start your REPL with /use lldb to select the API backend.
+Run your normal “file …; run” flow.
+If you already export LLDB_DEBUGSERVER_PATH, our code will no-op (your env wins).
+If you want a different directory order or additional search paths (e.g., also add the actual lldb binary’s directory), say the word and I’ll adjust.
+
+

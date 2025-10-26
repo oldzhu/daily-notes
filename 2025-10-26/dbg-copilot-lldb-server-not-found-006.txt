@@ -1,0 +1,345 @@
+import lldb, os
+
+lldb.SBDebugger.Initialize()
+dbg = lldb.SBDebugger.Create()
+dbg.SetAsync(False)
+interp = dbg.GetCommandInterpreter()
+
+def do(cmd):
+res = lldb.SBCommandReturnObject()
+interp.HandleCommand(cmd, res)
+print(res.GetOutput() or res.GetError() or "")
+return res.Succeeded()
+
+# 1) Force host platform
+do("platform select host")
+do("platform status")
+
+# 2) Best-effort: disable LLGS for local if this build supports it
+# do("settings set platform.plugin.linux.use-llgs-for-local false")
+
+# 3) Create target and launch
+err = lldb.SBError()
+target = dbg.CreateTarget("~/dbgcopilot/examples/crash_demo/crash", None, "host", False, err)
+if not target or not target.IsValid():
+raise RuntimeError("Failed to create target")
+
+# Get the host platform and explicitly set it for the target
+#platform = dbg.GetSelectedPlatform()
+#if platform and platform.IsValid():oldzhu@oldzhu-box-999:~/daily-notes/2025-10-26$ python3 test-lldb-python-api-001.py
+Platform: host
+Triple: x86_64-pc-linux-gnu
+OS Version: 6.6.87.2 (6.6.87.2-microsoft-standard-WSL2)
+Hostname: 127.0.0.1
+WorkingDir: /home/oldzhu/daily-notes/2025-10-26
+Kernel: #1 SMP PREEMPT_DYNAMIC Thu Jun 5 18:30:46 UTC 2025
+Kernel: Linux
+Release: 6.6.87.2-microsoft-standard-WSL2
+Version: #1 SMP PREEMPT_DYNAMIC Thu Jun 5 18:30:46 UTC 2025
+
+Platform: host
+Triple: x86_64-pc-linux-gnu
+OS Version: 6.6.87.2 (6.6.87.2-microsoft-standard-WSL2)
+Hostname: 127.0.0.1
+WorkingDir: /home/oldzhu/daily-notes/2025-10-26
+Kernel: #1 SMP PREEMPT_DYNAMIC Thu Jun 5 18:30:46 UTC 2025
+Kernel: Linux
+Release: 6.6.87.2-microsoft-standard-WSL2
+Version: #1 SMP PREEMPT_DYNAMIC Thu Jun 5 18:30:46 UTC 2025
+
+launch error: error: unable to locate lldb-server-14.0.0
+
+if I run lldb in the same linux machine, as the low, it would start under lldb successfully without start lldb-server-14..0.0
+lldb>file ~/dbgcopilot/examples/crash_demo/crash
+lldb>run
+
+what is wrong and how to use lldb python api start a app under lldb but not try to launch lldb-server
+
+==================
+
+Excellent question. This is a very common point of confusion when moving from the LLDB command-line interface to its Python API.
+
+What is Wrong? The Core Issue
+The core issue is that the LLDB Python API defaults to using the modern "platform" debugging model, which relies on lldb-server even for local processes. The command-line tool might have different defaults or more robust fallbacks that allow it to work without lldb-server being explicitly in the PATH.
+
+Here's the breakdown:
+
+Modern LLDB Architecture: Modern LLDB is designed as a client-server system.
+The lldb process you interact with (or the Python script) is the client.
+lldb-server is the debug server (or "platform") that does the actual low-level work of creating the process, attaching to it, and controlling it on the local machine.
+Why the CLI Works: When you run lldb from the command line, it might be able to find lldb-server through a hardcoded path, or it might have a legacy fallback mode that it silently uses when lldb-server isn't found. The Python API is more strict and expects the platform components to be correctly configured.
+Why Your Script Fails: Your Python script is trying to launch the target using the platform model. It tells the "host" platform to start the process, and the host platform implementation tries to execute its helper, lldb-server-14.0.0, but can't find it in the system's PATH.
+Your commented-out line was on the right track, but the setting name was slightly off.
+
+How to Fix It: 3 Solutions
+Here are three ways to solve this, from the most recommended to the most direct answer to your question.
+
+Solution 1: The "Right" Way - Make lldb-server Available
+This is the most robust and future-proof solution. You are simply making your environment match what LLDB expects.
+
+Find lldb-server: It's almost always installed in the same directory as the lldb executable.
+bash
+
+Line Wrapping
+
+Collapse
+Copy
+1
+2
+3
+4
+5
+which lldb
+# Output might be: /usr/bin/lldb
+
+ls /usr/bin/lldb-server*
+# Output might be: /usr/bin/lldb-server-14.0.0
+Add its directory to the PATH in your Python script: This ensures the script can find it.
+python
+
+Line Wrapping
+
+Collapse
+Copy
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+⌄
+import lldb
+import os
+
+# --- ADD THIS SECTION ---
+lldb_dir = "/usr/bin"  # Replace with the actual directory if different
+if lldb_dir not in os.environ.get("PATH", ""):
+    os.environ["PATH"] = lldb_dir + os.pathsep + os.environ.get("PATH", "")
+# --- END OF SECTION ---
+
+lldb.SBDebugger.Initialize()
+dbg = lldb.SBDebugger.Create()
+# ... rest of your script
+Why this is best: You are using LLDB as intended. This model is more powerful and consistent, especially when you later decide to debug on a remote device.
+
+Solution 2: The Direct Answer - Disable lldb-server for Local Debugging
+This directly answers your question: "how to use lldb python api start a app... but not try to launch lldb-server". You can tell LLDB to use the older, direct-launch method for local processes.
+
+The correct setting is target.process.disable-lldb-server-for-local-debugging.
+
+python
+
+Line Wrapping
+
+Collapse
+Copy
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+⌄
+⌄
+⌄
+import lldb, os
+
+lldb.SBDebugger.Initialize()
+dbg = lldb.SBDebugger.Create()
+dbg.SetAsync(False)
+interp = dbg.GetCommandInterpreter()
+
+def do(cmd):
+    res = lldb.SBCommandReturnObject()
+    interp.HandleCommand(cmd, res)
+    print(res.GetOutput() or res.GetError() or "")
+    return res.Succeeded()
+
+# 1) Force host platform
+do("platform select host")
+
+# 2) Create target
+err = lldb.SBError()
+target = dbg.CreateTarget("~/dbgcopilot/examples/crash_demo/crash", None, "host", False, err)
+if not target or not target.IsValid():
+    raise RuntimeError("Failed to create target")
+
+# --- ADD THIS SECTION ---
+# This is the key! It tells the target to launch directly without lldb-server.
+do("settings set target.process.disable-lldb-server-for-local-debugging true")
+# --- END OF SECTION ---
+
+
+# 3) Launch the process
+# We use LaunchSimple for a basic launch
+# (arguments, environment, working_directory)
+launch_info = target.LaunchSimple(None, None, os.getcwd())
+if not launch_info:
+    raise RuntimeError("Failed to launch process: " + str(err))
+
+print("\nProcess launched. Process ID:", launch_info.GetProcessID())
+print("Use 'process status' or 'thread backtrace' to inspect.")
+
+# Now you can run commands
+do("process status")
+do("thread backtrace")
+
+lldb.SBDebugger.Destroy(dbg)
+lldb.SBDebugger.Terminate()
+Why this works: This setting forces the target to use a legacy, direct-launch mechanism (similar to how gdb works) instead of the modern platform mechanism. It bypasses the need for lldb-server.
+
+Solution 3: The Programmatic Way - Use SBLaunchInfo
+This is a more advanced and explicit way to control the launch process without relying on string commands. It gives you fine-grained control.
+
+python
+
+Line Wrapping
+
+Collapse
+Copy
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+⌄
+⌄
+⌄
+import lldb, os
+
+lldb.SBDebugger.Initialize()
+dbg = lldb.SBDebugger.Create()
+dbg.SetAsync(False)
+
+# Create target
+err = lldb.SBError()
+target = dbg.CreateTarget("~/dbgcopilot/examples/crash_demo/crash", None, "host", False, err)
+if not target or not target.IsValid():
+    raise RuntimeError("Failed to create target")
+
+# --- CREATE AND CONFIGURE LAUNCH INFO ---
+# This object controls how the process is launched.
+launch_info = lldb.SBLaunchInfo(None) # No arguments
+launch_info.SetWorkingDirectory(os.getcwd())
+
+# Set launch flags. This is the crucial part.
+# lldb.eLaunchFlagDebug: Start the process in a stopped state for debugging.
+# lldb.eLaunchFlagDisableASLR: Disable Address Space Layout Randomization, often useful for debugging.
+flags = lldb.eLaunchFlagDebug | lldb.eLaunchFlagDisableASLR
+launch_info.SetLaunchFlags(flags)
+# --- END OF SECTION ---
+
+
+# Launch the process using the configured launch_info
+process = target.Launch(launch_info, err)
+if not process or err.Fail():
+    raise RuntimeError(f"Failed to launch process: {err.GetCString()}")
+
+print("\nProcess launched. Process ID:", process.GetProcessID())
+print("State:", process.GetState())
+
+# Get the command interpreter to run more commands
+interp = dbg.GetCommandInterpreter()
+def do(cmd):
+    res = lldb.SBCommandReturnObject()
+    interp.HandleCommand(cmd, res)
+    print(res.GetOutput() or res.GetError() or "")
+
+do("thread backtrace")
+
+lldb.SBDebugger.Destroy(dbg)
+lldb.SBDebugger.Terminate()
+Why this works: Using target.Launch(launch_info, ...) with specific flags is a more direct way to tell the LLDB engine exactly how you want to start the process, often bypassing the higher-level platform logic that tries to invoke lldb-server.
+
+Summary and Recommendation
+Method
+Pro
+Con
+1. Fix lldb-server PATH	Most robust, uses modern architecture, consistent across platforms.	Requires modifying the environment or having lldb-server installed.
+2. Disable lldb-server	Directly solves the problem with a simple setting. Easy.	Might be less stable or have fewer features than the platform model in the future.
+3. Use SBLaunchInfo	Most programmatic control, explicit, and clean. No string commands needed.	More verbose, requires understanding the launch flags.
+
+For your use case, Solution 2 is the quickest and most direct fix. For a long-term, stable tool, I would recommend Solution 1 if possible, as it aligns with the direction LLDB is heading.

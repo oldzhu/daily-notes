@@ -1,0 +1,41 @@
+I’ll wire in both changes you asked for: default color on in the LLDB API backend, and a /colors on|off REPL command that flips colors in both the REPL and the active debugger.
+
+What I changed
+
+LLDB API backend default color on (Option A)
+
+In LldbApiBackend, the constructor now defaults to use_color=True.
+initialize_session already applies settings set use-color true/false based on this flag.
+New REPL command /colors on|off (Option B)
+
+Usage: /colors on|off
+Effects:
+Updates the session’s UI preference (s.colors_enabled) so REPL echoes get colored.
+If a debugger is active:
+LLDB: settings set use-color true/false
+GDB: set style enabled on/off (best effort; ignored if unsupported)
+Where
+
+LldbApiBackend in lldb_api.py
+REPL updates in standalone.py
+Try it
+
+Use LLDB API:
+
+/use lldb
+/exec settings show use-color
+You should see true by default now.
+Toggle:
+/colors off
+/exec settings show use-color
+/colors on
+Use GDB:
+
+/use gdb
+/colors on
+If your GDB supports it, this enables color via set style enabled on; otherwise it’s a no-op.
+Notes
+
+The subprocess LLDB backend still starts with colors off by default (unchanged); you can enable it with /colors on anytime.
+If you want API and subprocess to share the same default, I can flip subprocess to default on as well.
+

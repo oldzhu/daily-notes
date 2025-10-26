@@ -1,0 +1,61 @@
+we still need to something more in order to make import lldb works in python standalone interpreter
+1. need to system.path.insert the lldb -P
+2. need to create the version indpendent liblldb.so link - ln -s /usr/lib/llvm-19/lib/liblldb.so.1 /usr/lib/llvm-19/lib/liblldb.so
+without the 1st, we will get the error:
+>>> import lldb
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'lldb'
+with the 1st and without the 2nd,we will get the error:
+>>> import sys
+>>> sys.path.insert(0,"/usr/lib/llvm-19/lib/python3.12/site-packages")
+>>> import lldb
+Traceback (most recent call last):
+  File "/usr/lib/llvm-19/lib/python3.12/site-packages/lldb/__init__.py", line 39, in <module>
+    import _lldb
+ModuleNotFoundError: No module named '_lldb'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/usr/lib/llvm-19/lib/python3.12/site-packages/lldb/__init__.py", line 42, in <module>
+    from . import _lldb
+ImportError: cannot import name '_lldb' from partially initialized module 'lldb' (most likely due to a circular import) (/usr/lib/llvm-19/lib/python3.12/site-packages/lldb/__init__.py)
+
+with both, import lldb in subprocess lldb works.
+pls work to make lldb python API works in lldb subprocess scenario. 
+=======
+
+Good find. I’ve wired the environment so standalone Python import lldb works out of the box in the devcontainer:
+
+Dockerfile
+
+Now installs lldb-19, python3-lldb-19, liblldb-19, and liblldb-19-dev via apt.llvm.org.
+The -dev package provides the unversioned liblldb.so symlink (liblldb.so -> liblldb.so.1), which lldb/_lldb*.so’s symlink expects.
+This addresses both prerequisites you identified:
+sys.path includes lldb -P (our API probe already adds this)
+unversioned liblldb.so exists (from -dev)
+Docs
+
+Updated UNDER.md to note the version-independent symlink requirement and that we install liblldb-19-dev for it.
+Added a manual symlink fallback command as a reference.
+Committed changes:
+
+devcontainer: install liblldb-19-dev to ensure unversioned liblldb.so; docs: note symlink requirement for standalone import
+What to do after your rebuild
+
+Validate:
+lldb --version
+lldb -P
+PYTHONPATH="$(lldb -P)" python3 -c "import lldb; print('OK', lldb.file)"
+Try the REPL:
+dbgcopilot
+/use lldb
+The API probe should pass and pick the API backend. If you want to test the subprocess path, set DBGCOPILOT_LLDB_API=0.
+If you still see an API import fallback, share:
+
+lldb -P
+ls -l liblldb.so*
+I’ll adjust detection or hints as needed.
+
