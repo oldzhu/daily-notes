@@ -1,0 +1,74 @@
+I’ll review the current prompt files and how the orchestrator uses them, then map how the four roles (user, debugger tools, LLM, copilot) cooperate under that prompt contract.
+
+what I read
+Prompts:
+tool_instructions.md
+Instructs the assistant to:
+Propose a command normally.
+When ready to execute, reply with exactly one line: <cmd>THE_SINGLE_GDB_COMMAND</cmd> and nothing else.
+Keep outputs concise, avoid fabrications, prefer low-risk commands first.
+suggest_commands.md
+Very brief: “Given the goal, facts, last output, propose 1–3 GDB commands… Prefer read-only diagnostics.”
+Not currently wired into the orchestrator for runtime; useful as secondary guidance material.
+Prompt config used by orchestrator:
+defaults.py
+system_preamble: “human-in-the-loop” single-step flow and the <cmd> execution protocol; debugger placeholder {debugger} is filled with gdb or lldb at runtime.
+assistant_cmd_tag_instructions: prescriptive protocol:
+Propose exactly one command with a short description and ask for confirmation.
+Only after user confirms: output a single <cmd>…</cmd> line, one command only, no semicolons.
+Tool will run it and return output; then repeat.
+rules: re‑emphasize small/low-risk, no fabrications, strict use of <cmd>, and formatting constraints.
+language_hint_zh: optional Chinese hint the orchestrator includes when it detects Chinese.
+Orchestrator:
+orchestrator.py
+Builds a primed prompt to the LLM like:
+system_preamble + assistant_cmd_tag_instructions + rules
+Context block: goal (if set), recent commands/snippets, last output, and chat history
+Language hint if user seems to want Chinese
+Appends “User: …\nAssistant:”
+LLM provider answers; orchestrator records the exchange in state.
+If it finds <cmd>…</cmd> in the LLM’s reply, it executes that command via the current debugger backend, captures output, stores it, then sends a follow-up prompt (same preamble + rules) asking the LLM to “decide the next step per the rules” using that fresh output.
+Importantly: the orchestrator does NOT try to parse “yes/no” confirmations from the user. It relies on the LLM’s own adherence to the protocol: only emit <cmd> after the user approved, per the prompt.
+Goal handling: the prompt includes “Goal: …” if the state’s goal is set. We removed /goal from REPL, but the field still exists and can be set programmatically; otherwise it’s omitted.
+how the roles work together under these prompts
+User
+
+Provides natural-language instructions, clarifications, and confirmations (e.g., “yes”, “do it”, “go ahead”).
+Doesn’t need to know the <cmd> protocol (we removed it from help text); just converses and confirms when asked.
+Can run explicit commands via /exec if desired, but normal flow is guided by the LLM’s proposals.
+Debugger tools (backends)
+
+Execute exactly one command at a time, synchronously:
+GDB: subprocess or in-process.
+LLDB: Python API backend (preferred) or subprocess fallback.
+Return captured output back to the orchestrator. Special cases covered (e.g., preserve “script …” as a single unit for LLDB).
+Colored echo and session settings are applied as configured; output becomes part of the assistant’s context for the next step.
+LLM (assistant)
+
+Follows a strict single-step protocol set by system_preamble + assistant_cmd_tag_instructions + rules:
+First propose 1 command with a short rationale, ask for confirmation (no <cmd> yet).
+After approval, reply with only one line: <cmd>command</cmd>.
+Keep answers concise, prefer low-risk diagnostics early, never fabricate output, quote exact snippets.
+Receives high-signal context: goal (if set), recent commands, last output, chat transcript tail, and optional language hint.
+For follow-ups (after a command is run), sees the fresh output and proposes the next step in the same pattern.
+Copilot (orchestrator + REPL)
+
+Orchestrates the conversation and tool execution.
+Builds prompts with the right preamble, rules, and context; injects {debugger} to tailor instructions to gdb or lldb.
+Enforces the execution gate: only runs when the LLM emits a well-formed <cmd>…</cmd>.
+Records chat logs, attempts, and outputs, and feeds them back into context.
+Provides user commands for environment and UX (/use gdb|lldb, /colors, /prompts, /llm, /exec, etc.), keeping the <cmd> protocol internal.
+why this matters
+Determinism and safety: The prompt’s “single command, single tag, ask first” protocol prevents the LLM from chaining commands or executing prematurely. The orchestrator’s <cmd> gate is the only path to execution.
+Clarity of roles: The LLM plans; the copilot executes; the user approves. Debugger tools only run what they’re given.
+Backend agility: The {debugger} variable lets the same protocol work for both gdb and lldb, while execution/capture specifics stay encapsulated in backends.
+small improvement opportunities
+Make the instructions debugger‑agnostic in wording:
+tool_instructions.md mentions GDB explicitly; defaults.py already uses {debugger}. Consider unifying language to avoid implying “GDB only” when running LLDB.
+Tighten command formatting examples:
+Defaults say: “Propose: command - <short description> | confirm?” Consider enforcing this consistently with a one‑line example per backend in a profile file (configs/prompts.gdb.json, prompts.lldb.json), if behavior should diverge slightly.
+Adaptivity for LLDB “script”:
+Add a brief note in the rules for LLDB that multi-line Python should be proposed as a single “script …” block (you already preserve it on the backend side).
+Surface of suggest_commands.md:
+If you want the “propose 1–3 commands” mode as a separate feature, wire that file into a “suggest” endpoint or a distinct orchestrator action. Today the main flow is the single-step “propose one, confirm, execute” pattern.
+If you want, I can prepare a minimal profile-specific prompts.lldb.json that mirrors the current rules but swaps examples to LLDB-friendly wording; or unify tool_instructions.md with the defaults system so they don’t drift.

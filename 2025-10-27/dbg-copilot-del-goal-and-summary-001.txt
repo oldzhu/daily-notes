@@ -1,0 +1,23 @@
+Plan
+
+Update standalone REPL help and remove handlers for /summary and /goal.
+Update GDB and LLDB plugin REPLs to remove help entries and handlers.
+Update README examples and command list to drop those commands.
+Run tests.
+Actions taken
+
+Standalone REPL: removed /summary and /goal from help and command handling in src/dbgcopilot/repl/standalone.py.
+GDB plugin REPLs:
+src/dbgcopilot/plugins/gdb/repl.py: removed /summary and /goal help and handlers.
+repl.py (dev-time helper): removed /summary and /goal help and handlers.
+LLDB plugin REPL: removed /summary and /goal help and handlers in src/dbgcopilot/plugins/lldb/repl.py.
+README: removed /summary and /goal from the slash-command list and example flows.
+Verification
+
+Lint/type: PASS (no new errors).
+Tests: pytest -q → . [100%] PASS.
+What’s next
+
+If you want, I can add a brief “How to ask for a goal/summary” note in README to guide users to ask the LLM directly, but I left docs minimal per your request.
+Ready to commit on your signal; or I can commit now if you’d like me to handle it.
+

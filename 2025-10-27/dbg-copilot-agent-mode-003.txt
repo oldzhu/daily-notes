@@ -1,0 +1,40 @@
+I would add more in agent mode prompts, for agent mode, if llm decide to stop, it should give summary of the analsysis done so far, what is root cause and solution if they are idenfied. If they are not idenfied, could give why stop and what further list things can be tried or requiired for further troubelshooging
+===========
+Good idea—I’ve strengthened the agent mode prompts so the model knows to stop without asking for confirmation and produce a clear final report when it decides to conclude.
+
+Actions taken
+
+Updated agent mode guidance in prompts
+defaults.py
+Expanded agent_mode_preamble to:
+Prohibit confirmations explicitly and require direct <cmd>…</cmd> for actions.
+Describe an iterate-decide pattern.
+Define a well-structured Final Report with:
+Analysis Summary (steps taken and key signals with quoted snippets)
+Root Cause (with evidence) or state unknown
+Solution/Workaround (or state unknown)
+If not identified: Why stopping and a prioritized Next Steps list (what to try/collect/required artifacts)
+Instruct: no <cmd> inside the Final Report; keep it actionable and succinct.
+Tightened agent_followup_instruction to reference the required sections for the Final Report so the agent auto loop produces the right thing when concluding.
+Current behavior recap
+
+Interactive (default): The LLM proposes and asks for confirmation; after <cmd>, we execute and wait for the next user input.
+Agent mode: The orchestrator automatically iterates:
+LLM is told not to ask for confirmation and to emit <cmd> directly.
+Non-<cmd> output ends the loop and is treated as the Final Report.
+Step limit guard remains in place.
+Quality gates
+
+Lint/typecheck: PASS on updated files.
+Tests: Skipped per your direction.
+Want me to add a short README snippet describing agent mode and the final-report behavior, then commit all changes?
+
+Short answer: you don’t have to change prompts.json for agent mode to work.
+
+Details:
+
+Precedence: prompts.json is an optional override. If a key is missing there, the value from defaults.py is used.
+Agent mode: the new agent_mode_preamble, agent_followup_instruction, and max_auto_steps are defined in defaults.py. They’ll be applied automatically in agent mode even if prompts.json doesn’t contain them.
+Conflicts: in agent mode, the orchestrator now filters out proposal/confirmation rules and injects the agent preamble, so it won’t ask for confirmation even if prompts.json still has the interactive instructions.
+Current state: I already updated prompts.json to replace the “low-risk” phrasing, so it’s aligned. No further edits are required unless you want to customize agent mode text.
+If you’d like to tweak the agent mode wording without touching code, I can add those agent_* keys into prompts.json for easy editing.

@@ -1,0 +1,82 @@
+Besides the small improvement opportunities, I would like the below two changes:
+
+as it is designed to always ask approval before execute the debugger command, pls change prefer low-risk command to prefer the suitable and reasonable command.
+for orchestrtor, modify the below behavior
+from
+....
+If it finds <cmd>…</cmd> in the LLM’s reply, it executes that command via the current debugger backend, captures output, stores it, then sends a follow-up prompt (same preamble + rules) asking the LLM to “decide the next step per the rules” using that fresh output.
+....
+to
+...
+If it finds <cmd>…</cmd> in the LLM’s reply, it executes that command via the current debugger backend, captures output, stores it, then by default wait for user typing next. only sends a follow-up prompt (same preamble + rules) asking the LLM to “decide the next step per the rules until find solution or root cause identified” using that fresh output + context when agent mode is on.
+...
+we can turn on agent mode through / command,basically what I am thinking agent mode is you asking copilot+llm to do auto analysis and give the final report of root cause and solution (why crash, wht hang, why leak) utomatically, in agent mode, no user interaction and all is auto done. we may need create special prompts for agent mode.
+==========
+
+Thanks—I'll keep iterating now by wiring in agent mode and updating the “low‑risk” phrasing across prompts, plus the orchestrator’s follow-up behavior.
+
+Actions taken
+Phrasing update
+
+Replaced “Prefer low-risk …” with “Prefer the suitable and reasonable command(s) for the situation.” in:
+defaults.py (rules)
+tool_instructions.md
+suggest_commands.md
+prompts.json (so overrides align with defaults)
+Orchestrator behavior
+
+Added agent mode and changed the default execution flow:
+In orchestrator.py, when a reply includes <cmd>…</cmd>:
+Default (interactive): execute once and return output; no automatic follow-up.
+Agent mode: execute and auto-continue until a final report or step limit.
+Implemented new helper _execute_and_maybe_auto that:
+Executes the command, records state
+If mode == auto, loops up to max_auto_steps:
+Asks the LLM with agent preamble to decide the next step
+Executes returned <cmd> or treats non-<cmd> as the final report
+Returns concatenated transcript pieces
+Updated ask() docstring to reflect the interactive default and agent mode behavior.
+Added agent-mode prompt scaffolding to defaults.py:
+agent_mode_preamble clarifying no confirmation and final report stop condition
+agent_followup_instruction
+max_auto_steps default = 12
+REPL support for agent mode
+
+Standalone REPL: standalone.py
+Added /agent on|off
+Show current mode in /config
+Help updated to include the new command
+GDB REPL: repl.py
+Added /agent on|off
+Show current mode in /config
+Help updated
+LLDB REPL: repl.py
+Added /agent on|off
+Show current mode in /config
+Help updated
+Notes
+Behavior change summary:
+
+Before: After executing a <cmd>, we always asked the LLM for one “next step” follow-up automatically.
+Now:
+Interactive (default): We execute the confirmed <cmd> and then wait for the user.
+Agent mode: We execute and then automatically iterate with the LLM until we have a final report or hit the step cap.
+Confirmation flow remains intact:
+
+The LLM still proposes and asks for user confirmation before emitting <cmd> in interactive mode. We don’t parse yes/no locally.
+Safety and termination conditions for agent mode:
+
+The agent will stop when:
+The LLM returns a non-<cmd> response (treated as the final report), or
+max_auto_steps is reached.
+Residual copies of the “low-risk” phrase may still exist in egg-info or site-packages paths, which are not first-party sources. All first-party prompt sources that affect runtime behavior have been updated.
+
+What’s next
+Optional: Add a short README section describing agent mode and the /agent on|off toggle. I can do this next if you want.
+Completion summary
+
+Build/lint: PASS for edited Python files (no syntax errors reported).
+Tests: Skipped per your request. If you want, I can run a quick smoke test later.
+Want me to document agent mode in README and then commit this set of changes?
+
+

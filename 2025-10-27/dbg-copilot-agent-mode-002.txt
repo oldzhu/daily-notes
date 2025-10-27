@@ -1,0 +1,36 @@
+for agent mode, in agent mode prompts I think we'd better to ask llm to not asking conirmatrion and generate the <cmd>..<cmd> directly so that the whole flow can be auto completed without user intervantion.
+===========
+
+Great call—I've made agent mode explicitly “no confirmation, emit <cmd> directly,” and removed conflicting guidance when agent mode is on.
+
+Here’s what I changed to ensure full automation in agent mode:
+
+Orchestrator prompt building updated
+
+In AgentOrchestrator.ask():
+If SessionState.mode == 'auto', the prompt now uses agent_mode_preamble and filters out rules that mention proposals or confirmations. We don’t include the confirmation-based assistant_cmd_tag_instructions in agent mode. This instructs the LLM to emit <cmd> directly.
+In interactive mode, the original confirmation flow remains unchanged.
+In the agent auto-continue loop (_execute_and_maybe_auto()):
+Also switched to the agent preamble and filtered rules to avoid any confirmation prompts during iteration.
+No confirmation step is requested at any point; the LLM is told to output <cmd> directly. Non-<cmd> output is treated as the final report and ends the loop.
+Agent mode scaffolding already in place
+
+/agent on|off exists in:
+standalone.py
+repl.py
+repl.py
+/config in all REPLs now shows the current mode so you can verify the toggle.
+Prompts updated to align with your wording preference
+
+“Prefer the suitable and reasonable command(s) for the situation.” replaces “low-risk” across first-party configs:
+defaults.py (rules)
+tool_instructions.md
+suggest_commands.md
+prompts.json
+Verification
+
+Syntax/lint: PASS on updated files.
+Tests: Skipped per your instruction.
+Would you like me to add a short README section documenting agent mode behavior and the /agent toggle, then commit this batch?
+
+

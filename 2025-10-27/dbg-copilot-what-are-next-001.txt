@@ -1,0 +1,3 @@
+1. refine prompt
+2. full auto
+2. add local llmprovider. How to add new llm provider without new code?
