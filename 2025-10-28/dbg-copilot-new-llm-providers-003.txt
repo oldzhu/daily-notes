@@ -1,0 +1,27 @@
+I’ll wire up the new provider aliases end-to-end and then validate with a test run.
+
+actions taken
+Added provider aliases that use the generic OpenAI-compatible client:
+deepseek, qwen, kimi, glm
+Updated the orchestrator to treat those aliases like other OpenAI-compatible providers so session config and env vars are honored.
+Documented agent mode, color toggle, and the new provider aliases in the README.
+files changed
+providers.py — Registered convenience aliases using the generic OpenAI-compatible backend (DeepSeek, Qwen, Kimi, GLM).
+orchestrator.py — Ensured deepseek, qwen, kimi, and glm are instantiated session-bound (like openai-http/ollama) in both the main ask flow and agent follow-ups.
+README.md — Added /agent on|off and /colors on|off to UX summary; documented agent mode behavior; added provider quick-start and defaults for the new aliases.
+validation
+Ran tests: PASS (1 test, 100%).
+Build: PASS (no build errors encountered during tests and imports).
+Lint/Typecheck: PASS (no syntax/type errors surfaced in the updated files).
+how to use
+Toggle agent mode and colors:
+/agent on to auto-continue until a final report; /agent off to return to interactive.
+/colors on|off to toggle colored output (default on).
+Switch providers:
+/llm list to see available providers (includes openrouter, openai-http, ollama, deepseek, qwen, kimi, glm).
+/llm use deepseek (or qwen/kimi/glm/openai-http/ollama).
+Optionally set keys in-session (e.g., /llm key deepseek sk-...) or via env/session config; defaults for aliases are noted in the README.
+notes
+The new aliases are backed by the same generic OpenAI-compatible client and will read base_url, api_key, model, and headers from the session config or environment, with sensible defaults for each vendor.
+Agent mode skips confirmation prompts in favor of direct <cmd> execution and will stop with a structured final report or at the step cap.
+

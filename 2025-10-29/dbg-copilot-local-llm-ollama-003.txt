@@ -1,0 +1,64 @@
+Great—let’s wire dbgcopilot to your WSL2 Ollama and test deepseek-coder-v2. I’ll outline install/pull, networking, and the exact REPL steps to verify and use the model.
+
+1) Install and run Ollama in WSL2
+Run these in your WSL2 distro:
+
+Install/start Ollama
+
+curl -fsSL https://ollama.com/install.sh | sh
+ollama serve
+Keep this running, or set it up as a service if you prefer
+Pull the model
+
+ollama pull deepseek-coder-v2
+Optional: ollama list to confirm it’s present
+Notes:
+
+If the exact tag differs (e.g., deepseek-coder-v2:latest), use the exact name from ollama list.
+2) Networking from the devcontainer to WSL2 Ollama
+If you’re running dbgcopilot inside the same WSL2 environment where Ollama is running, you can use the default base URL http://localhost:11434.
+
+If you’re running dbgcopilot in a Docker devcontainer separate from the WSL2 network:
+
+Point dbgcopilot to the reachable host from the container.
+Easiest: set OLLAMA_BASE_URL before launching dbgcopilot to an address the container can reach, for example:
+http://host.docker.internal:11434 (works on many Docker setups)
+or http://<WSL2_IP>:11434 (find IP via hostname -I in WSL2)
+Set the environment variable in the shell where you start dbgcopilot:
+export OLLAMA_BASE_URL=http://host.docker.internal:11434
+No API key needed for Ollama.
+Tip: You can also use /llm models ollama inside dbgcopilot to quickly validate connectivity.
+
+3) Use the model in dbgcopilot
+Start dbgcopilot (standalone or plugin REPL) and run:
+
+Select Ollama
+
+/llm use ollama
+Verify models (should list your pulled models)
+
+/llm models ollama
+Select deepseek-coder-v2
+
+/llm model ollama deepseek-coder-v2
+Try a quick interaction
+
+Ask normal guidance, e.g., “What should I run to get a short backtrace?”
+Or execute a debugger command explicitly:
+/exec help where
+Optional:
+
+Enable autonomous loop if you want it to keep going until a report:
+/agent on
+Disable with /agent off
+troubleshooting
+Connection refused/timeouts:
+Ensure ollama serve is running in WSL2.
+Check base URL reachability from the container. If needed:
+export OLLAMA_BASE_URL=http://host.docker.internal:11434
+Model not found:
+Use ollama list to confirm the exact model tag and set that with /llm model ollama <tag>.
+Empty /llm models output:
+We fall back to Ollama’s /api/tags; if still empty, it’s likely a connectivity or service issue.
+Once Ollama is up, ping me and we’ll run a quick end‑to‑end in dbgcopilot with deepseek-coder-v2.
+

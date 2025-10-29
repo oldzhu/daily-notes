@@ -1,0 +1,45 @@
+Good question—out of the box, only OpenRouter had model listing, but I’ve extended the REPLs so you can also list models for the new OpenAI-compatible providers.
+
+Here’s what you can do now:
+
+/llm models deepseek
+/llm models qwen
+/llm models kimi
+/llm models glm
+/llm models ollama
+/llm models openai-http
+What to expect
+
+For most OpenAI-compatible providers, we try GET <base_url>/v1/models with your session’s API key (if set).
+For Ollama, we fall back to GET <base_url>/api/tags if /v1/models isn’t available.
+Some vendors may not expose a models endpoint in their OpenAI-compatible layer. In that case, you’ll see a helpful message and can still set a model manually:
+/llm model deepseek deepseek-chat
+/llm model qwen qwen-turbo
+…and so on.
+Extras you can use now
+
+Set API keys in-session for these providers:
+/llm key deepseek sk-...
+/llm key qwen sk-...
+/llm key kimi sk-...
+/llm key glm sk-...
+/llm key openai-http sk-...
+Ollama typically doesn’t need a key locally.
+Set models for all OpenAI-compatible providers:
+/llm model <provider> <model-id>
+Notes
+
+We use provider defaults when possible (documented in README), but you can override via /llm model or session config.
+If a provider’s API doesn’t support listing models, you’ll get an empty list message. Just set the model directly and you’re good.
+Quick example
+
+/llm use deepseek
+/llm key deepseek sk-...
+/llm models deepseek # if supported by the API, you’ll get a list
+/llm model deepseek deepseek-chat
+Done
+
+Added model listing support for OpenAI-compatible providers in standalone, GDB, and LLDB REPLs.
+Enabled /llm model and /llm key for those providers too.
+Updated README and marked the agent-mode docs todo as complete.
+Tests: PASS.

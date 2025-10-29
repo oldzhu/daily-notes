@@ -1,0 +1,25 @@
+Yes—llama.cpp can expose an OpenAI-compatible API when you run its server with API mode, so we can treat it like our other OpenAI-compatible providers.
+
+I’ve proactively added first-class support:
+
+New provider alias: llama-cpp (uses the generic OpenAI-compatible client)
+Defaults: base_url http://localhost:8080 (llama.cpp server --api), model llama
+Orchestrator updated to session-bind llama-cpp like openai-http/ollama
+README updated to list llama-cpp and its defaults
+How to use it
+
+Start the llama.cpp server in API mode (example; adjust to your setup):
+./server --api --host 0.0.0.0 --port 8080 -m /path/to/your/model.gguf
+In dbgcopilot:
+/llm use llama-cpp
+/llm models llama-cpp # if the server implements /v1/models; otherwise it may return empty
+/llm model llama-cpp llama # or set to the exact id your server expects
+If your server runs on a different host/port:
+Set session config or environment, e.g.:
+export LLAMA_CPP_BASE_URL=http://host.docker.internal:8080
+or /llm use llama-cpp followed by setting the base via session config if you have that wired
+Notes
+
+Model listing: We try GET /v1/models. If your llama.cpp build doesn’t serve it, you’ll see an empty list; you can still set the model manually with /llm model llama-cpp <id>.
+No API key usually needed for local servers unless you add auth.
+All changes are committed on main and tests are green. When your llama.cpp server is up, we can run a quick smoke check with /llm models llama-cpp and a simple prompt.

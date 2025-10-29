@@ -1,0 +1,38 @@
+You’re right—AGENTS.md in many repos is a guidance doc for AI agents and automation, not a product feature guide. I’ll roll back the previous AGENTS.md to align with that pattern, update the README link text, and summarize what AGENTS.md typically contains.
+
+what AGENTS.md is used for
+Purpose: A concise handbook for AI agents and automated tools contributing to the repo.
+Audience: Bots and humans using automated workflows (including LLM-based agents) to propose code changes.
+Typical contents:
+Repository overview and structure
+Build and test commands (green-before-done expectations)
+Coding standards and style
+Safe-change principles: small, focused diffs; avoid sweeping refactors
+How to run linters/tests and validate changes
+Where to edit (key files) and what not to touch
+PR etiquette, commit messages, and documentation rules
+Troubleshooting tips and common pitfalls
+This aligns with the AGENTS.md in:
+
+radareorg/radare2: “Agentic Coding Guidelines” with coding rules, quick actions, and test/build steps
+dotnet/diagnostics: “Agent Guidelines” covering coding standards, build/test, project structure, dependencies, PR workflow
+actions taken
+Replaced the product-focused AGENTS.md with agent-contribution guidelines tailored to this repo, modeled after the radare2 and .NET Diagnostics patterns. It includes:
+Repo overview and key locations
+Build/test steps (make build, make install-wheel, pytest -q)
+Coding standards (PEP 8, small diffs, avoid heavy deps)
+Change process and PR guidance
+Quick “actions” section (compile/package, run tests, ad-hoc lint)
+Project structure hints (orchestrator, providers, REPLs, prompts)
+Troubleshooting tips and notes for agentic tools
+Updated README’s reference to AGENTS.md so it correctly points to “contribution guidelines for automated agents,” not product agent-mode behavior.
+Verified tests: PASS.
+files changed
+AGENTS.md — replaced with “Agent Guidelines for Debugger Copilot Repository”
+README.md — updated link text to reflect the proper AGENTS.md purpose
+what’s next
+If you’d like, I can add a short “Docs” or “Contributing for agents” section in README’s top-level navigation to surface AGENTS.md more prominently.
+I can also add a brief lint step (e.g., ruff/flake8) if you want stricter style enforcement; right now we keep it light and rely on py_compile/tests.
+If you want me to tailor AGENTS.md further (e.g., add CI checklist, commit template, or a “do/don’t” matrix), tell me the policies you prefer and I’ll extend it.
+
+

@@ -1,0 +1,72 @@
+questions, is modelscope(https://modelscope.cn/docs/home) provide openai-compatible endpoint? how about deepseek and qwen and kimi and glm? are they provide the openapi-compatible api endpoint?
+========
+Good question. Short version: several of these vendors do expose OpenAI‑compatible chat/completions APIs. You can use our new generic “openai-http” provider by just pointing it at the right base_url and adding your API key/model in config—no new Python files needed.
+
+What each vendor offers
+
+ModelScope (modelscope.cn)
+
+It’s primarily a model hub/platform. It does not provide a single, public OpenAI‑compatible API endpoint like “/v1/chat/completions” for all models.
+For Qwen via Alibaba, the API product is DashScope (see below). For other ModelScope-hosted models, you’d typically use their SDK/pipelines or deploy your own inference server (vLLM/TGI/etc.), which can be OpenAI-compatible if you run it that way.
+DeepSeek
+
+Yes, OpenAI‑compatible. Docs state: “The DeepSeek API uses an API format compatible with OpenAI.”
+Base URL: https://api.deepseek.com (also works with /v1)
+Auth: Authorization: Bearer <DEEPSEEK_API_KEY>
+Endpoint path: /chat/completions
+Qwen (Alibaba “DashScope”)
+
+Yes, DashScope provides an “OpenAI Compatible API” mode.
+Typical base URL (subject to region/update): https://dashscope.aliyuncs.com/compatible-mode/v1
+Auth: Authorization: Bearer <DASHSCOPE_API_KEY>
+Endpoint path: /chat/completions
+Kimi (Moonshot AI)
+
+Yes, they provide OpenAI‑compatible endpoints.
+Typical base URL: https://api.moonshot.cn/v1
+Auth: Authorization: Bearer <MOONSHOT_API_KEY>
+Endpoint path: /chat/completions
+GLM (ZhipuAI)
+
+Yes, their HTTP API uses the chat/completions shape and they document an OpenAI‑compatible path.
+Base URL (non‑SDK HTTP): https://open.bigmodel.cn
+Endpoint path: /api/paas/v4/chat/completions
+Auth: Authorization: Bearer <ZHIPUAI_API_KEY>
+How to use with our “openai-http” provider (no code changes)
+
+Pick the provider you want and set session config or env:
+Session config keys (in our REPL): openai_http_base_url, openai_http_api_key, openai_http_model, openai_http_headers (JSON), openai_http_path (defaults to /v1/chat/completions)
+Or environment variables: OPENAI_HTTP_BASE_URL, OPENAI_HTTP_API_KEY, OPENAI_HTTP_MODEL, OPENAI_HTTP_HEADERS (JSON), OPENAI_HTTP_PATH
+Examples:
+DeepSeek
+OPENAI_HTTP_BASE_URL=https://api.deepseek.com/v1
+OPENAI_HTTP_API_KEY=sk-…
+OPENAI_HTTP_MODEL=deepseek-chat (or their current model IDs)
+/llm use openai-http
+DashScope (Qwen)
+OPENAI_HTTP_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+OPENAI_HTTP_API_KEY=sk-…
+OPENAI_HTTP_MODEL=qwen-xxx
+/llm use openai-http
+Kimi (Moonshot)
+OPENAI_HTTP_BASE_URL=https://api.moonshot.cn/v1
+OPENAI_HTTP_API_KEY=sk-…
+OPENAI_HTTP_MODEL=moonshot-v1-8k (or current)
+/llm use openai-http
+Zhipu GLM
+OPENAI_HTTP_BASE_URL=https://open.bigmodel.cn
+OPENAI_HTTP_API_KEY=sk-…
+OPENAI_HTTP_PATH=/api/paas/v4/chat/completions
+OPENAI_HTTP_MODEL=glm-4 (or their latest)
+/llm use openai-http
+Optional convenience aliases
+
+If you want cleaner names in /llm use, we can pre-register “deepseek”, “qwen”, “kimi”, and “glm” as provider aliases that internally call our openai_compat with sensible defaults and their own env keys, e.g.:
+DEEPSEEK_BASE_URL, DEEPSEEK_API_KEY, DEEPSEEK_MODEL
+QWEN_BASE_URL, QWEN_API_KEY, QWEN_MODEL
+KIMI_BASE_URL, KIMI_API_KEY, KIMI_MODEL
+GLM_BASE_URL, GLM_API_KEY, GLM_MODEL
+Totally optional; config via openai-http works today.
+Want me to add those aliases so you can /llm use deepseek | qwen | kimi | glm out of the box?
+
+

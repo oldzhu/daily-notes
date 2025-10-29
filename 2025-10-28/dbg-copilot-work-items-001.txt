@@ -1,0 +1,2 @@
+1. test agent and non-agent mode
+2. add local llm provider

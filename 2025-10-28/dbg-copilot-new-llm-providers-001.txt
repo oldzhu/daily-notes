@@ -1,0 +1,73 @@
+The next is I would like to add more llmproviders to our projec - such as modelscope, local llm provider - ollama. now seems we like we need to add a new py file for each new added provider, if the different llm provider api using the standard as openai api, is it possible to just use the configure file to add new llm provider(new api url)?
+============
+I'll inspect the current LLM provider code to see how providers are registered and how to introduce a generic OpenAI-compatible provider that can be configured via prompts.json or session config. Expect to read providers.py and openrouter.py.
+
+Searched text for def list_providers|get_provider|providers (**/src/dbgcopilot/llm/**), 5 results
+Read providers.py
+
+Read openrouter.py
+
+Implementing provider hooks...
+I'm going to add a generic OpenAI-compatible provider that can be configured via session config (or env), register two names ("openai-http" and "ollama"), and update the orchestrator to bind session config for these providers at call time. This lets you add or point to new OpenAI-style endpoints without adding new Python files.
+
+openai_compat.py
+providers.py+19-1
+orchestrator.py+5-1
+Checked openai_compat.py, providers.py, orchestrator.py, no problems found
+
+Great idea. Yes—you can avoid adding a new Python file for each OpenAI-compatible provider by introducing a generic HTTP provider that’s configured via base URL, API key, and model.
+
+What I implemented
+
+Generic OpenAI-compatible client
+
+New file: openai_compat.py
+Uses the standard OpenAI Chat Completions shape (POST /v1/chat/completions).
+Reads configuration from session config or environment, in this precedence:
+Session: {name}_base_url, {name}_api_key, {name}_model, {name}_headers, {name}_path
+Example keys for provider name “openai-http”: openai_http_base_url, openai_http_api_key, …
+Example keys for provider name “ollama”: ollama_base_url, ollama_model, …
+Env: {PREFIX}_BASE_URL, {PREFIX}_API_KEY, {PREFIX}_MODEL, {PREFIX}_HEADERS (JSON), {PREFIX}_PATH
+PREFIX is the provider name uppercased with non-alphanumerics replaced by _ (e.g., OLLAMA_BASE_URL)
+Built-in defaults:
+ollama: base_url=http://localhost:11434, model=llama3.1, no API key
+Returns choices[0].message.content if available, else the raw JSON string.
+Providers registry
+
+providers.py
+Registered two providers out of the box:
+openai-http: “Generic OpenAI-compatible endpoint”
+ollama: “Local Ollama via OpenAI-compatible /v1/chat/completions”
+They work even with env-only configuration; session config takes precedence.
+Orchestrator wiring
+
+orchestrator.py
+Similar to OpenRouter, openai-http and ollama are now created as session-bound providers at call time so you can pass base URL/model/API key in the current REPL session config.
+How to use
+
+Choose provider
+
+/llm use openai-http
+/llm use ollama
+Configure (options)
+
+Environment variables (example)
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.1
+OPENAI_HTTP_BASE_URL=https://your.endpoint.example.com
+OPENAI_HTTP_API_KEY=sk-…
+OPENAI_HTTP_MODEL=gpt-4o-mini
+Session config keys (if you want per-session overrides)
+openai_http_base_url, openai_http_api_key, openai_http_model, openai_http_headers (JSON), openai_http_path
+ollama_base_url, ollama_model, ollama_headers (JSON), ollama_path
+Notes and options
+
+ModelScope: If ModelScope exposes an OpenAI-compatible endpoint, you can use it with openai-http by setting its base URL/API key/model in env or session config. If not, we can still add a dedicated thin adapter later.
+Custom headers: You can pass headers via {name}_headers as a JSON object, e.g. {"X-API-Version":"2024-10-01"}.
+Path override: Default is /v1/chat/completions, but you can override with {name}_path if needed.
+What this gives you
+
+No new Python files needed for every provider that speaks the OpenAI API.
+You can add endpoints by configuration only (env or session config).
+You still have first-class entries for openai-http and ollama in /llm list.
+If you want, I can add README examples showing how to configure openai-http for ModelScope and how to use ollama locally.

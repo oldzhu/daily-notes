@@ -1,0 +1,49 @@
+That's an excellent and very relevant question. The answer is nuanced: significant parts of CUDA are now open source, but the core, most critical components remain proprietary.
+
+When you download the CUDA 13.0 installer, you are getting a package that contains both open-source components and proprietary binaries.
+
+What IS Open Source?
+NVIDIA has made a significant push to open-source many components of the CUDA ecosystem, primarily to foster community growth and innovation. The following are now open source:
+
+CUDA Compiler Driver (cudacc): The core of the compilation process.
+CUDA Runtime APIs: The APIs that your application calls (e.g., cudaMalloc, cudaMemcpy).
+Key CUDA Libraries:
+cuBLAS (Basic Linear Algebra Subroutines)
+cuFFT (Fast Fourier Transform)
+cuRAND (Random Number Generation)
+cuSOLVER (Sparse Solvers)
+cuSPARSE (Sparse Matrix operations)
+C++ Libraries: Such as Thrust and CUB.
+Nsight Compute Tools: Parts of the profiling tooling.
+What is NOT Open Source?
+The most critical piece that makes everything work remains closed source:
+
+The NVIDIA GPU Driver: This is the proprietary kernel-mode driver (nvidia.ko) that directly communicates with your RTX 3080 hardware. This contains the "secret sauce" and hardware-specific logic that NVIDIA considers a core trade secret.
+The CUDA Toolkit Installer: The installer itself is a proprietary binary that handles the complex process of installing both the open-source and proprietary components correctly on your system.
+cuDNN (CUDA Deep Neural Network library): This is a separate, proprietary library specifically for deep learning that requires an additional download and a developer account.
+Where is the Source Repo?
+The main repository for the open-sourced components of the CUDA Toolkit is on NVIDIA's official GitHub:
+
+https://github.com/NVIDIA/cuda-toolkit
+
+This repository contains the source code for many of the libraries and compiler components listed above. You can clone it, inspect the code, and even build parts of the CUDA toolkit yourself.
+
+However, you will not find the source code for the GPU driver in that repository.
+
+Summary Table
+Component
+Open Source?
+Why?
+GPU Driver	No	Proprietary hardware interface, contains trade secrets.
+CUDA Compiler (nvcc)	Yes	Builds community, allows for customization and inspection.
+Runtime & Math Libraries	Yes	Fosters ecosystem development, standardizes performance.
+Toolkit Installer	No	Proprietary wrapper that manages the complex installation.
+cuDNN	No	Separate, high-value product for the AI/ML market.
+
+Why This Model?
+NVIDIA's strategy is a common one in the tech industry:
+
+Open the Ecosystem: By open-sourcing the development-facing tools and libraries, they make it easy for developers to adopt and build on CUDA. This creates a strong "moat" around their platform.
+Protect the Core: By keeping the low-level driver proprietary, they protect their core intellectual property and maintain a competitive advantage in the hardware market.
+So, in short: Yes, much of CUDA 13.0 is open source, and you can find it on GitHub. But the essential driver that makes your GPU work is not, which is why you still need to download the proprietary installer from NVIDIA's website.
+

@@ -1,0 +1,217 @@
+Of course! Moving from Ollama to llama.cpp is a great step to get more control and potentially better performance. Here is a detailed, step-by-step guide to setting up llama.cpp on your WSL2 host, specifically tailored for your hardware.
+
+Step 1: Install Prerequisites
+You'll need a C++ compiler, Git, and the NVIDIA CUDA toolkit to leverage your RTX 3080.
+
+Update your package list and install build tools:
+bash
+
+Line Wrapping
+
+Collapse
+Copy
+1
+2
+sudo apt update
+sudo apt install -y git build-essential
+Install the NVIDIA CUDA Toolkit:
+Go to the official NVIDIA CUDA Toolkit download page: https://developer.nvidia.com/cuda-downloads
+Select the following options:
+Operating System: Linux
+Architecture: x86_64
+Distribution: WSL-Ubuntu
+Version: 2.0 (or your specific WSL version)
+Installer Type: deb (local)
+Follow the instructions on the page. It will give you commands to download and install a .deb file. This is the most reliable way to get CUDA set up correctly in WSL2.
+Verify CUDA Installation:
+After installation, open a new WSL2 terminal and run:
+bash
+
+Line Wrapping
+
+Collapse
+Copy
+1
+nvcc --version
+You should see the CUDA compiler version, confirming it's installed and in your PATH.
+Step 2: Clone and Compile llama.cpp
+Now we'll get the llama.cpp code and compile it with GPU support.
+
+Clone the repository:
+bash
+
+Line Wrapping
+
+Collapse
+Copy
+1
+2
+git clone https://github.com/ggerganov/llama.cpp.git
+cd llama.cpp
+Compile with CUDA support:
+This is the most important step. The make command will compile the code. We use flags to tell it to enable support for your hardware.
+bash
+
+Line Wrapping
+
+Collapse
+Copy
+1
+2
+3
+# LLAMA_CUBLAS=1 enables NVIDIA GPU support (CUBLAS is NVIDIA's library)
+# LLAMA_AVX2=1 and LLAMA_FMA=1 enable CPU optimizations for your Ryzen 9 CPU
+make LLAMA_CUBLAS=1 LLAMA_AVX2=1 LLAMA_FMA=1
+This will take a few minutes. You'll see a lot of compilation output. If it completes without errors, you're ready!
+Step 3: Download a Model
+llama.cpp doesn't download models for you. You need to get them manually. The best format for llama.cpp is GGUF.
+
+Go to Hugging Face: https://huggingface.co/models
+Find a model: A great starting point is a quantized version of Llama 3 8B. The user "TheBloke" is famous for providing high-quality, pre-quantized models.
+Search for: "TheBloke Llama-3-8B-Instruct-GGUF"
+Go to the "Files and versions" tab.
+Choose a quantization file: For your 16GB VRAM, you can run a high-quality quantization. I recommend the Q4_K_M version. It's an excellent balance of file size, performance, and quality.
+Look for a file named Llama-3-8B-Instruct-Q4_K_M.gguf (around 4.94 GB).
+Download the file from WSL2:
+Right-click the download button on Hugging Face and select "Copy Link Address". Then use wget in your WSL2 terminal to download it directly into your llama.cpp directory.
+bash
+
+Line Wrapping
+
+Collapse
+Copy
+1
+2
+# Make sure you are in the llama.cpp directory
+wget https://huggingface.co/TheBloke/Llama-3-8B-Instruct-GGUF/resolve/main/Llama-3-8B-Instruct-Q4_K_M.gguf
+Step 4: Run a Model Interactively (Test)
+Let's test it by running a chat session directly from the command line.
+
+bash
+
+Line Wrapping
+
+Collapse
+Copy
+1
+2
+3
+4
+5
+6
+7
+./main -m ./Llama-3-8B-Instruct-Q4_K_M.gguf \
+       -n 256 \
+       --color \
+       -c 4096 \
+       --in-prefix " " \
+       -ngl 99 \
+       -p "You are a helpful assistant. Explain the difference between a stack and a heap in C++."
+Breaking down the command:
+
+-m ./...: Specifies the model file.
+-n 256: Generate a maximum of 256 tokens.
+--color: Makes the output colorful.
+-c 4096: Sets the context window to 4096 tokens.
+-ngl 99: This is the magic flag. It stands for "N GPU Layers". Setting it to a high number like 99 tells llama.cpp to offload as many layers as possible to your GPU's VRAM. For an 8B model and your 16GB VRAM, this will offload almost the entire model, making it run very fast.
+-p "...": Your initial prompt.
+You should see your GPU's memory usage jump, and the model will generate a response very quickly.
+
+Step 5: Run llama.cpp as a Server
+For your dbgcopilot project, you'll want to run it as a server that your dev container can connect to.
+
+Start the server:
+bash
+
+Line Wrapping
+
+Collapse
+Copy
+1
+2
+3
+4
+5
+./server -m ./Llama-3-8B-Instruct-Q4_K_M.gguf \
+         --host 0.0.0.0 \
+         --port 8080 \
+         -c 4096 \
+         -ngl 99
+--host 0.0.0.0: This is crucial. It makes the server accessible from other devices on your network, including your dev container.
+--port 8080: We'll run it on port 8080 to avoid conflicts with Ollama (which uses 11434).
+Test the server from another WSL2 terminal:
+Open a new WSL2 terminal and use curl to send a request:
+bash
+
+Line Wrapping
+
+Collapse
+Copy
+1
+2
+3
+4
+5
+6
+7
+curl --request POST \
+     --url http://127.0.0.1:8080/completion \
+     --header "Content-Type: application/json" \
+     --data '{
+       "prompt": "Building a house of cards. The first card is placed.",
+       "n_predict": 128
+     }'
+You should get a JSON response back with the model's completion.
+Step 6: Connect from Your Dev Container
+Now you can point your dbgcopilot code in the dev container to this new server. The llama.cpp server provides an OpenAI-compatible API, which is fantastic because many existing libraries can talk to it.
+
+You can use the openai Python library to connect to it.
+
+python
+
+Line Wrapping
+
+Collapse
+Copy
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+⌄
+# In your dbgcopilot code inside the dev container
+from openai import OpenAI
+
+# Point the client to your llama.cpp server on the host
+client = OpenAI(
+    base_url="http://host.docker.internal:8080/v1",
+    api_key="not-needed" # The llama.cpp server doesn't require a real key
+)
+
+# Now use the client just like you would with the real OpenAI API
+response = client.chat.completions.create(
+    model="local-model",  # The model name can be anything, llama.cpp ignores it
+    messages=[
+        {"role": "system", "content": "You are a helpful debugging assistant."},
+        {"role": "user", "content": "Why did my program crash? Here is the backtrace: ..."}
+    ],
+    temperature=0.7,
+)
+
+print(response.choices[0].message.content)
+You have now successfully set up llama.cpp as a powerful, local LLM server that you can control with fine-grained detail, ready to be integrated into your development workflow
