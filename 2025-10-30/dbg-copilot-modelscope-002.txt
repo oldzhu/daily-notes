@@ -1,0 +1,13 @@
+I saw there are models list in json format from https://api-inference.modelscope.cn/v1/models, but why got the below error when try to list models supported by modelscope?
+copilot> /llm models modelscope
+[copilot] Model listing not supported for provider: modelscope
+==========
+Extended the OpenAI-compatible provider whitelist so the /llm helpers recognize modelscope; the command was previously hard-coded to allow only openai-http, ollama, deepseek, qwen, kimi, and glm, so anything else fell into the “not supported” branch. Updated the shared checks in repl.py, repl.py, standalone.py, and the orchestrator path in orchestrator.py so modelscope now routes through the generic OpenAI-compatible client for listing, model selection, and key storage.
+
+Tests: not run (let me know if you want pytest -q).
+
+Next steps:
+
+Set MODELSCOPE_API_KEY (or /llm key modelscope …) if required.
+Retry /llm models modelscope to confirm the API returns the catalog.
+

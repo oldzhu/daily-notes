@@ -1,0 +1,14 @@
+I would like to add the modelscope llm provider , pls read the relate doc at https://modelscope.cn/ then add the provider so I can test
+==========
+
+Hooked up the ModelScope provider alias and defaults so it can be selected like the other OpenAI-compatible integrations.
+
+Added default base URL/model handling in openai_compat.py.
+Registered the modelscope alias in providers.py.
+Documented the new option and its defaults in README.md.
+Tests: not run (let me know if you want pytest -q executed).
+
+Next steps:
+
+Set MODELSCOPE_API_KEY (or configure via /llm key modelscope …).
+Try /llm use modelscope and /llm models to confirm connectivity.
