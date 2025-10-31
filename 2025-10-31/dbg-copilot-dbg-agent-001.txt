@@ -1,0 +1,26 @@
+Next Steps For Item 1
+
+Confirm intent to fully remove agent mode from dbgcopilot so the existing REPLs remain interactive-only, while launching a new dbgagent subpackage for autonomous runs.
+
+Proposed migration plan (please confirm before I start cutting code):
+
+dbgcopilot cleanup
+Drop /agent commands, related state fields (mode, agent prompts), and auto-loop logic from orchestrator; simplify tests/docs.
+Ensure interactive flow still works with existing providers after removal.
+New dbgagent skeleton
+Create src/dbgagent/ package + CLI entry point (e.g. dbgagent command) with argparse handling for debugger, provider/model, API key (env overrides), program/core path, and goal (crash/hang/leak etc.).
+Stub core components: planner, executor (reuse debugger backends), reporter, logging configuration.
+Reuse shared utilities (prompt templates, providers) via internal imports where feasible.
+Implement initial loop for plan/execute/analyze with max-iteration guard; output structured session log + final report.
+Docs & packaging
+Update README to reflect separation, list dbgagent usage, highlight logging and report flags.
+Add entry point in pyproject.toml; adjust build/test targets accordingly.
+Open questions before implementation:
+
+Should dbgagent live in same distribution initially, or separate installable package from day one?
+Desired default log format (plain text, JSON) and storage location?
+Any specific debugger backends we must support in v1 (GDB only vs. LLDB too)?
+Preferred default goals vocabulary (“why crash/hang/leak” or free-form text)?
+Once I have your guidance on these, I can start implementing item 1. For item 2 (browser UI), I’ll share a detailed plan before writing code as requested.
+
+

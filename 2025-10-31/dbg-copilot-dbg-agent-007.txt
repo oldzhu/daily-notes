@@ -1,0 +1,21 @@
+Thanks. That works as I saw the changes looks take effect, I have 1 qeustion where is dbgcopilot package installed? it is not under .venv/lib64 fodler?
+cd /workspace && python - <<'PY'
+import dbgcopilot, inspect
+import os
+pkg_path = os.path.dirname(inspect.getfile(dbgcopilot))
+print(pkg_path)
+PY
+
+cd /workspace && . .venv/bin/activate && python - <<'PY'
+import dbgcopilot, inspect, os
+pkg_path = os.path.dirname(inspect.getfile(dbgcopilot))
+print(pkg_path)
+PY
+Because you have dbgcopilot installed in editable/develop mode (pip install -e .), Python imports it straight from the repo’s source tree—dbgcopilot—instead of copying files into .venv/lib64/.... That’s why changes in the repo take effect immediately after reinstalling.
+========
+
+if I run make install-wheel, then it will install to .venv/lib64 and my testing dbggaent will import the dbgcopilot from .venv/lib64?
+======
+Yes. make install-wheel builds the wheel then runs pip install --upgrade --force-reinstall dist/*.whl. That drops a regular (non-editable) copy of dbgcopilot into your venv’s site-packages—typically .venv/lib/python3.12/site-packages/dbgcopilot. After that, anything importing dbgcopilot (including dbgagent) will use that wheel-installed copy.
+
+If you want to go back to live-editing straight from the repo, rerun pip install -e . afterward; otherwise, the wheel stays in site-packages until you replace it.

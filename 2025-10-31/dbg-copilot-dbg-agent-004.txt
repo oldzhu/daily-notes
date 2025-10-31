@@ -1,0 +1,5 @@
+Addressed both issues:
+
+Sanitized debugger output before it hits logs or reports by stripping ANSI/control sequences (runner.py). Logs and Markdown should now be plain, readable text.
+Tightened the autonomous prompt to require a numbered plan, explain each command’s intent, and highlight plan changes before emitting <cmd> tags (prompts.py). This should surface task lists and rationales directly in session logs and the final report.
+Please rerun dbgagent --log-session ... to confirm the log/report look clean and include the richer planning narrative. If anything still feels off, let me know!

@@ -1,0 +1,4 @@
+Removed the lingering ESC[…] artifacts by expanding strip_ansi in io.py so logs/reports now strip all ANSI/control sequences, and ensured runner.py stores/logs the cleaned text.
+Added a --language flag (default en) in cli.py, wired through AgentRequest, and injected a language guardrail in the prompt builder so the LLM keeps to the requested language; documented the flag in README.md.
+Trimmed the old static Chinese hint from prompts.py since language is now configurable.
+Next steps: reinstall the editable package (pip install -e dbgagent if needed) and rerun your session with dbgagent --log-session --language en … to confirm the logs/reports are clean and stay in English.

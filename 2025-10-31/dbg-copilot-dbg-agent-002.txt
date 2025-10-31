@@ -1,0 +1,26 @@
+prefer dbgagent separate installable package from day one.
+prefer log format plaint text 1st and /tmp storage location 1st.
+gdb and llb both
+default goals vocabulary + free-form text
+I also would ask more feature, which is can modify and add comments in the generated report and then the modified report can be used as dbgagent command line parameter to feed to llm as new context to statrt another round of auto analysis.
+==========
+Got it. Here’s how I’ll tackle Item 1 with your preferences baked in:
+
+Split Packaging
+
+Create a new top-level package dbgagent/ with its own pyproject.toml so it ships as a separate wheel from day one.
+Shared pieces (LLM providers, debugger backends, utility functions) will stay in a reusable common/ module or be sym‑linked via namespace packages to avoid duplication.
+Autonomous Engine
+
+CLI (dbgagent entry point) accepts debugger (gdb/lldb), provider + model + key (CLI flag overriding env), program/core, goal vocabulary (crash|hang|leak|custom) + free text.
+Planner → executor → analysis loop with configurable max iterations; supports both GDB and LLDB backends the same way dbgcopilot does today.
+Default logging: plaintext session log dropped in /tmp/dbgagent-<timestamp>.log, with a flag/env to change location.
+Report Workflow
+
+Final report is written as a standalone text/Markdown file summarizing plan, execution timeline, findings, and recommendations.
+Provide a simple “--resume-from <report.txt>” flag: when present, the report body is injected as extra context before the next run so you can edit/comment manually, save, and feed it back to steer a new analysis round.
+dbgcopilot Adjustments
+
+Remove agent-mode codepaths, /agent commands, and related prompt logic so the existing REPL remains interactive-only.
+Refresh docs/tests to reflect the split and point to dbgagent for autonomous runs.
+If this aligns with your expectations, I’ll start drafting the repo changes. Let me know if you want any tweaks before I begin!

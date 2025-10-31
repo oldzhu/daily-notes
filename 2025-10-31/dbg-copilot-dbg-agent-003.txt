@@ -1,0 +1,3 @@
+Running dbgagent with no flags uses the default provider (openrouter) from cli.py. That provider expects an API key in OPENROUTER_API_KEY (or via --llm-key/session config). Without it, the run fails early, so the CLI prints the error instead of the help text. To see the usage banner, run dbgagent --help; to make the default invocation work, set the env var or choose a provider that already has credentials configured.
+
+The --max-steps option controls the iteration cap, and its default is 16 (see the same file).

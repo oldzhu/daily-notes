@@ -1,0 +1,5 @@
+Swapped LLDB sessions to the in-process Python API by default: DebugAgentRunner now prefers LldbInProcessBackend (capturing incremental output cleanly) and logs the choice, falling back to the subprocess backend only when the lldb module isn’t available.
+Documented the new behavior in README.md, noting the in-process preference and fallback.
+Next time you run dbgagent --debugger lldb …, it should stream clean LLDB output via the Python API.
+
+Right now the GLM default path was still falling back to /v1/chat/completions, so the request hit /api/paas/v4/v1/chat… and returned 404. I’ve forced the OpenAI-compatible client to use /chat/completions whenever the path is unset or still on the legacy /v1 value. After reinstalling the project (pip install -e dbgagent or the top-level package), rerun your dbgagent command—you should no longer see the 404, assuming the API key and service are valid.
