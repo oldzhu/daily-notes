@@ -1,0 +1,43 @@
+Here’s how I’d wire everything up next—let me know if this matches what you have in mind before I dive into code:
+
+Session Backend (FastAPI)
+
+Add SessionManager to spin up CopilotOrchestrator plus debugger backend per session.
+REST: POST /api/sessions (create), POST /api/sessions/{id}/command, POST /api/sessions/{id}/chat, GET /api/sessions/{id}/state.
+WebSockets: /ws/debugger/{id} streams command output; /ws/chat/{id} streams LLM replies + usage.
+Persist token usage & last outputs for new connections; clean up on timeout.
+Debugger Hook
+
+Use existing GDB subprocess and LLDB in-process backends to run commands.
+Queue commands; stream stdout/stderr chunks to WS clients.
+Capture last output for context summary & display.
+LLM Chat Hook
+
+Reuse CopilotOrchestrator ask flow (interactive mode).
+Maintain transcript in session state; when /chat called, push conversation, run orchestrator, stream answer (and, when it emits <cmd>, auto-fire command endpoint to execute, streaming back output).
+Surface token/cost metrics from provider to frontend.
+File Explorer Polish
+
+Allow navigation via breadcrumbs/back button; highlight selected program file.
+Support double-click (set program path & optionally auto-fill core).
+Maybe add simple search/filter and file content preview in future.
+Frontend Wiring
+
+Create React-like state manager in vanilla JS or migrate to small framework? For now, extend JS:
+Manage sessionId; call /api/sessions on Start.
+Open two WebSockets; pipe messages into console/chat UI.
+Disable controls until session ready; show status to user.
+Hook command/chat forms to POST endpoints, use ack to display results.
+Add breadcrumbs/selected highlight to workspace list.
+Incremental Delivery
+
+Implement backend session manager + REST/WS endpoints with simple JSON payloads.
+Update frontend to create session, open sockets, stream outputs.
+Wire debugger command form to actual command endpoint.
+Integrate chat form with orchestrator; display LLM responses & any auto commands.
+Polish file explorer (breadcrumbs + selection).
+Add basic error handling/timeouts/logging; ensure server shuts down sessions.
+If you’re good with that roadmap, I’ll start with backend session management and websocket plumbing, then move to frontend wiring.
+
+Wired the SPA to the live backend so sessions, commands, and chat now flow through real endpoints. Highlights: added REST helpers in app.js, session bootstrap with provider validation, WebSocket wiring for debugger/chat streams, and improved workspace browser with breadcrumb, parent navigation, and selected-program tracking. Try launching the FastAPI server and exercising a full session to confirm; add UX polish or status badges once you see the live data coming through.
+

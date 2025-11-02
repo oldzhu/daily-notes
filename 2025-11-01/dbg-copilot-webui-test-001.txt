@@ -1,0 +1,14 @@
+Built a scaffolded browser UI so you can load the first layout and tease the flows:
+
+Added a minimal FastAPI app (main.py) that serves the SPA shell, exposes /api/status, /api/providers, and a simple workspace browser (/api/workspace), and mounts the static assets.
+Dropped in the static front end (index.html, styles.css, app.js) with the three VS Code–style panes (Explorer with session controls + workspace tree, Debugger console stub, Assistant chat stub). The JS wires up health/provider/workspace fetches and shows placeholder responses for future APIs.
+Declared fastapi and uvicorn in pyproject.toml so the new backend imports resolve.
+Added package markers (__init__.py, __init__.py) for the new module.
+To try it:
+
+Reinstall to pick up the new deps: pip install -e . (or regenerate the wheel).
+Launch the server: uvicorn dbgweb.app.main:app --reload.
+Open http://localhost:8000/ and you’ll see the three-column UI with live provider/workspace data and stubbed console/chat interactions.
+No automated tests run yet; this is the first visible pass. Next steps when you’re ready: hook up real session creation, debugger streaming, and LLM chat, plus polish the file explorer.
+
+

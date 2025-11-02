@@ -1,0 +1,55 @@
+Browser UI Plan
+
+Stack Choice
+
+Backend: FastAPI + uvicorn (already friendly with Python stack) for REST + WebSocket.
+Frontend: Lightweight React app (Vite or plain React + TypeScript) served by FastAPI static files; uses Tailwind/vanilla CSS for VS Code-like layout. Keeps tooling modern but manageable.
+Server Layout (new package dbgweb)
+
+app/main.py: FastAPI app, config, static mounts.
+app/routes.py: REST endpoints for providers, model lists, FS browsing, launching sessions.
+app/ws.py: WebSocket endpoints for debugger stream (GDB/LLDB) and LLM chat stream.
+app/session_manager.py: Wraps CopilotOrchestrator + backends; manages per-session state, queues, background tasks.
+Shared utils for reading configs/keys, bridging to dbgagent when auto mode added later.
+Frontend Structure (dbgweb/frontend/)
+
+Layout with three vertical panes using CSS grid/flex (Explorer | Debugger | Chat).
+Explorer Pane: Form controls (dropdowns for debugger/provider/model, key input), file tree (use REST endpoint to browse). Button to start session.
+Debugger Pane: Terminal-like view streaming backend output via WebSocket; input box for commands; persisted history.
+Chat Pane: Chat history (LLM responses), message composer; provider/model selector syncs with explorer; shows token usage.
+React components: SessionControls, FileExplorer, DebuggerConsole, ChatPanel, ModelSelector.
+State management with React Query / SWR for REST fetching; WebSocket hooks for live streams.
+APIs & Data Flow
+
+GET /api/providers → list provider IDs/model lists (reuse existing provider registry).
+POST /api/session → create new session: returns session_id, info; accepts debugger, provider, model, key, target file/core.
+POST /api/session/{id}/command → enqueue debugger command; results streamed on WS /ws/debugger/{id}.
+POST /api/session/{id}/chat → send user prompt; orchestrator response streamed on WS /ws/chat/{id}.
+GET /api/fs → limited filesystem tree (rooted at workspace) for explorer.
+State Handling
+
+Session manager holds orchestrator/backends per session; ensures cleanup on disconnect.
+Use asyncio queues for debugger output and LLM responses; WebSockets consume from queues.
+Token/cost tracking reused from recent dbgagent work; include in WS payload for Chat pane.
+Security & Config
+
+Environment variables for API key defaults; ensure keys handled as secrets (never logged).
+FS browsing restricted within workspace root; path sanitization.
+CORS configurable/limited to same origin since served together.
+Incremental Delivery
+
+Scaffold backend package + minimal API to create session, run command via orchestrator, stream output.
+Build React layout with static data mocking.
+Wire Explorer controls to backend endpoints.
+Hook debugger console WebSocket.
+Connect chat panel to orchestrator responses.
+Polish (error handling, token usage display, loading states).
+Documentation + run instructions (uvicorn dbgweb.app.main:app --reload).
+Testing & Validation
+
+Backend unit tests for API, session manager.
+Frontend: basic component tests with Vitest + React Testing Library.
+Manual end-to-end test: start server, open browser, run sample crash.
+Let me know if you’d like any adjustments before we start implementing.
+
+

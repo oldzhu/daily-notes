@@ -1,0 +1,23 @@
+WARNING: Unsupported upgrade request.
+WARNING: No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+INFO: 127.0.0.1:59614 - "GET /ws/debugger/21bef10c HTTP/1.1" 404 Not Found
+WARNING: Unsupported upgrade request.
+WARNING: No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+INFO: 127.0.0.1:59616 - "GET /ws/chat/21bef10c HTTP/1.1" 404 Not Found
+INFO: 127.0.0.1:42064 - "POST /api/sessions/21bef10c/chat HTTP/1.1" 200 OK
+INFO: 127.0.0.1:58994 - "POST /api/sessions HTTP/1.1" 200 OK
+WARNING: Unsupported upgrade request.
+WARNING: No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+and another two issues I observed for UIS
+
+the frame boundary can not be adjusted like VScode through mouse
+Each frame page seems not fit into the browser screen well as some content are out of screen.
+
+==========
+Added WebSocket transport support and tuned the UI so panes resize cleanly and stay within the viewport.
+
+pyproject.toml: switched the runtime dependency to uvicorn[standard]>=0.30, which bundles a supported WebSocket implementation; run pip install -e . (or pip install uvicorn[standard]>=0.30) and restart Uvicorn so the upgrade takes effect.
+index.html: assigned stable IDs to each pane and inserted focusable divider elements to anchor the resize logic.
+styles.css: replaced the fixed grid with a flex row, set sane min-widths/min-heights, styled the dividers, hid them on narrow screens, and highlighted the selected workspace entry to keep every pane fully visible.
+app.js: added divider listeners with pointer/keyboard support, enforced pane minimum widths, and reused the existing UI state so resizing acts like VS Code while keeping session streams intact.
+Next steps: 1) reinstall the package (step above) and restart uvicorn to clear the WebSocket warnings, 2) reload the SPA and drag the separators to confirm both the debugger and chat panes resize without clipping.

@@ -1,0 +1,34 @@
+test so far it works, but if click start button in explorer, I din't see shell and gdb or lldb prompt appeared in debugger console frame, could u contiue the working so I can test?
+===========
+Hooked the new terminal up so it shows a real debugger prompt after you start a session (and after every command):
+
+gdb_subprocess.py, lldb_inprocess.py, lldb_subprocess.py: each backend now exposes its canonical prompt ((gdb)  / (lldb) ), so the UI knows what to render.
+session_manager.py: every command (including the initial file/core-file) now flows through a formatter that strips ANSI codes, appends a newline when needed, and finishes with the debugger prompt; when there’s nothing else to send, we still enqueue just the prompt so the console never looks empty.
+Restart uvicorn dbgweb.app.main:app --reload, start a session, and you should immediately see (gdb) or (lldb) appear in 
+
+=============
+
+Updated the stack so you see the debugger prompt immediately after hitting Start:
+
+gdb/lldb backends now expose their prompt strings, and the session manager formats every debugger response with a newline + prompt. It also returns any initial messages (prompt plus file/core-file output) to the API while still queuing them for the WebSocket.
+/api/sessions now replies with initial_messages, and /api/sessions/{id}/command accepts blank commands so an empty Enter just refreshes the prompt instead of throwing a 400.
+The frontend renders those initial messages right away, keeps them in a replay buffer, and suppresses the duplicates when the WebSocket feeds them through; the terminal also refits whenever new text arrives so everything stays visible.
+Restart the dev server (uvicorn dbgweb.app.main:app --reload) to pull in the backend changes, then click Start—(gdb)/(lldb) should appear in the debugger pane immediately, and pressing Enter on its own now just reprints the prompt. Let me know how it behaves.
+
+You don’t need to rebuild/install the wheel—running uvicorn dbgweb.app.main:app --reload picks up the source tree directly. I just strengthened the session bootstrap so the debugger prompt always shows up:
+
+Backend already returns the canonical (gdb)/(lldb) prompt with every initial response.
+Frontend now “primes” the debugger by immediately issuing an empty command right after you click Start. That forces a prompt onto the xterm console even if the initial message replay doesn’t arrive for some reason.
+Pull the latest changes (git pull), restart the dev server, and try starting a session again—the prompt should appear as soon as the session comes up.
+
+=============
+
+Added a JS fallback so the debugger console works whenever xterm.js is absent. Updates in app.js detect missing window.Terminal, flag keystream support, spin up a simple form/scrollback console, and reuse the same dispatchDebuggerCommand path for normal and prime commands. xterm-specific handlers now bail out when the fallback is active, and the fallback auto-focuses its input so prompts are visible right away.
+
+Give the web UI a quick reload without xterm assets; you should see the prompt in the new fallback console and be able to run commands via the Run button or Enter.
+
+
+app.js:180  xterm.js not available; using fallback debugger console
+initializeTerminal @ app.js:180
+(anonymous) @ app.js:613
+

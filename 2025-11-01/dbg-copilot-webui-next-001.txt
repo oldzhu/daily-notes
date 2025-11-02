@@ -1,0 +1,2 @@
+1. debugger console frame provide the similar experience as run gdb/lldb in console doirectly.
+2. chat frame ask confirm experience should provide similar experience as vscode not like now should type answer in chat box..
