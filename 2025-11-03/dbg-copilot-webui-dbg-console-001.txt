@@ -1,0 +1,9 @@
+Updated the fallback debugger console so you can type commands right after the (gdb)/(lldb) prompt—no more separate Run box—while the UI still auto-focuses that input and keeps output scrollback.
+
+app.js: replaced the old form-based fallback with a prompt+contenteditable line that echoes commands into the scrollback, tracks prompt text, and routes Enter presses through dispatchDebuggerCommand, plus polished placeholder/focus behavior.
+styles.css: restyled the fallback terminal to match the new inline input line and removed the unused form/button styles.
+Reload the web UI without xterm.js and confirm you can type after the prompt and press Enter to run commands; let me know if you want history or interrupt support next.
+
+Updated the fallback prompt text to “waiting for debugger…” so it’s clear this message comes from the debugger, not the LLM. Added a closeSession FastAPI endpoint plus matching frontend logic: the Start Session button now flips to “Stop Session” while a session is active, closes the backend session via the new DELETE route, tears down both WebSocket streams, and resets the UI state when you stop. Relevant files: routes.py, app.js.
+
+Reload the web UI and use the button to start/stop a session to confirm. Restart the FastAPI server if it was already running so the new DELETE route is available. Let me know if you’d rather keep the “waitting” spelling.

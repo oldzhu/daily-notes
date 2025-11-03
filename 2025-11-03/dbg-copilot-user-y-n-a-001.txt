@@ -1,0 +1,24 @@
+Updated orchestrator.py and state.py so Copilot now parks any <cmd>…</cmd> suggestions, asks the user for y/n/a confirmation, supports auto-accept for the rest of the session, and—after executing—feeds the debugger output back to the LLM before surfacing the next reply. The confirmation banner shows the assistant’s reasoning, the echoed command, and the keyboard choices; once auto mode is enabled the reasoning precedes each auto-run.
+
+On the web side (app.js, routes.py) the Start button toggles to Stop, issues a new DELETE /api/sessions/{id} to tear down the session, and resets the UI; the fallback console placeholder now reads “waiting for debugger…”.
+
+Next steps:
+
+Restart the FastAPI dev server so the DELETE route is registered.
+In the REPL or web UI, trigger an LLM command suggestion—try y/n/a paths to confirm the new flow.
+Run pytest -q when convenient to make sure nothing regressed.
+
+========
+
+Updated the prompt guidance so the LLM now tags every proposed debugger command immediately, letting Copilot handle the y/n/a confirmation flow:
+
+defaults.py – rewrote the system preamble, protocol, and rules to require immediate <cmd>command</cmd> output (exactly one command) with optional reasoning outside the tag.
+prompts.json – mirrored those changes for the runtime override so deployed instances share the same expectations.
+tool_instructions.md – simplified the tool directions to “reason + <cmd> when needed; omit the tag otherwise,” explicitly noting the host confirmation step.
+Feel free to reload prompts (/prompts reload) or restart the web backend so the new wording takes effect before your next session.
+
+=============
+already builds the follow-up message with the explicit line “What should we do next? Remember to wrap any future debugger commands inside <cmd>...</cmd>.”, so every executed command will funnel that reminder back to the model. Go ahead and reload the prompts (/prompts reload) before testing another session so the change is definitely in play.
+
+=============
+We’re covered already. Both defaults.py and prompts.json tell the model to emit any debugger command immediately inside <cmd>…</cmd> with single-command rules, so nothing extra to change unless you want to tweak the wording. Just remember to run /prompts reload if you edit them later.

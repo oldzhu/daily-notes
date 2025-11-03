@@ -1,0 +1,11 @@
+Committed the pending debugger Copilot updates as Improve debugger copilot session UX.
+
+app.js now initializes the fallback console, toggles start/stop, and streams WebSocket output while queueing commands through the new API.
+routes.py exposes DELETE /api/sessions/{id} so the UI can stop sessions cleanly.
+state.py tracks selected_provider, pending_command, and auto_accept_commands for the revised confirmation flow.
+orchestrator.py executes accepted <cmd> suggestions, feeds the output back to the LLM, and asks “What should we do next?” with the <cmd> reminder.
+defaults.py, prompts.json, and tool_instructions.md align the wording so models emit single debugger commands immediately in <cmd> blocks.
+Next steps:
+
+Reload prompts (/prompts reload) before the next session so the fresh wording is active.
+Run an end-to-end session tomorrow (start → suggested command → y/n/a paths) and confirm the follow-up guidance looks right.
