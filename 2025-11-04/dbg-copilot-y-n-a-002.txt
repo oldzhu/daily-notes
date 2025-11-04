@@ -1,0 +1,23 @@
+Chat Streaming
+
+Orchestrator now streams assistant replies in auto mode via new _emit_chat, skips duplicate echoes when sinks handle delivery, and buffers debugger output for later flushing by returning (output, streamed) from _execute_once; added a pyright directive plus type annotations to keep diagnostics quiet.
+Session state gained pending_outputs, pending_chat, the two output sinks, and a last_answer_streamed flag to coordinate replay across backends.
+Web session manager wires debugger/chat sinks into async queues, drains pending chat/output buffers after each turn, and avoids duplicating streamed responses.
+Standalone REPL registers both sinks so chat text streams live and ignores empty returns that were already printed.
+Tests: pytest -q
+
+Updated standalone.py so all REPL status messages drop the [copilot] prefix, covering startup banner, /use responses, config/chat prompts, errors, and LLDB/GDB selection. The prompt text remains unchanged so the copilot> input line is now visually distinct from output.
+While touching the file, ensured sinks are installed whenever a new session or backend is selected so streaming stays intact without the old prefix.
+Tests: pytest -q
+
+Next: 1) Launch the standalone REPL and walk through /use gdb and /use lldb to spot-check the new formatting.
+
+Removed the [copilot] prefix from all user-facing orchestrator messages so LLM replies now read naturally. Updates live in orchestrator.py, covering confirmation prompts, session notices, auto-accept messaging, and error strings.
+
+Tests: pytest -q
+
+You may want to spin up the REPL or web UI and run through an auto-execute cycle to confirm the streamed text looks good end to end.
+
+Streaming chat now wraps auto-mode replies with the same green ANSI color the manual path uses, while keeping provider errors red. Change is in orchestrator.py via the enhanced _emit_chat() helper. Tests: pytest -q.
+
+Give the REPL another spin in auto mode to confirm the green styling holds in your terminal.

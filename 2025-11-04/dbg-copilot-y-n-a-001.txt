@@ -1,0 +1,12 @@
+Auto-exec streaming needed one more change in the CLI itself, so I wired SessionState.debugger_output_sink up inside the standalone REPL and taught _execute_once to stream through that hook. Now, when you hit a for auto-yes, every debugger command writes to the REPL as soon as it finishes, rather than waiting for the whole loop to complete.
+
+Key updates (already in the tree):
+
+state.py – session state now carries pending_outputs and a debugger_output_sink.
+orchestrator.py – _execute_once returns both the output and a “streamed” flag; _execute_with_followup skips re-printing when the sink already handled it.
+session_manager.py – the web backend installs its own sink (so the debugger WebSocket still streams live) and flushes any buffered chunks after each chat turn.
+standalone.py – the REPL installs a sink that writes straight to stdout, so auto-executed commands show up immediately even before the Copilot reply arrives.
+Please reinstall so the dbgcopilot entry point picks up the new modules (e.g. pip install -e . or make install-wheel), then restart the REPL and flip to auto-accept again—you should see each command’s output as it lands.
+
+=======
+
