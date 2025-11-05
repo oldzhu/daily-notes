@@ -1,0 +1,26 @@
+improving webui
+
+Let us continue to improve our webui
+1.  now our LLM settings are in chat frame, I would like to remove them from chat frame so that chat frame only have history amd chat msg box and send button.
+2. add a small gear icon at the same line of the heading Assiatnt Chat but it is located at the right side of the line.
+3. if mouse pause at the gear icon, you will see "Configure Chat..." appeared below of the icon. move mouse out the "Configure Chat..." gone.
+4. If click on gear icon, u will one configuration box popped out u can set the LLM settings (llm provider, mode, api key...). Future we can configure more, such as temparature, or even some special different settings for different models. But now we just have the 3 llm provider, mode, api key at the current stage.
+5. Change the Assiatnt Chat h2 to Coliot Chat h2.
+6. for LLM reply display in chat histoty, the font color is while, can we change to another color which is distinguish and easy to differentiate with user msg.
+=======
+Web UI Updates
+
+Reworked index.html so chat pane now shows only history plus input; LLM settings live in a hidden chat-config-panel opened by the new right-aligned gear, with the heading text changed to Coliot Chat.
+Implemented popover behavior in app.js, wiring the gear icon, close button, outside-click/escape dismissal, and focus handling to make the configuration box usable without cluttering the chat form.
+Refreshed styles.css to style the chat header, hover tooltip, floating settings panel, and updated assistant message color to #82cfff for clearer contrast with user messages.
+Tests
+
+pytest -q
+Next Steps
+
+Give the gear tooltip and configuration popover a quick manual check in the browser to ensure positioning and dismissal feel right at various viewport sizes.
+
+================
+another thing is that previouly in checking logic when user press start session, if the apikey is not set, it will popup a warning says api key is required, now as the api key setting is only display after click gear icon, it is better to also point how to set api key by click settings icon in warning msg...
+=========
+Updated the start-session validation in app.js so the missing-API-key alert now tells users to click the gear next to Coliot Chat to open settings, and the assistant chat reminder echoes the same direction. No automated tests were run. Consider quickly confirming the revised alert in the running web UI.

@@ -1,0 +1,15 @@
+Chat messages now render as labeled bubbles so “You” and “Copilot” responses are easy to distinguish. Updated app.js to wrap each chat entry in a label-plus-chat-bubble element and to tag proposals with the same label track; reused the existing terminal helpers so the build stays clean. Restyled the history in styles.css with new bubble colors, right-aligned user messages, and consistent “Copilot:” prefixes ahead of proposal cards.
+
+Reload the chat pane in your browser to verify the new layout and tweak the palette if you want a different vibe.
+
+==========
+
+thanks the other improment is the vertical scro bar used in explorer frame, debugger frame and ckat frame, i want to make it more narrow so that more space can leave to these frames content, I aso want to make it has the same color as the frame content background, as I saw in vscode, seems the color of the scroll bar is black which is the same as the vscode frame background, and the color of the postion mark of the scroll bar is gray white and only appeared when mouse hover/focus on scrollbar
+
+=========
+
+Applied slim, background-blended scrollbars across the panes:
+
+Updated styles.css so .pane, .workspace, .chat-history, .terminal, and .terminal-fallback-output default to thin scrollbars that blend with their backgrounds, revealing a soft gray thumb only on hover or focus.
+Added matching ::-webkit-scrollbar rules, keeping the thumb transparent by default and tinted on interaction for WebKit browsers.
+Reload the UI to see the narrower bars; tweak the hover gray (#5a5a5a) if you’d like a lighter or darker thumb.

@@ -1,0 +1,4 @@
+Debugger Fix
+
+Updated gdb_subprocess.py so exit, quit, or q gracefully terminate the current GDB process without surfacing a [gdb eof] error. We close the child, immediately reinitialize a fresh GDB instance, and return a friendly note indicating the session was restarted.
+You shouldn’t see that EOF stack trace anymore, and the debugger prompt will be ready for new commands right away. Give it a spin (exit in the console) and let me know how it feels.

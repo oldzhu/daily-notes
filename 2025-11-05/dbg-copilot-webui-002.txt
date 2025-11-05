@@ -1,0 +1,42 @@
+refreshed the page and it is still the same(gear icon and the tooltip). Another issue is that for the boundary between debugger frame and chat frame, if put mouse on bodary and hold, drag it to left, but the boundary actually move to right, drag it to right, then it will move to left. The boundary beween explorer frame and debugger frame worked as expect, drag the boundary to right, then it will move to right, drag to left, it will move to left.
+==========
+UI Fixes
+
+styles.css: tightened the gear button styling so it sits flush with the “Coliot Chat” heading, centered the glyph, and keep “Configure Chat…” hidden until hover/focus.
+app.js: corrected the chat-divider drag math (and keyboard resizing) so pulling left/right moves the boundary in the direction you drag, matching the explorer/debugger divider behavior.
+Reload the web UI (hard refresh if cached) to confirm the gear alignment, tooltip hover behavior, and divider drag direction now feel right.
+
+========
+tested and now gear icon and tooltip displayed as expect, the only concern is that "Configure Chat..." is displayed out off screen, I only can see "Configure Cha" in the screen when hover/focus.
+anotehr issue, is tha the setting page (llm provider, mode, api key) always displayed in fron of the chat frame which should be only appearred after click on gear icon.
+
+==========
+Adjusted styles.css so the “Configure Chat…” tooltip anchors to the button’s right edge—keeping it fully visible—and added an explicit [hidden] rule so the settings panel stays concealed until the gear icon is clicked. Refresh the UI to confirm the tooltip stays on-screen and the settings pane no longer shows by default.
+
+===========
+
+great now gear icon and tootip works as expect and settings panel also only appearred after click the gear icon, now the issue is that the 3 settings element are displayed out of the panel and not well fit within the panel screen page, pls fix. Another thing is for llm setting select box, the text including short provider name + description of the provider. I would like to change it to only contain the short name of the provider, only display the description of the provider when hover/focus on that provider in the list - just like tooltip only displayed when hover/focus on the gear icon
+===============
+Panel Layout & Tooltips
+
+Extended styles.css so the chat settings panel has a scrollable max-height, inputs stretch to full width, and the provider select gains a wrapper/tooltip styling (with little caret) that stays inside the panel.
+Updated index.html to wrap the provider dropdown in that tooltip container.
+Enhanced app.js to store provider descriptions in data-description, show them in a hover/focus tooltip, and clear the tooltip when appropriate; also reuse the hide helper when closing the panel.
+Refresh the web UI to confirm the fields stay inside the panel and that hovering/focusing the provider dropdown reveals its description while the list itself shows only IDs.
+
+=============
+
+great it works as expect. One issue is that the short description only appearred correctly for the selected provider, if I click and expand select box and use mouse to scroll up and down, hover/focus on items in the expand list, the description won't changed to the item provide which mouse hover/focus on.
+
+==========
+UI Refinements
+
+styles.css: constrained the chat settings popover (scrollable max-height, full-width inputs) and added styling for a custom provider dropdown plus tooltip arrows so everything stays inside the panel.
+index.html: replaced the plain <select> with a trigger button + listbox setup while keeping a hidden field for the actual value.
+app.js: rebuilt the provider picker logic—custom dropdown with keyboard/mouse support, hover/focus tooltips per option, proper outside-click/Escape handling—and ensured the config panel resets the dropdown state when opening/closing.
+No automated tests were run. Refresh the page to confirm the new dropdown behavior meets your hover expectations.
+
+===========
+Removed the scroll constraints on the chat settings panel in styles.css, so it no longer shows vertical or horizontal scrollbars. Refresh the UI and see if the layout feels cleaner; we can fine-tune spacing if needed.
+
+
