@@ -1,0 +1,14 @@
+issue : webui apikey was set and then click start session, browser will popup a window to ask u save password for auto fill. 
+issue: lldb does not work in webui?
+
+=============
+
+Now the web UI prefers the LLDB Python API backend: SessionManager._create_backend tries LldbApiBackend first and only falls back to the in-process or subprocess backends if the API path isn’t available, logging a warning when that happens. This should eliminate the subprocess prompt spam you were seeing when starting LLDB sessions.
+
+Fixes Applied
+
+Updated session_manager.py so LLDB sessions now prefer the Python API backend; we only fall back to the in-process or subprocess implementations if the API path isn’t available, and we log when a fallback occurs.
+Tweaked lldb_api.py to advertise the (lldb) prompt and to return an empty string when the user submits a blank command, which suppresses the “error: empty command” message you were seeing. Error formatting also now mirrors the other LLDB backends.
+I haven’t rerun the app here—please restart the web UI and spin up a new LLDB session to confirm you get the prompt plus real help output. Let me know if anything still looks off.
+
+No negative impact expected. The change only touches the LLDB backend plumbing: web sessions now favor the LLDB Python API implementation, and the backend skips emitting “error: empty command” on blank inputs. dbgcopilot uses the same backend class, so it simply benefits from the cleaner prompt behavior—command handling and orchestrator logic stay the same. If you rely on the subprocess fallback, it still kicks in automatically.

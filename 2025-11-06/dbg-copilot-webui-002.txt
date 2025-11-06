@@ -1,0 +1,20 @@
+Now let us continue to improve our webui. 
+I think the border line of our 3 frame are too thick, not like what we saw in vs code, the border between the two  adjacent frames in vscode are very thin, which looks just like white silk line, when mouse hover/focus on the silk line between the two frames, the line become a little more thick and color chnage to blue, when mouse move out of the line, it will become to original white silk line again
+
+==========
+
+Refined the pane dividers to mimic VS Code’s thin “silk” separators: default line is now a subtle 2 px translucent white, expanding to a 4 px blue highlight on hover or focus for easier resizing. Touch interaction remains supported. Changes live in styles.css. Reload the web UI to check the slimmer look.
+
+=============
+
+now 2 borders between 3 frames works as I want. My another feeling is the for distance beween the border of the debugger command output box and the border of the separator of the two frames, seems too spaces left between them, can expand the command box and chat history box a little bit so that looks like the these boxes are just right next to the border of the sperator or the border of the container?
+
+========
+
+Trimmed the horizontal padding so the content hugs the dividers more closely:
+
+.pane padding dropped to 0.75rem.
+#explorer-pane now uses a tighter padding-right: 0.5rem.
+#debugger-pane squeezes both sides to 0.5rem.
+#chat-pane brings its left edge in to 0.5rem.
+This moves the debugger console and chat history borders closer to the separators while keeping a bit of breathing room elsewhere. Reload the page to see the slimmer gutters.
