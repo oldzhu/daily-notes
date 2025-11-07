@@ -1,0 +1,16 @@
+in webui, when select gdb and click start session,would see the below in debugger output box
+(gdb) [debugger] connected
+
+[?2004l
+[?2004h
+
+seems color render does work for gdb and it works when use lldb so far,
+sorry I saw color render partially works for gdb too, just saw some some control characters in output as we mentioned above
+==========
+Control Characters Filtered
+
+Trimmed GDB’s bracketed-paste control sequences (\x1b[?2004l / \x1b[?2004h) inside session_manager.py so they no longer reach the Web UI. Colors now behave the same way for GDB and LLDB without the stray escape codes.
+Tests
+
+pytest -q
+Give the session pane a refresh and start a new GDB session; the debugger terminal should look clean now. Let me know if you spot any other control sequences we should strip.

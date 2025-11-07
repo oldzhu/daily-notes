@@ -1,0 +1,9 @@
+how about some other more specifc parameters(may not popular or common for openai api compaible) such as enable thinking and has thoughts for some model support deep thinking and some other like enable web search? I mean plan how to support these in our project
+========
+Treat them as per-provider capability flags plus optional payload blocks. Extend llm_providers.json metadata with booleans like supports_thoughts, supports_web_search, and maybe a capabilities array so we can detect what’s safe to expose.
+Surface new /llm params verbs in the REPL to read/write session overrides: e.g. /llm params session enable_thoughts on or /llm params clear. Persist them in SessionState.config under namespaced keys (provider_capability_enable_thoughts, provider_capability_web_search_query, etc.).
+Update openai_compat._ask_openai_compat (or provider-specific client) to inspect those keys. When a provider advertises supports_thoughts, inject the vendor’s expected JSON (e.g. {"reasoning":{"effort":"medium"}} or {"responses":[{"content":[{"type":"thoughts","text":...}]}]}) before the request. Web-search would translate to embedding a plugin/tool spec or flipping a header/body toggle depending on the API.
+Add a Provider.meta["custom_payload_hooks"] entry so non–OpenAI-compatible providers (OpenRouter custom routes, future tools) can register callables to merge session parameters into the outgoing request.
+Guard everything behind capability checks so legacy endpoints ignore unsupported knobs gracefully and /llm params can explain when a provider doesn’t implement a feature.
+Document the schema in AGENTS.md / README so new providers declare their capabilities and the REPL can auto-generate help for available parameters.
+

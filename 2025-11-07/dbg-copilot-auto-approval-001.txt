@@ -1,0 +1,8 @@
+Auto Toggle
+
+Added /auto [on|off|toggle|status] to standalone.py, so you can flip session auto-approve without responding inside the chat prompt; command output reflects the current state and updates the REPL /help and /config views.
+When auto-approve is enabled from a chat confirmation (auto reply), orchestrator.py now mirrors that state into SessionState.config, keeping the REPL command and config display in sync.
+Tests
+
+pytest -q
+Next: fire up the REPL and run /auto status plus a quick /auto on → question to confirm the flow feels right.

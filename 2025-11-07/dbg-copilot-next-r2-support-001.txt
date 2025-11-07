@@ -1,0 +1,13 @@
+how do u think to add suopport radare2 in our dbgcopilot project like we support lldb and gdb? just quick think, do not go to implement right now.
+========
+Adding Radare2 Support
+
+Backend choice: decide on a radare2 interface—either drive r2 -q0 with pexpect (like GDB subprocess) for portability, or use the native r2pipe Python API for tighter integration. Offering both and auto-selecting (fast path: r2pipe → fallback: subprocess) mirrors current LLDB handling.
+New backend class: add R2Backend under backends, exposing initialize_session, run_command, and prompt attributes consistent with existing backends. Handle command splitting, prompt stripping, and exit/cleanup.
+Session manager wiring: extend SessionManager._create_backend to recognize "radare2" (or "r2"), configure prompt text, and ensure ANSI output is preserved (re-using recent work).
+REPL + CLI: update standalone REPLs (plugins/*/repl.py, index.html debugger dropdown) to list radare2, routing commands through the new backend.
+Prompting/LLM context: add tool instructions and prompt snippets describing radare2 command syntax and capabilities so the orchestrator suggests meaningful commands.
+Testing: craft basic smoke tests (load sample binary, run aaa, s main, pdf) to prove command execution. If feasible, bundle a tiny example binary in examples for automated coverage.
+Dependencies & packaging: document radare2/r2pipe requirements in README/configs. Optionally detect absence and surface clear guidance to users.
+Future niceties: translate common operations between GDB/LLDB and radare2 for command suggestions, and consider structured JSON output (r2 -q0j) if we want richer parsing down the road.
+Once we agree on interface + scope, we can start implementing incrementally (backend first, then UI/LLM glue).

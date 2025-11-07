@@ -1,0 +1,27 @@
+sometime llm would return error or failure as the below:
+lldb> next
+Process 38086 stopped
+
+thread #1, name = 'crash', stop reason = step over
+frame #0: 0x0000555555555159 crash`boom at crash.c:6:8
+3
+4 static void boom(void) {
+5 int *p = NULL;
+-> 6 *p = 42; // segfault
+7 }
+8
+9 int main(int argc, char **argv) {
+LLM provider error: deepseek request failed: HTTPSConnectionPool(host='api.deepseek.com', port=443): Read timed out.
+copilot> pls continue
+I can say pls continue and ask llm try again, it is fine in manual approve mode, but in case I set auto approve, in that case, I think it is better after show the error and failure, copilot would display wait for 5 seconds (default) and then auto retry again to ask llm to continue, until maximum 3 times (by default) and then it stop and wait for user input
+
+===========
+
+Added automatic retries for streaming mode: when auto_accept_commands is on, provider calls now retry up to three times (default) with a 5‑second pause, and you’ll see red “retrying…” status updates in the transcript; configure this via llm_auto_retry_attempts and llm_auto_retry_delay in SessionState.config.
+Introduced params.py plus richer provider metadata so both OpenAI-compatible and OpenRouter clients honor declared capabilities—default parameters as well as /llm params list|get|set|clear overrides are now injected into request payloads automatically.
+llm_providers.json and the registry defaults mirror the new capability metadata (temperature, thinking, web_search, etc.), with alias support to map friendly names to nested payload paths.
+Tests: /workspace/.venv/bin/python -m pytest -q (passed).
+
+Next steps: if you want different retry behavior, set llm_auto_retry_attempts/llm_auto_retry_delay in the session config or expose toggles via /llm params to tune response controls.
+
+

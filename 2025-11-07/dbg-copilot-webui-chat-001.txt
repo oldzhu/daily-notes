@@ -1,0 +1,19 @@
+add auto-approve setting as check box at the left(by default it is unchecked) of the send button in chat frame.
+pls make send button and auto-approve smaller.
+do u know what is font and font size used in the vscode chat history,I want to use the same and I want to make them smaller so mor hat history can be showed in one screen.
+Let me know when done and i will test then let u know if I want more adjustments...
+
+============
+Chat UI Updates
+
+Added an auto-approve checkbox (index.html) to the left of the send button; it stays unchecked by default and drives a new /api/sessions/{id}/auto-approve endpoint so toggles persist across the active session and future launches.
+Shrunk and restyled chat controls (styles.css, app.js): the send button now uses a compact footprint, the checkbox uses the same compact sizing, and status feedback appears if you flip it without an active session.
+Applied VS Code-inspired typography to the chat history (styles.css): fonts now use var(--vscode-font-family, "Segoe UI", …) at 0.8rem (~12.8 px) with tighter spacing so more conversation fits on screen.
+Backend Support
+
+Plumbed the auto-approve flag through session creation and added server-side toggling (session_manager.py, routes.py) so UI changes update SessionState.auto_accept_commands immediately.
+Tests
+
+pytest -q
+Next: reload the web UI, confirm the checkbox/controls layout, flip the toggle with and without a running session, and make sure auto-approve behavior matches your expectations. Let me know if you’d like the fonts or spacing tweaked further.
+

@@ -1,0 +1,7 @@
+1. add demo of dbgcopilot, dbgagent and dbgcopilot-webui in readme.
+2. released as a container? (how to handle arm64 on x64) 
+2. more example code  - hang, leak
+3. more llm provder settings baseurl + some model specific settings temprature or reason?
+4. radare2 support ? 
+5. auto dev and auo testing in this project - the project can improve itself?
+6. /llm provider new name baseurl [defaultmode] [short description]

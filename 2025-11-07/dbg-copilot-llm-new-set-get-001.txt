@@ -1,0 +1,17 @@
+Currently our llm provider settings are hard coded in python and today let us move our llm provider settings into config file and I also would like to add /llm command to add new one and confiure existing one 1. /llm provider new name baseurl [path] [defaultmodel] [short descirption] 2. /llm provider set name <baseurl|path|model|desc> value. 3. /llm provider get name [baseurl|path|model|desc]
+I also would like to change the /llm model command to /llm model get and /llm model set to get or set model specific settings - such as temprature or something else.
+let me know what do u think. Go ahead to implement and then I will test..
+===========
+
+Reworked providers.py to load/save providers from llm_providers.json, exposing add/get/set helpers while keeping a mock fallback and cached registry.
+Expanded /llm handling in standalone.py with richer provider listings, new /llm provider management verbs, and distinct commands for default vs session model overrides plus API-key clearing.
+Updated orchestrator.py to ask LLMs through the registry’s create_client, so session overrides and future providers flow through one path.
+Tests not run (pytest isn’t installed in .venv).
+Next steps: 1. pip install pytest in the venv and rerun /workspace/.venv/bin/python -m pytest -q to confirm everything still passes.
+
+The two commands are using different interpreters:
+
+pytest -q runs the standalone pytest script that’s already on your PATH (likely from the system Python). That interpreter has the pytest package installed, so it works.
+python -m pytest -q uses whatever python resolves to (e.g., your project’s venv). In that interpreter, the pytest module isn’t installed, so the import fails.
+To make them consistent, install pytest into the interpreter you care about (e.g., /workspace/.venv/bin/python -m pip install pytest) or activate the same environment before running either command.
+

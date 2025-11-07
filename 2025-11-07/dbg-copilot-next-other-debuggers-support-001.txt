@@ -1,0 +1,17 @@
+Thanks let hold on at the current stage. Now I am checking with you what else debugger tools in unix we can support? such as go denugger delve, is there any other debuugers u think we can add our support list? such as python debugger, rust debugger or any else u know and consider we can support if ther are popular used...
+========
+
+Here’s a quick shortlist of Unix-friendly debuggers that feel worth considering, ordered by how broadly useful they tend to be:
+
+Delve (Go): canonical Go debugger; headless dlv mode is scriptable, and remote API mirrors our existing subprocess integrations—high value for Go shops.
+LLDB Rust flavor: rustc still leans on LLDB/GDB, but adding Rust-specific command helpers (e.g., via rust-lldb wrapper or pretty-printers) could be a lightweight win rather than a brand-new backend.
+PDB / IPython debugger: Python debugging inside running processes (or via python -m pdb). Could expose a backend for local scripts or integrate with remote rpdb style sessions.
+RR (Mozilla’s record & replay): popular for deterministic C/C++ debugging; wraps GDB, so support might mean adding workflows to launch rr traces and re-use the GDB backend.
+Edb / Nemiver / DDD: GUI frontends over GDB—probably redundant since we’re CLI-oriented.
+Frida: dynamic instrumentation; less of a traditional debugger, but could pair with our automation model for live tracing/hooking.
+Radare2 / Cutter: already discussed—broad binary reverse-engineering use, scriptable, complements GDB/LLDB for malware/pwn folks.
+mdb/dtrace (Illumos/Solaris): niche but powerful; worth noting if we ever target that ecosystem.
+Chrome DevTools Protocol / lldb-webkit: if we extend into browser/V8 debugging, but that’s a larger shift.
+For near-term expansion, Delve and radare2 feel like the most impactful additions. Python debugging (pdb) can likely piggyback on existing infrastructure without too much effort. Beyond that, we can explore specialized tooling (rr, Frida) depending on user demand.
+
+

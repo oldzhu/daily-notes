@@ -1,0 +1,5 @@
+Added a MiniMax provider entry to llm_providers.json (kind set to openai-compatible, default model MiniMax-M2, standard chat-completions endpoint and params). Re-ran pytest -q to confirm everything still passes. You can now /llm list and /llm use minimax after dropping in your API key.
+
+=========
+
+long minimax api key and invalid api key error reply

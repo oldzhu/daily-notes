@@ -1,0 +1,17 @@
+add one nore in AGENT.md, pls be sure in .venv 1st before run test.
+I woud like to /llm command to set/get some session model specigic parameter, such as temparature(deault is zero), do u kknow any other common parameters can be supported in our project?
+=====
+Added the reminder about activating the project venv before running tests to AGENTS.md (build/test section).
+For /llm session-tunable parameters, the common knobs that fit our current OpenAI-style request payloads are:
+
+temperature – controls randomness (today we hard-code 0.2 in openai_compat; defaulting to 0.0 would match your ask).
+max_tokens – upper bound on response length; we default to 512.
+top_p – nucleus sampling; usually paired with temperature.
+top_k – popular with local models (llama.cpp, Ollama); not part of classic OpenAI API, but many servers honor it.
+presence_penalty / frequency_penalty – help reduce repetition.
+stop – custom stop sequences (list of strings).
+If we persist these in SessionState.config (e.g. keys like openai_http_temperature) we can surface them through /llm model session … verbs or add /llm params get|set. Implementation-wise we’d read the values in openai_compat._ask_openai_compat and include them in the JSON body when present.
+
+Let me know if you’d like me to wire those commands/fields up next.
+
+
