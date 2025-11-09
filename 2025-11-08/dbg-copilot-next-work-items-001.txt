@@ -1,0 +1,10 @@
+1. add new debugger support for delve and radare2. pdb(python debugger) will be consider at next stage.
+2. add one more hang scenario in examples folder for a typical deadlock hang which we can try with our tool. The leak scenario will be consider at next stage.
+3. install delve and radare2 in our dev container so that we can test if they work.
+4. begin to plan and work on how to release the tool so end user can try and test. I am think the following ways.
+
+4.1. the release python package an end user can try and test on their os. Besides the dependcy or requirements will be auto installed, need to doc and remind the end user there are also some other extrenal tools need to be installed for testing (gdb, lldb, delve, radare2)
+4.2. the release docker container (defined by a docker file) which contains all things a end user can try and test.
+
+5. research and plan how to test and evolve automatially in next stage (like developer agent or bot for our project can fine tuning or RL tuning itself to auto improve)
+

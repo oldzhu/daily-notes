@@ -1,0 +1,7 @@
+Removed the extra -q0 flag from the r2pipe launch in radare2_subprocess.py—r2pipe already adds it, and doubling it caused the radare2 process to exit immediately. While adjusting the session bootstrap I also enable e bin.cache=true so radare2 applies relocations and stops spamming the warning banner.
+
+Tests: pytest -q
+
+Next: please try /use radare2 again; the backend should now open crash without errors.
+=======
+Swap to r2pipe backend landed and committed as Switch radare2 backend to r2pipe. The new implementation in radare2_subprocess.py now opens sessions through r2pipe, applies sane defaults (scr.color, scr.echo, scr.interactive, bin.cache), and cleans up output sanitisation; pyproject.toml includes r2pipe>=1.9 so installs bring in the dependency. Tests: pytest -q. Let me know what you’d like next.

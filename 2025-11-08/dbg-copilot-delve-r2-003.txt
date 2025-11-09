@@ -1,0 +1,14 @@
+Updated the Dockerfile so the container now builds Delve and radare2 from upstream sources: it installs Go (golang-go), sets GOPATH=/opt/go, runs go install github.com/go-delve/delve/cmd/dlv@latest, then clones radare2 and runs its sys/install.sh. This mirrors the manual steps you outlined, so once you rebuild the dev container (Dev Containers: Rebuild Container), both tools will be preinstalled.
+
+If you want to verify manually beforehand:
+
+Install Go (if missing) and set PATH:
+
+sudo apt updatesudo apt install -y golang-goecho 'export GOPATH=$HOME/go' >> ~/.bashrcecho 'export PATH=$GOPATH/bin:$PATH' >> ~/.bashrcsource ~/.bashrc
+Install latest Delve:
+
+go install github.com/go-delve/delve/cmd/dlv@latestdlv version
+Install latest radare2:
+
+git clone https://github.com/radareorg/radare2 ~/radare2~/radare2/sys/install.shradare2 -v
+After confirming, rebuild the devcontainer to pick up the Dockerfile changes and Delve/r2 will be available automatically. Let me know when you’re ready to proceed to the next task.

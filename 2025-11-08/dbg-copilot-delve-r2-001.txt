@@ -1,0 +1,43 @@
+Delve & Radare2 Support Added
+
+Introduced new subprocess backends delve_subprocess.py and radare2_subprocess.py; both use pexpect, capture startup banners, and restart cleanly after quit.
+Updated session orchestration (session_manager.py) to instantiate the right backend, require binaries for Delve/radare2, and load programs/core dumps via backend-aware helpers.
+Web UI now exposes the new debuggers (index.html, app.js) and blocks session creation unless a binary path is supplied.
+Standalone REPL understands /use delve and /use radare2, prompting for a binary and wiring up the orchestrator (standalone.py).
+Tests
+
+pytest -q
+Let me know once you’ve tried a Delve or radare2 session (REPL or web UI) so we can proceed to step 2.
+
+===========
+Manual Install (current container)
+
+sudo apt-get update
+sudo apt-get install -y delve radare2
+Verify: dlv version and radare2 -v should both report versions without error.
+Devcontainer Update
+
+Added delve and radare2 to the base apt install in Dockerfile, so future rebuilds include them automatically.
+File touched: Dockerfile
+After updating the Dockerfile, rebuild/reopen the dev container (e.g., Dev Containers: Rebuild Container) so the new packages are baked in.
+
+Once you’ve got Delve and radare2 installed locally or via the rebuilt container, we can move on to step 2.
+
+==========
+To stay on the bleeding edge you’ll need to install each tool from its upstream repo (these steps assume you’re inside the dev container shell):
+
+1. Delve (from go-delve/delve main branch)
+Requires Go; the dev container already carries Go 1.22 from the base image. If for some reason go version fails, install it first (sudo apt-get install -y golang-go).
+
+
+# Remove any distro-delivered delve to avoid path confusionsudo apt-get remove -y delve || true# Grab the latest sourcegit clone https://github.com/go-delve/delve.git ~/src/go-delvecd ~/src/go-delve# Build and install (puts dlv in $GOPATH/bin; default is ~/go/bin)go install ./cmd/dlv# Ensure ~/go/bin is ahead in PATH for this shell and future sessionsecho 'export PATH="$HOME/go/bin:$PATH"' >> ~/.bashrcexport PATH="$HOME/go/bin:$PATH"# Verifydlv version
+2. radare2 (from radareorg/radare2 master)
+
+
+# Remove distro build if presentsudo apt-get remove -y radare2 || true# Clone upstreamgit clone https://github.com/radareorg/radare2.git ~/src/radare2cd ~/src/radare2# Bootstrap & install (script handles dependencies/build)./sys/install.sh# Add radare2 user bin directory to PATH (installs into $HOME/bin by default)echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrcexport PATH="$HOME/bin:$PATH"# Verifyradare2 -v
+Keeping them updated
+
+For Delve: cd ~/src/go-delve && git pull && go install ./cmd/dlv.
+For radare2: cd ~/src/radare2 && git pull && ./sys/install.sh.
+Run those whenever you want the latest commits.
+

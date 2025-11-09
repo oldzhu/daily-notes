@@ -1,0 +1,17 @@
+actually there is no deb package for delve and radare2 in my system, I researcd and found the below steps:
+1. for delve:
+sudo apt update
+sudo apt install golang-go
+then 
+go install github.com/go-delve/delve/cmd/dlv@latest
+The command above installs the dlv binary into your $GOPATH/bin directory (usually $HOME/go/bin). You need to ensure this directory is in your system's PATH environment variable.
+echo 'export GOPATH=$HOME/go' >> ~/.bashrc
+echo 'export PATH=$GOPATH/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+2. for radare2
+git clone https://github.com/radareorg/radare2
+# Run the installation script
+$HOME/radare2/sys/install.sh 
+I will test the the steps manually 1st, pls also modify the dockerfile accordingly so they are ready once container is create or rebuid.
+
+=============

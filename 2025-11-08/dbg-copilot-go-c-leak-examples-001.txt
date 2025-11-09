@@ -1,0 +1,19 @@
+Here’s how I’d shape the leak scenarios so they’re useful testbeds for our debugger workflows:
+
+C leak demo: build a simple allocation loop that “forgets” to free memory. You can run two variants:
+
+A tight loop with controlled iterations so it finishes quickly but leaks a moderate amount—good for stepping through and inspecting heap snapshots.
+A slower loop guarded by sleep so you can attach tools (Valgrind, heap commands) while it runs.
+For example: allocate a new char * buffer each pass, stash it in a growing array (or linked list) without freeing, maybe add optional malloc_trim toggles. Include a mode that runs long enough to see RSS climb.
+
+Go leak demo: rely on goroutines capturing references that never die (classic Go leaks). For instance:
+
+Start a goroutine that keeps appending to a global slice via a channel without ever reading or trimming it.
+Alternatively, launch goroutines with timers that enqueue work into an unbounded channel that is never drained.
+Provide a command-line flag to select “bounded” vs “unbounded” leak to keep tests deterministic. Go’s pprof heap profiles (import _ "net/http/pprof") could be exposed on localhost to let users inspect the leak while running.
+
+Structure & docs: mirror the existing crash/hang layout (examples/leak/c, examples/leak/go) with Makefile/go.mod, plus a short README describing how to build, run, and observe the leak (e.g., recommended commands like valgrind --leak-check=full ./leak or go run leak.go followed by go tool pprof).
+
+Testing hooks: maybe add environment flags so the programs can auto-exit after N allocations, making them deterministic for automated tests, but default to a “leak forever” mode for manual debugging.
+
+If that aligns with with what you have in mind, I can start implementing the samples along those lines.

@@ -1,0 +1,8 @@
+Auto-accept enabled for this session.
+copilot> how to fix?
+Your session context is quite large. Would you like me to summarize the current session and start a new one from that summary, or start a fresh session without a summary? Reply with 'summarize and new session' or 'new session'.
+copilot> summarize and new session
+
+=================
+
+need to disable it temporarily

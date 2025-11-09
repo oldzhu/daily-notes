@@ -1,0 +1,15 @@
+seems the network speed is quite slow now. I will try to download and setupthem test tomorrow early. Before I leave, could u do two things for the projetc:
+
+create go program for crash scenario under examples/crash, we may need to move our c code crash sample to examples/crash/c folder and put go sample under the folder examples/crash/go
+create c program for hang under examles/hang/c and go program for hang under examples/hang/go
+then these samples we can use for our debugging testing.
+
+========
+Crash samples reorganized and new hang demos added under examples:
+
+Removed the old examples/crash_demo folder.
+Added c with crash.c and a Makefile.
+Added go with go.mod and crash.go.
+Added c with a deadlocking hang.c and Makefile.
+Added go with go.mod and hang.go.
+Feel free to build/run any of them when you’re ready; we can pick up from here tomorrow.

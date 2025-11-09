@@ -1,0 +1,37 @@
+copilot> /use delve
+Enter path to Go binary for Delve: test
+Failed to start delve: End Of File (EOF). Exception style platform.
+<pexpect.pty_spawn.spawn object at 0x7685df40b200>
+command: /usr/local/go/bin/dlv
+args: [b'/usr/local/go/bin/dlv', b'exec', b'test']
+buffer (last 100 chars): ''
+before (last 100 chars): 'could not launch process: open /workspace/test: no such file or directory\r\n'
+after: <class 'pexpect.exceptions.EOF'>
+match: None
+match_index: None
+exitstatus: None
+flag_eof: True
+pid: 52097
+child_fd: 5
+closed: False
+timeout: 15.0
+delimiter: <class 'pexpect.exceptions.EOF'>
+logfile: None
+logfile_read: None
+logfile_send: None
+maxread: 2000
+ignorecase: False
+searchwindowsize: None
+delaybeforesend: 0.05
+delayafterclose: 0.1
+delayafterterminate: 0.1
+searcher: searcher_re:
+0: re.compile('\(dlv\)\s')
+=====
+I made startup failures friendlier for both new backends:
+
+delve_subprocess.py
+radare2_subprocess.py
+When dlv exec <binary> or radare2 -q <binary> exits before the prompt (common when the binary path is wrong), we now capture the tool’s message and raise a concise RuntimeError, e.g. “Delve failed to start: could not launch process: open … no such file or directory” instead of dumping the raw pexpect traceback.
+
+Both modules compile (python3 -m py_compile …) and pytest -q still passes. Let me know when you’d like these committed
