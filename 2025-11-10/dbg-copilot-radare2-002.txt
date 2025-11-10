@@ -1,0 +1,27 @@
+tested and 3 issues:
+
+need to filter out the rddare2> in webui for radare2 seesion as the below
+[0x719167c3c540]> radare2> dc
+Crash demo starting...
+change to
+[0x719167c3c540]> dc
+Crash demo starting...
+dbgcopilot still has static prompt radare2 but not dynamic prompt as the above in webui [0x...]
+the web UI auto-approve checkbox is still unchecked when “Auto-Approve” button is clicked on chat proposals
+
+==========
+
+Hooked the dynamic radare2 prompt through the orchestrator, web UI, and standalone REPL while keeping the auto-approve checkbox in sync with backend state.
+
+orchestrator.py: emit auto-approve state events and reuse the backend’s live prompt when echoing commands or proposals.
+radare2_subprocess.py: no functional change, but prompt readers now feed the rest of the stack.
+standalone.py: /exec echoes now use the debugger’s actual prompt (e.g. [0x00400520]>).
+session_manager.py: made set_auto_approve async so it pushes websocket events, initialized round limits, and stripped stray radare2> prompt echoes while still appending the fresh prompt.
+routes.py: awaited the async auto-approve setter.
+app.js: added syncAutoApproveState to handle the new websocket event and keep the checkbox/UI state aligned.
+Tests: pytest -q
+
+Next steps:
+
+Start a radare2-backed session in the web UI, verify the fallback terminal shows the live [addr]> prompt without duplicate radare2> lines.
+Toggle auto-approve (via proposal “Auto-approve (a)” and by hitting the checkbox) to confirm the checkbox tracks backend changes when the round limit turns it off.

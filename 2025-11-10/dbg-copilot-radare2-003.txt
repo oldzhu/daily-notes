@@ -1,0 +1,63 @@
+tested and two issues:
+1.  In webui debugger cmd output display, there is no dynamic prompt [0x...] like we saw in debugger cmd input box.
+ood
+INFO: File dbg:///workspace/examples/bin/c/crash reopened in read-write mode
+...
+dr
+rax = 0x00000000
+rbx = 0x7ffe2c3ef818
+rcx = 0x7cfa6012f5a4
+...
+2. In web ui chat settings page, for the ui of the mode settings, now the value of it only display as auto, but I would like the display of the mode setting is:
+1. for the llm provider like openrouter and modelscope which support to get the supported model list,  the ui of the model value will be a single list box which a user can change and select one to use from the input value list.
+2. for the llm providers which does not support to get the supported model list, the ui of the model value will be a edit box like now and the value is not auto and it is the default model coded in openai_compat.py and a user can change the value by typing in edit input box.
+
+==========
+
+4. for the llm providers which does not support to get the supported model list, the ui of the model value will be a edit box like now and the value is not auto and it is the default model coded in openai_compat.py and a user can change the value by typing in edit input box.
+changed to 
+4 for the llm providers which does not support to get the supported model list, the ui of the model value will be a edit box like now and the value is not auto and it is the default model configured  in llm_providers.json and a user can change the value by typing in edit input box.
+
+================
+
+Added prompt echo to the fallback debugger console so radare2 outputs now end with the live [addr]> line; appendDebuggerOutput writes the prompt as an output line before syncing the input prompt.
+Taught the chat settings panel to adapt the model control per provider: /api/providers now returns default_model plus supports_model_list, /api/providers/{id}/models lists available models, and the frontend swaps between a dropdown (for providers such as openrouter/modelscope) and a text box (pre-filled with the provider’s default model). Selections are cached per provider so toggling preserves user choices.
+Tests: pytest -q
+
+Next steps:
+
+Refresh the web UI and confirm the radare2 console shows [0x…]> at the end of the output stream.
+Open chat settings, switch between providers, and verify the model control becomes a dropdown when a list is available and defaults to the configured model otherwise (ensure API keys/base URLs are set so list calls succeed).
+
+==========
+
+2 issues for webui radare2 testing
+1.  in the debugger command output, the command executed( .e.g ood, dc as the below) not show at the same line of the dynamic prompt [0x...].
+[0x1080]> 
+ 
+ood
+INFO: File dbg:///workspace/examples/bin/c/crash reopened in read-write mode
+ 
+[0x74364b5fe540]> 
+ 
+dc
+Crash demo starting...
+ 
+[0x59250015517d]> 
+
+2. In chat settings page, for modelscope llm provider, I see the model setting is edit box with one default model value, but in dbgcopilot, the command /llm models modelscope can give the list of supported models.  
+
+I also would like a design change for auto-approval mode in webui chat box, whenever the llm start to run under auto-approval mode is enabled(start to run means start the run loop  which is llm propose cmd -> auto y - execute cmd->back to llm-> llm propose the next or stop if done analaysis or max rounds reached...), let us disable the chat input box, send button and auto-approval check box until the loop is end.
+
+==========
+
+Radare2 command echoes now retain the dynamic prompt, thanks to the tighter _format_debugger_output filtering that only drops standalone prompt lines and leaves [0x…]> command untouched in the streamed output.
+Providers now report their default model and supports_model_list via /api/providers, with a companion /api/providers/{id}/models endpoint; the chat settings panel fetches those lists, shows a dropdown for providers like openrouter/modelscope, and still pre-fills the default when the remote list can’t be retrieved.
+Auto-approve runs emit auto_loop_state events; the orchestrator tracks loop depth and the web UI listens for those messages to disable the chat textarea, send button, and auto-approve toggle until the loop finishes, then restores focus to the chat box.
+Tests: pytest -q
+
+Next steps:
+
+Reload the web UI, rerun a radare2 session, and confirm each executed command appears inline with its [addr]> prompt.
+In chat settings, pick providers with and without model listings to see the dropdown vs. text input behavior (modelscope should now offer its list).
+Trigger an auto-approve run and watch the chat controls disable while commands execute, then re-enable once the loop ends.

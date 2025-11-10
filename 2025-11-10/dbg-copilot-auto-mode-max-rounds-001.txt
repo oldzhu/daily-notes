@@ -1,0 +1,5 @@
+Added per-session auto-approve round tracking so auto mode now caps itself at 64 commands by default and tears down automatically once the budget is exhausted. state.py introduces typed helpers plus resolve_auto_round_limit and new auto_rounds_remaining state; orchestrator.py wires in round reservation, auto-disable messaging, and limit initialization when users pick “auto”; standalone.py mirrors the behavior for /auto commands, showing remaining rounds and clearing the counter when auto is turned off.
+
+Tests: pytest -q
+
+Next steps: rerun /auto workflows to spot-check the new countdown, and loop me in if you want the limit exposed via config or environment.
