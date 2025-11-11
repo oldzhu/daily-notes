@@ -1,0 +1,6 @@
+Hooked the chat settings modal into real commit/cancel flows with explicit dirty tracking.
+
+app.js: Snapshot the provider/model/API key baseline before showing the panel and route both OK/Cancel through async helpers that wait for any in-flight provider reconfiguration before committing or restoring.
+app.js: Track unsaved edits with chatConfigDirty plus a pending flag so Cancel or closing (click-away/escape) reliably reverts even if the user interrupts a provider fetch, while OK re-snapshots the committed state.
+app.js: Wire OK/Cancel button handlers and field listeners (provider/model/API key) to update the dirty state and disable/enable the new controls; close paths now use the async close helper to keep focus management intact.
+Next: 1. Reload the UI, switch providers/models, and confirm Cancel reverts and OK persists changes.

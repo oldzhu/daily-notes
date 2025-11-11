@@ -1,0 +1,3 @@
+one ui issue I observed for manual approval model in chat history output box, I could see there are two output for the same proposed llm proposed command, one is formatted display proposed debugger command box with 3 buttons embeded waiting for user click, another is pure content display of the same llm proposed cmd reply. for auto approval, we only see one pure content reply of the proposed cmd as no need to ask the user to chose. can we only show formatted display proposed debugger command box with 3 buttons embeded in manual mode to avoid 'duplicate ' display?
+========
+fixed
