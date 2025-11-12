@@ -1,0 +1,13 @@
+Python Backend Fixes
+
+Reworked the debugpy handshake to mirror the working manual flow: initialize, fire-and-forget attach, wait for the initialized event, then configurationDone, finally confirm the attach response. This avoids the deadlock that caused the earlier timeout.
+Added non-blocking request helpers in _DAPClient, so we can issue a request (like attach) without waiting synchronously before handling mandatory events.
+Improved the /exec run flow to handle termination events cleanly and report useful status (stopped, terminated, or unexpected events).
+Switched the debugpy availability check to importlib.import_module("debugpy") to satisfy type checking.
+Tests
+
+pytest -q
+Try it
+
+Start dbgcopilot, pick /use python.
+Run /exec file examples/crash/python/crash.py then /exec run; you should now see the exception details and a clean termination message instead of the old timeout.

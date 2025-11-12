@@ -1,0 +1,17 @@
+what is difference between debugpy and pdb? pros and cons. Which is you recommend to use or both?
+==========
+
+Debugpy vs. pdb
+
+What they are: pdb is Python’s built-in command-line debugger; debugpy is the VS Code debug adapter that implements the Debug Adapter Protocol (DAP) and wraps Python’s tracing APIs with richer features.
+Interaction model: pdb is purely textual (REPL with breakpoints, stepping, stack inspection); debugpy exposes the same capabilities but over sockets for IDEs/other tools and supports richer protocols (multiple threads, async, variable scopes) through DAP.
+Features:
+debugpy: remote attach, breakpoints on spawn, exception filters, better async/await stepping, integrates with VS Code and other DAP clients; can embed in processes.
+pdb: lightweight, no dependencies, always available; but lacks remote control/data formatting enhancements, limited async/thread awareness vs. debugpy.
+Dependencies and setup: pdb ships with Python and requires no install; debugpy adds a third-party dependency and sometimes requires careful attach/launch configuration.
+Automation fit: For an orchestrated debugging agent, debugpy lets us communicate via DAP, potentially reusing existing protocol handling; pdb would mean scripting the CLI (similar to how we drive GDB) but with fewer hooks.
+Recommendation
+
+Use debugpy as the primary Python backend: it opens the door to richer automation (DAP requests/responses) and remote attach, aligning with future IDE-style features. Optionally retain pdb as a fallback path for environments where adding dependencies is undesirable, but the main implementation should target debugpy for capability parity with existing gdb/lldb backends.
+
+

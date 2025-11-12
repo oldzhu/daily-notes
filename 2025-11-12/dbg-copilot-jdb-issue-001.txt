@@ -1,0 +1,58 @@
+I tested jdb in command line, I think we need to change how to launch and interactve with jdb in dbcopilot.
+
+In command line, if want to debug Crash.class in /workspace/examples/bin/java, we need to
+
+run jdb -classpath /workspace/examples/bin/java Crash and then type run in jdb prompt to start the debugging.
+or
+run jdb -classpath /workspace/examples/bin/java and then tyoe run Crash in jdb prompt to start the debugging
+so for jdb in copilot, as it is required to set the classpath, otherwise we can't start the debugging, we need to ask to set classpath before launch jdb to work with
+====================
+
+copilot> /use jdb
+Using jdb (Java debugger backend). Use '/exec run <MainClass>' to launch.
+copilot> /exec run Crash
+
+run Crash
+Initializing jdb ...
+run Crash
+Set uncaught java.lang.Throwable
+Set deferred uncaught java.lang.Throwable
+[jdb] target is paused after startup; use '/exec cont' to resume or inspect threads
+copilot> /exec cont
+cont
+Initializing jdb ...
+Command 'cont' is not valid until the VM is started with the 'run' command
+what I want to for jdb backend launching is like below
+copilot> /use jdb
+Enter path to .java/.class/.jar or main class:
+after class path enter(better to check if it exist), let us statrt jdb as jdb -classpath <path>
+so that the /exec run <Class> can find the class to run and debug
+==========
+
+Jdb Launch Flow Updated
+
+Adjusted standalone.py so /use jdb now prompts for “path to .java/.class/.jar or main class”, validates any filesystem path, and stores the result as the backend’s classpath/program. Re-selecting lets you override it; leaving the prompt blank reuses the last values.
+Constructed JavaJdbBackend with the captured classpath, so it spawns jdb -classpath … when appropriate—/exec run Crash now locates your classes without extra commands.
+Tests: pytest -q
+
+Next steps (optional):
+
+Try /use jdb, supply java, then /exec run Crash → /exec cont.
+Re-run /use jdb with a different directory or class name if you need to switch targets.
+
+===========
+Jdb Run Flow Restored
+
+Re-enabled post-drain capture for /exec run … in java_jdb.py, so we now wait for the first stop event before returning. This mirrors stock jdb -classpath … behavior: the exception (or breakpoint) output shows up immediately, and the VM stays live for follow-up commands.
+Tests: pytest -q
+
+To confirm: /use jdb, supply your classpath, then /exec run Crash → /exec where. You should now see the stack without having to restart or re-run. Let me know if you’d also like to drop the prompt hint so the output matches jdb byte-for-byte.
+
+============
+Prompt Fix
+
+Loosened the jdb prompt detector in java_jdb.py so it recognizes thread prompts like main[1] (without a trailing >). This lets run drain out the first stop event immediately, just like native jdb, so you now see the VM start + exception output without waiting for the next command.
+Tests: pytest -q
+
+You can retry /use jdb → /exec run Crash and the crash details should appear right away.
+

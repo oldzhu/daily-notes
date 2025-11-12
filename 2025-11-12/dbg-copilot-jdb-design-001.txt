@@ -1,0 +1,20 @@
+Java Debugger Options
+
+jdb ships with every JDK, offers CLI model similar to GDB/pdb; uses JDWP under the hood and exposes breakpoints, stepping, expression eval.
+Alternatives (e.g., Eclipse JDT, IntelliJ debugger, VS Code) are GUI-driven or require IDE protocols (DAP) and don’t fit our console-oriented design.
+Fit With Copilot
+
+Mirrors our existing subprocess approach: jdb runs in a terminal, command syntax is text-based (run, stop in, threads, etc.) and can be driven via pexpect.
+Supports remote JVM attach, which could be an advanced future enhancement, but initial scope should keep to launching local programs.
+Proposed Plan (for review)
+
+Spike: manually run jdb on a sample program, catalog prompt format, output quirks, and mandatory startup flags (e.g., -classpath handling).
+Backend Scaffold: follow the PythonPdbBackend pattern—subprocess launch, ANSI/prompt stripping, file/run mapping, core commands (stop in, where, print, locals, threads, cont).
+Session Wiring: add /use jdb to the REPL and web session manager (jdb name, program requirement, prompt normalization).
+Docs & UI: update dropdown labels, README sections, and new Java example instructions.
+Testing: add smoke test ensuring backend import; create minimal Java sample (e.g., examples/crash/java) with build instructions (javac).
+Open Questions
+
+Do we want to require a precompiled .class/.jar (aligning with jdb MainClass) or compile on demand?
+Any need for multi-module support or is a single -classpath argument sufficient initially?
+No code changes will be started until you approve the direction.

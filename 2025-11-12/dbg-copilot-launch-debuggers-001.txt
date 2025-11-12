@@ -1,0 +1,17 @@
+copilot> /use lldb-rust
+Using LLDB (rust-friendly API backend).
+copilot> /use pdb
+Enter path to Python script (optional):
+Using pdb (Python debugger backend). Use 'file <script.py>' then 'run' to launch.
+copilot> /use delve
+Enter path to Go binary for Delve:
+Delve requires a binary path; selection cancelled.
+copilot> /use pdb
+Enter path to Python script (optional):
+Using pdb (Python debugger backend). Use 'file <script.py>' then 'run' to launch.
+copilot> /use jdb
+Enter path to .java/.class/.jar or main class (optional):
+Using jdb (Java debugger backend). Use 'file <path or MainClass>' then 'run' to launch.
+as the above testing, I noted for gdb, lldb, lldb-rust and pdb and jdb, the path to the debugging taget are optional, but for gdb, lldb, and lldb-rust, dbgcopilt won't ask to set the target, why copilot ask to set the path for pdb and jdb, I can undersatnd ask to set the target path for delve and radare2 as the target is required for them to launch and pdb and jdb can launch without the target file. So let us make the copilot launch behavior is the same for gdb, lldb, lldb-rust and pdb and jdb - dont ask the path if it is optional to laumch
+=======
+Removed the interactive prompts when switching to pdb or jdb in the standalone REPL so they now behave like gdb/lldb—you’ll set a target later with file … if needed. Tests: pytest -q.

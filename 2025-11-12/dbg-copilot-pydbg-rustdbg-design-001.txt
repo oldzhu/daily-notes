@@ -1,0 +1,40 @@
+now bsicallly delve andradare2 works, let us consider to add python debugging and lldb rustflavir next. I would like to also add crah and hang scenarios for python and rust under examples so that we can demo and test how support python and rust debuging work. Please plan the design and implementation and explain to me 1st. I will review and decide if move to implement.
+===========
+Plan Overview
+
+Extend the debugger orchestrator so Python debugging (probably via debugpy or PDB) and an LLDB “Rust flavor” become selectable peers alongside existing GDB/LLDB configurations.
+Ship new sample programs (examples/python_*, examples/rust_*) that intentionally crash or hang, plus README notes so demos/tests can exercise the new flows.
+Update prompts/UX just enough to surface the new debugger types without disturbing existing sessions.
+Backend Design
+
+backends: add python_debugpy.py (or python_pdb.py) implementing the DebuggerBackend interface already used by gdb/lldb adapters; include start/stop hooks, command execution, and any special handling (e.g., translate /exec to debugpy evaluate).
+lldb_inprocess.py (existing?) — extend or add a specialized wrapper for Rust. Key differences: default launch command (lldb --arch ...), automatic settings set target.process.thread.step-avoid-regexp tweaks to ignore runtime frames, and include cargo-awareness (resolve target/debug/<binary>). Possibly expose a rust mode flag so the same binary handles both general LLDB and Rust-specific settings.
+orchestrator.py: allow debugger selection to include python and lldb-rust; ensure capability discovery advertises required commands/prompts; adjust session state so Python backend reports threads/frames differently.
+default.yaml or prompt JSON: update debugger list, add guidance text in tool instructions for Python + Rust.
+Frontend / API
+
+REST payloads already include debugger; ensure new identifiers (python, lldb-rust) are passed through start-session form (drop-down).
+index.html & app.js: extend debugger select options, optionally show hints (e.g., Python needs module/script path). Validate UI copy for new cases (error messaging when path missing).
+app.js: in startSession payload validation, enforce Python expects .py or module path; for Rust, keep existing requirement (binary path) but maybe auto-suggest from target/debug/.
+Examples & Docs
+
+examples/python_crash/: simple script raising exception; add Makefile or instructions to set up virtual env.
+examples/python_hang/: script with infinite loop or deadlock to exercise hang debugging; include notes on injecting SIGINT or using debugpy breakpoints.
+examples/rust_crash/ & examples/rust_hang/: small Cargo projects that panic or block (e.g., loop {}); provide Makefile targets to build (cargo build) and deliver compiled binaries for tests.
+README.md / SESSION_NOTES.md: outline how to run new demos, mention prerequisites (Python 3.11+, Rust toolchain).
+Testing Strategy
+
+Extend test_smoke_structure.py or add new tests verifying backend registry exposes python/lldb-rust entries.
+Add integration smoke tests that launch python backend against crash example (headless, ensure orchestrator sends proposal to inspect trace).
+Consider pytest marks requiring environment (python requires debugpy installed, rust requires cargo); guard with @pytest.mark.skipif to avoid CI failures without toolchains.
+Implementation Order
+
+Add crash/hang examples and doc updates (parallelizable).
+Implement Python backend module + wire into orchestrator/provider registry. Verify manual debugging via CLI before UI integration.
+Extend LLDB backend for Rust flavor; confirm flows using examples/rust_crash.
+Update API/Frontend to surface new debugger options and validation.
+Add tests/smoke coverage.
+Iterate on prompts/config if LLM guidance needs to reference new debugger types.
+Let me know if you’d like a deeper dive on any component (e.g., choosing debugpy vs pdb, Rust LLDB setup), or adjustments before implementation.
+
+

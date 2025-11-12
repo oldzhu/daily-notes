@@ -1,0 +1,15 @@
+I researched more on debugpy and pdb(python debugger), now I think I prefer pdb but debugpy, as our project backbone is CLI console based and debugpy is for IDE and has additional inter-process cost, so pls remove the implementation for debugpy from our project and add the one for pdb(python debugger)
+======
+Python Backend Swapped
+
+Replaced the debugpy-based backend with a new python_pdb backend that drives python -m pdb through pexpect; wired it into the session manager, REPL, and web UI labels.
+Removed the old python_debugpy module and the debugpy project dependency; updated README and example docs to point users at the pdb flow.
+Adjusted the smoke test to import the new backend and confirmed the REPL help text now advertises “Python (pdb backend)”.
+Tests
+
+pytest -q
+Next Steps
+
+Try /use python in dbgcopilot, then /exec file examples/crash/python/crash.py followed by /exec run to exercise the pdb backend end-to-end.
+Review the new backend file (python_pdb.py) for any extra pdb commands you’d like exposed.
+When satisfied, commit with something like git add -A && git commit -m "Replace debugpy backend with pdb backend".

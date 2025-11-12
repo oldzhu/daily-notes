@@ -1,0 +1,37 @@
+great now I would like to test it to debug the progtram examples/crash/rust/crash/src/main.rs, do I need to build it 1st? what tool I need to install in order to build the rust program? rustc?
+===========
+Yes—you’ll want a compiled binary before attaching the debugger.
+
+Install the Rust toolchain (includes rustc, cargo, rust-std). The recommended route is rustup:
+curl https://sh.rustup.rs -sSf | sh
+Restart your shell or source ~/.cargo/env.
+Pick the default stable toolchain when prompted.
+Verify with cargo --version and rustc --version.
+Build the sample binary:
+cargo build --manifest-path examples/crash/rust/Cargo.toml
+The resulting executable will be at examples/crash/rust/target/debug/crash.
+Once the build succeeds, point the debugger at that binary (e.g. /use lldb-rust → /exec file examples/crash/rust/target/debug/crash) and you’re ready to debug.
+
+Rust Toolchain Ready
+
+Updated Dockerfile to install Rust via rustup (stable minimal profile) and expose cargo on PATH, plus added rustfmt/clippy.
+Ensured curl is available during build so the installer works.
+Git commit: Install Rust toolchain in devcontainer
+
+Tests not run here—consider rebuilding the devcontainer or running rustc --version afterward to verify.
+
+=======
+
+Rust is installed now. Great!
+
+To get started you may need to restart your current shell.
+This would reload your PATH environment variable to include
+Cargo's bin directory ($HOME/.cargo/bin).
+
+To configure your current shell, you need to source
+the corresponding env file under $HOME/.cargo.
+
+This is usually done by running one of the following (note the leading DOT):
+. "$HOME/.cargo/env"            # For sh/bash/zsh/ash/dash/pdksh
+source "$HOME/.cargo/env.fish"  # For fish
+source $"($nu.home-path)/.cargo/env.nu"  # For nushell

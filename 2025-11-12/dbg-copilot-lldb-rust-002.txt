@@ -1,0 +1,13 @@
+it all use the same lldb commands as debugging c/c++ program to debug rust program? are there any special commdns for rust debugging in lldb?
+====
+You’ll drive Rust binaries in LLDB with the same core command set you’d use for C/C++: breakpoint set, run, bt, frame variable, step, next, continue, etc. Rust doesn’t add a new debugger command language—the familiar LLDB verbs still apply.
+
+A few Rust-specific touches are worth keeping in mind:
+
+The rust-lldb wrapper (which our rust backend mirrors) tweaks settings: it renames the prompt, aliases bt to backtrace, and sets target.process.thread.step-avoid-regexp so step/next skip over __rust_begin_short_backtrace, core::, and std:: frames by default. You can adjust that yourself with settings set target.process.thread.step-avoid-regexp <regex> if you want different filtering.
+
+Pretty printers: recent Rust toolchains ship with LLDB data formatters, so frame variable my_struct prints idiomatic Rust layouts. If formatting looks off, make sure you’re on a current nightly or stable toolchain with the rustc/rust-std components installed.
+
+Cargo build artifacts: when inspecting symbols, LLDB works on the compiled binary (e.g. target/debug/crash). Use image lookup -n <symbol> or disassemble the same way you would in C.
+
+Outside of that, there aren’t bespoke “Rust commands”—the standard LLDB CLI is what you use.

@@ -1,0 +1,85 @@
+(.venv) root ➜ /workspace (main) $ dbgcopilot
+Standalone REPL. Type /help. Choose a debugger with /use <debugger> (gdb|lldb|lldb-rust|python|delve|radare2).
+copilot> /use
+Supported: /use gdb | /use lldb | /use lldb-rust | /use python | /use delve | /use radare2
+copilot> /use python
+Enter path to Python script (optional): examples/crash/python/crash.py
+Using Python (pdb backend). Script set to examples/crash/python/crash.py
+copilot> /exec help
+(pydb) help
+[python] no active session. Use 'run' first.
+copilot> /exec ?
+(pydb) ?
+[python] no active session. Use 'run' first.
+copilot> /exec run
+(pydb) run
+[python] failed waiting for pdb prompt: End Of File (EOF). Exception style platform.
+<pexpect.pty_spawn.spawn object at 0x7059e6cfe690>
+command: /workspace/.venv/bin/python
+args: [b'/workspace/.venv/bin/python', b'-m', b'pdb', b'-q', b'examples/crash/python/crash.py']
+buffer (last 100 chars): ''
+before (last 100 chars): "toptError(_('option -%s not recognized') % opt, opt)\r\ngetopt.GetoptError: option -q not recognized\r\n"
+after: <class 'pexpect.exceptions.EOF'>
+match: None
+match_index: None
+exitstatus: None
+flag_eof: True
+pid: 9979
+child_fd: 5
+closed: False
+timeout: 10.0
+delimiter: <class 'pexpect.exceptions.EOF'>
+logfile: None
+logfile_read: None
+logfile_send: None
+maxread: 2000
+ignorecase: False
+searchwindowsize: None
+delaybeforesend: 0.05
+delayafterclose: 0.1
+delayafterterminate: 0.1
+searcher: searcher_re:
+0: re.compile('\(Pdb\)\s')
+===========
+check the above error after /exec run and try to fix.
+I also would like to change help for pdb from python to pdb(python debugger), such as /use python to /use pdb, 'pdb backend' to 'python debuger backend'
+
+==========
+copilot> /exec run
+(pydb) run
+[pdb] failed waiting for pdb prompt: End Of File (EOF). Exception style platform.
+<pexpect.pty_spawn.spawn object at 0x7d592cf12630>
+command: /workspace/.venv/bin/python
+args: [b'/workspace/.venv/bin/python', b'-m', b'pdb', b'examples/crash/python/crash.py']
+buffer (last 100 chars): ''
+before (last 100 chars): 'Error: examples/crash/python/crash.py does not exist\r\n'
+after: <class 'pexpect.exceptions.EOF'>
+match: None
+match_index: None
+exitstatus: None
+flag_eof: True
+pid: 13677
+child_fd: 5
+closed: False
+timeout: 10.0
+delimiter: <class 'pexpect.exceptions.EOF'>
+logfile: None
+logfile_read: None
+logfile_send: None
+maxread: 2000
+ignorecase: False
+searchwindowsize: None
+delaybeforesend: 0.05
+delayafterclose: 0.1
+delayafterterminate: 0.1
+searcher: searcher_re:
+    0: re.compile('\\(Pdb\\)\\s')
+[pdb] session ended
+
+we'd better to show friendly error msg like  'Error: examples/crash/python/crash.py does not exist\r\n' but not like the above
+==========
+Improved the pdb backend so missing-script launches surface pdb’s own message instead of the raw EOF. Key updates in python_pdb.py:
+
+When the initial prompt never appears, capture the subprocess output (e.g., Error: … does not exist) and return it directly; we also stop if pdb has already exited.
+Added explicit checks so we only proceed with run when the child is alive, and tightened exception handling with a runtime pexpect assertion.
+Try /exec run again—you should now see the friendly “Error: … does not exist” message.

@@ -1,0 +1,27 @@
+I m not quite understand about multi-module builds and want a standard build pipeline, naven or gralde, so at the beging, is it enough to build a single module for debugging from several java files using javac,jar and jdb, right? If I have java modules or class which already built by someone else using maven or gradle, I still can use our dbgcopilot with jdb backend to debut it, right?
+===========
+Yes to both.
+
+For our examples we can stay simple: compile one module (even multiple .java files) with plain javac, package if desired with jar, and debug via jdb. No Maven/Gradle needed for that flow.
+If someone hands you a Maven/Gradle project, you can still use the jdb backend once the classes/jars are built. Those tools just produce the .class files; you’ll point jdb at the compiled output using the appropriate -classpath or main class, exactly as you would with a hand-compiled project.
+
+======
+if I only have java binaries built by someone else, we still can use jdb to debug it even without source .java files, right?
+=======
+Yes. As long as you have the compiled .class files (or a .jar) you can launch jdb against them. With full debug info (javac -g), you’ll get line numbers and, if the original .java files are on disk, source views too. Without sources or debug symbols you can still set breakpoints by class and method, inspect locals, and step through execution, though you’ll be working from bytecode line numbers rather than source listings.
+========
+as our projec is mainly for CLI console debuugers and our tested and debugged program are also console, so no need to install any gui components I think. can we only install minimal staffs which are enoguh for our jdb/java/javac/jar works?
+===========
+Right—you can keep things strictly console-only. Install just the headless toolchain and skip everything that drags in GUI libraries:
+
+Ensure the standard Ubuntu archives are enabled (otherwise packages like java-common won’t resolve):
+
+sudo tee /etc/apt/sources.list >/dev/null <<'EOF'deb http://archive.ubuntu.com/ubuntu noble main restricted universe multiversedeb http://archive.ubuntu.com/ubuntu noble-updates main restricted universe multiversedeb http://security.ubuntu.com/ubuntu noble-security main restricted universe multiversedeb http://archive.ubuntu.com/ubuntu noble-backports main restricted universe multiverseEOFsudo apt update
+Install the headless JDK (includes java, javac, jdb, jar, and javap but no GUI stack):
+
+sudo apt install -y --no-install-recommends openjdk-21-jdk-headless
+Verify the tools you need:
+
+java -versionjavac -versionjdb -versionjar --version
+That’s all you need for compiling, running, and debugging the Java CLI samples—no GTK/X11 components involved.
+

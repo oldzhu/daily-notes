@@ -1,0 +1,11 @@
+for questions
+
+better to support both - a precompiled .class/.jar (aligning with jdb MainClass) and compile on demand.
+I would like to support both too - multi-module support and a single -classpath argument, but it is fine to start as a single -classpath argument initially for demo.
+my questions. we need to add testing java proj files to examples/crash/java and examples/hang/java, in order to build the testing proj and debug, what we need to install in our dev coniatiner?
+========
+Install a full JDK in the container so we get javac, java, and jdb. Ubuntu 24.04 has openjdk-21-jdk (current LTS) which is a good default; Java 17 also works if we prefer the previous LTS. Either package brings everything needed for running and debugging.
+For compiling the example projects we can rely on plain javac plus jar, both included with the JDK. This covers single-class demos and simple multi-file setups without extra tooling.
+If we anticipate multi-module builds or want a standard build pipeline, add maven (and/or gradle) to the devcontainer. Maven is lightweight enough to include now; Gradle can be added later if required.
+With the JDK (and optionally Maven) in place we can create examples/crash/java and examples/hang/java, compile via javac, and drive jdb directly inside the container.
+

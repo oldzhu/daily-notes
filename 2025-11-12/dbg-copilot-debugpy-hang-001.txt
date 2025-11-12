@@ -1,0 +1,17 @@
+Why It Hung
+
+python -m debugpy --listen ... --wait-for-client starts a DAP server that blocks until a debugger performs the full handshake.
+Your client script stopped after initialize, so debugpy never saw the mandatory attach followed by configurationDone; it kept waiting, hence the hang.
+Working Handshake (same container, two terminals)
+
+Terminal A (debuggee):
+
+/workspace/.venv/bin/python -m debugpy --listen 5679 --wait-for-client examples/crash/python/crash.py
+Terminal B (client):
+
+/workspace/.venv/bin/python - <<'PY'import json, socketHOST, PORT = "127.0.0.1", 5679sock = socket.create_connection((HOST, PORT))seq = 1def send(cmd, args):    global seq    payload = {"type": "request", "seq": seq, "command": cmd, "arguments": args}    seq += 1    data = json.dumps(payload).encode()    sock.sendall(f"Content-Length: {len(data)}\r\n\r\n".encode() + data)def recv():    buf = b""    while b"\r\n\r\n" not in buf:        buf += sock.recv(4096)    header, buf = buf.split(b"\r\n\r\n", 1)    length = int([l.split(b":", 1)[1] for l in header.split(b"\r\n") if l.lower().startswith(b"content-length:")][0])    while len(buf) < length:        buf += sock.recv(length - len(buf))    body, buf = buf[:length], buf[length:]    return json.loads(body.decode())send("initialize", {    "clientID": "demo",    "clientName": "demo",    "adapterID": "python",    "pathFormat": "path",    "supportsProgressReporting": False,    "supportsVariableType": True,})print(recv())  # initialize responsesend("attach", {    "justMyCode": False,    "stopOnEntry": True,    "redirectOutput": True,})while True:    msg = recv()    print(msg)    if msg.get("type") == "event" and msg.get("event") == "initialized":        breaksend("configurationDone", {})while True:    msg = recv()    print(msg)    if msg.get("type") == "event" and msg.get("event") in {"stopped", "terminated", "exited"}:        breaksock.close()PY
+You should see initialized, then a stopped event (reason "entry"), confirming the adapter is running correctly inside the container.
+Takeaway
+
+Debugpy server mode works fine locally; just ensure your client sends attach and configurationDone after initialize.
+I’ll mirror this sequence inside our backend so /use python no longer times out.

@@ -1,0 +1,17 @@
+tested pdb and now it baically works, now i tested lldb-rust (rust-friendly subprocess backend) seems we could not capture the output from lldb subprocess backend as the below:
+copilot> /use lldb-rust
+Using LLDB (rust-friendly subprocess backend).
+copilot> /exec help
+(lldb-rust) help
+
+copilot>
+could we implement rust-friendely lldb python api backend as we did it before(implement lldb api backend) in order to workaround the issue which we could not capture the output from the lldb subprocess bancekd.
+
+=======
+Implemented a Rust-friendly LLDB API backend and wired it in:
+
+Added lldb_rust_api.py, extending the API backend with the rust-specific settings (prompt rename, step-avoid regex, bt alias).
+Updated session_manager.py to prefer the new API backend (with logging-backed fallback) and to strip (lldb-rust) prompts cleanly.
+Adjusted the standalone REPL to try the API backend first and report fallback details; prompt variants now include the rust flavor.
+Expanded the smoke test to cover the new module.
+All tests pass (/workspace/.venv/bin/python -m pytest -q). Try /use lldb-rust again—you should now see command output via the API backend; if the API isn’t available it will fall back to the subprocess path and note why.

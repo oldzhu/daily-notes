@@ -1,0 +1,13 @@
+Highlights
+
+Wired the session manager to instantiate and preload the new Python debugpy and Rust-focused LLDB backends, including debugger-specific file/corefile loaders for the updated UI selections (session_manager.py).
+Added dedicated backend implementations for Python (python_debugpy.py) and an LLDB subprocess driver with a Rust-tuned wrapper (lldb_subprocess.py, lldb_rust.py); tightened the backend protocol so every driver exposes initialize_session, with matching updates to existing backends such as gdb_inprocess.py.
+Generalized prompt instructions so command proposals are debugger-agnostic, ensuring the LLM no longer emits GDB-specific wording when other backends are active (tool_instructions.md, suggest_commands.md).
+Extended the smoke test to guarantee the new backend modules are importable as part of the distribution (test_smoke_structure.py).
+Tests
+
+pytest -q
+Next Steps
+
+Run the standalone copilot> REPL with /use python and /use lldb-rust against the new samples to confirm debugpy and LLDB behave as expected.
+Consider adding lightweight integration tests that exercise a full command round-trip for the Python and LLDB-Rust backends once the environments are available in CI.
