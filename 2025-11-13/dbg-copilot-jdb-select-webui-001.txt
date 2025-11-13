@@ -1,0 +1,36 @@
+I tested copilot REPL and it workas as expect. But webui not:
+1.  group elements(classpath, source path and main class) for jdb are displayed always, what I want is this group elements for jdb only displayed when jdb is selected and gone if selected jdb switch to other debuggers.
+2.  the program element will be set when a file in explorer is clicked. but class path and source path element  is not set when a path is clicked and I would like they will be set to the path when a path is clicked in explored besides they can be edited. 
+=======
+Web UI Fixes
+
+Hooked the jdb-only form section so it toggles visibility and enabled state strictly with the jdb selection (app.js, styles.css, index.html). The group now stays hidden/disabled for other debuggers.
+When the explorer list is used while jdb is active, the chosen path now populates both the classpath and source-path inputs automatically, leaving them editable afterwards.
+Give the page a hard refresh (cache clear) and re-try selecting different debuggers plus clicking workspace entries to confirm the new behaviour.
+
+========
+Tested and now the jdb group elements are only displayed when jdb is selected. but the classpath and source path element value sync to the path click in explorer still not work as expect, I saw classpath and soucepath value are both set to a full path filename only when a file is clicked.
+what I want is:
+1. the classpath or the sourcepath will syn to the path whenever a path is clicked or will be set to the path of the file whenever a file is clicked but not the full path filename.
+2. which path element will be set depends on which element is focused, if no path element is  in focus, then non of them would be sync to the path when a path or a file clicked in exlorer.
+
+========
+
+UI Refinements
+
+Added helper logic so workspace clicks only update the jdb inputs when one of them holds focus and translate file selections to their containing folder (no filename in the value). (app.js)
+Kept the jdb field group hidden unless jdb is picked, and left other debuggers’ program field behavior unchanged. (styles.css, index.html)
+Hard-refresh the page, focus the desired jdb path field, then click folders/files in the explorer to see the new syncing behavior.
+
+========
+
+tested and found one problem with current design, whenever I click a path or a file in exploer, then jdb group elements would be not in focus, so that no matter what I clicked in exlorer, no path element will set and synced. 
+seems we need remember which path element is the previous focused( let us treat it as the current selected one) one when we clicked and focused in explorer, may be in UI we can also make the current "selected" path element border more thick(if focus switch to other element, the broder can restore to normal status) so that user also cleared see which one will be set and synced.
+
+========
+Sync Behavior Update
+
+Track which jdb path field is “selected” even after it loses focus, add a persistent highlight, and only sync explorer clicks into that chosen field (app.js, styles.css).
+Compute directory paths for files so classpath/sourcepath receive folder locations instead of filenames.
+Auto-select the classpath input when switching to jdb, while clearing selection when leaving jdb.
+After a hard refresh, click in the classpath/source-path input to choose your target (you’ll see the thicker border), then select folders/files in the explorer; only the highlighted field updates, and filenames resolve to their containing directories.

@@ -1,0 +1,7 @@
+Java Jars Added
+
+Extended Makefile and Makefile so each build now produces both class files in java and a runnable JAR in jar (sets Main-Class via jar cfe …).
+Added directory creation, tool checks, and clean-up for the new artifacts.
+Tests/Builds: make crash-java, make hang-java, pytest -q
+
+Next step: run /use jdb with Crash.jar if you’d like to confirm jar debugging flows.
