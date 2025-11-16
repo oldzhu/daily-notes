@@ -1,0 +1,17 @@
+Let us cotinue to work on the dbgagent part, if I run dbgagent,I will see the below
+(.venv) root ➜ /workspace (main) $ dbgagent
+[dbgagent] Error: OpenRouter API key not configured (OPENROUTER_API_KEY or session config)
+as dbgcopilot supportS multiple LLM providers
+now I would like:
+
+dbgagent need also supports the same multiple llm providers as dbgcopilot.
+need to modify the above error msg as it supports multiple LLM providers not just openrouter.
+also show help of dbgagent besides the error like the above
+
+==========
+dbgagent Upgrades
+
+Auto-discover available LLM providers from dbgcopilot.llm.providers so --llm-provider now offers the same set as the Copilot UI, with a dynamic default and choice list (cli.py).
+When startup fails—like missing credentials—the CLI now prints the detailed error plus the full dbgagent help text to guide next steps (cli.py).
+Refined the OpenRouter provider message to note alternative configuration options or selecting another provider, reflecting the multi-provider support (openrouter.py).
+Tests not run (pytest -q recommended if you want to validate end-to-end).

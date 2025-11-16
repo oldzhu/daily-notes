@@ -1,0 +1,3 @@
+1. how to release and demo - docker container?
+2. android front end - debugging in mobile for arm/arm64?
+3. auto dev/auto test - auto evolved
