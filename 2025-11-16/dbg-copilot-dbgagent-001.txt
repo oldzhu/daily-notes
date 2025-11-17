@@ -1,0 +1,24 @@
+tested and basically worked as exect, just one small issue as the below help shows:
+...
+options:
+  -h, --help            show this help message and exit
+  --debugger {gdb,lldb}
+                        Debugger backend to use
+...
+
+for the supported debuggers, as we are support more debuggers in dbgcopilot besides gdb/lldb, such as lldb-rust,jdb,pdb,delve,radare2, we need:
+1. to support the same set of the debuggers as dbgcopilot in dbgagent
+2. for jdb, we will not use -program paramter, we will use other 3 paramters instead which are -classpath,-mainclass -sourcepath(optional) which match the behavior of dbgcopilot for jdb. 
+
+============
+Expanded the dbgagent CLI to surface all registered providers, match dbgcopilot’s debugger roster, and validate jdb-specific arguments so users see actionable help on misconfiguration.
+
+cli.py: enumerates providers via provider_registry, widens --debugger choices to gdb/lldb/lldb-rust/jdb/pdb/delve/radare2, enforces jdb classpath/main-class workflow, and prints parser help after surfaced errors.
+runner.py: extends AgentRequest and backend factory to initialize the new debuggers (including LLDB API fallbacks, delve, radare2, pdb, jdb), records jdb paths in session facts/logging, hardens prompt config casting, and improves token/cost aggregation typing.
+openrouter.py: clarifies the missing-key RuntimeError to mention env vars, session config, or selecting another provider.
+Tests: not run (let me know if you’d like pytest -q).
+
+Next steps:
+
+Run pytest -q to confirm end-to-end behavior.
+Update docs/CLI help snippets if you have external references to dbgagent usage.
