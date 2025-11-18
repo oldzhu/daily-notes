@@ -1,0 +1,23 @@
+=> ERROR [dev_container_auto_added_stage_label 5/8] RUN git clone --de  335.3s
+------                                                                          
+ > [dev_container_auto_added_stage_label 5/8] RUN git clone --depth=1 https://github.com/radareorg/radare2.git  /opt/radare2     && /opt/radare2/sys/install.sh     && rm -rf /opt/radare2:
+0.425 Cloning into '/opt/radare2'...                                            
+335.2 error: RPC failed; curl 92 HTTP/2 stream 5 was not closed cleanly: CANCEL (err 8)
+335.2 error: 13727 bytes of body are still expected
+335.2 fetch-pack: unexpected disconnect while reading sideband packet
+335.2 fatal: early EOF
+335.2 fatal: fetch-pack: invalid index-pack output
+------
+Dockerfile-with-features:47
+========
+Skip git entirely - download the release tarball:
+dockerfile
+Copy
+# Replace git clone with wget (works with your proxy!)
+RUN set -eux; \
+    wget -q -O /tmp/radare2.tar.gz https://github.com/radareorg/radare2/archive/refs/heads/master.tar.gz; \
+    mkdir -p /opt/radare2; \
+    tar -C /opt/radare2 --strip-components=1 -xzf /tmp/radare2.tar.gz; \
+    rm /tmp/radare2.tar.gz; \
+    /opt/radare2/sys/install.sh; \
+    rm -rf /opt/radare2

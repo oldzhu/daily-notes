@@ -1,0 +1,156 @@
+Method 1: Default Empty Values (Simplest)
+Modify your devcontainer.json to use empty defaults:
+JSON
+Copy
+// .devcontainer/devcontainer.json
+{
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "HTTP_PROXY": "${localEnv:HTTP_PROXY:}",
+      "HTTPS_PROXY": "${localEnv:HTTPS_PROXY:}",
+      "NO_PROXY": "${localEnv:NO_PROXY:localhost,127.0.0.1}"
+    }
+  },
+  "remoteEnv": {
+    "HTTP_PROXY": "${localEnv:HTTP_PROXY:}",
+    "HTTPS_PROXY": "${localEnv:HTTPS_PROXY:}"
+  }
+}
+
+for this method, where I need to set the environment, in wsl terminal I start  vscode or some where else? and another question is if set env http(s)_proxy works too or not, is it case sensitive?
+Edit
+Copy
+Share
+=======================
+Thinking complete
+Great questions! Let's nail down the exact workflow for proxy handling in devcontainers. 🎯
+Where to Set Environment Variables
+For ${localEnv:HTTP_PROXY} to work, you must set the variables in the environment that launches VS Code. Here are your options:
+Option 1: WSL Terminal (Most Reliable)
+bash
+Copy
+# In WSL terminal, BEFORE running 'code .'
+export HTTP_PROXY=http://172.20.80.1:10808
+export HTTPS_PROXY=http://172.20.80.1:10808
+
+# Then launch VS Code - it will inherit these variables
+code .
+Option 2: Shell Profile (Persistent)
+Add to ~/.bashrc or ~/.zshrc in WSL:
+bash
+Copy
+# Proxy settings
+export HTTP_PROXY=http://172.20.80.1:10808
+export HTTPS_PROXY=http://172.20.80.1:10808
+export NO_PROXY=localhost,127.0.0.1
+
+# Apply: source ~/.bashrc
+Option 3: Windows System Environment
+If you launch VS Code from Windows (not WSL terminal):
+Set system-wide env vars in Windows Settings
+Or use VS Code settings:
+JSON
+Copy
+// VS Code settings.json (Windows side)
+"terminal.integrated.env.linux": {
+  "HTTP_PROXY": "http://172.20.80.1:10808",
+  "HTTPS_PROXY": "http://172.20.80.1:10808"
+}
+Option 4: .env File (Project-Specific)
+Create .env (gitignore it!):
+Copy
+HTTP_PROXY=http://172.20.80.1:10808
+HTTPS_PROXY=http://172.20.80.1:10808
+Then source it: export $(cat .env | xargs) && code .
+Case Sensitivity - YES, It's Critical!
+**HTTP_PROXY vs http_proxy matters! **
+** The Rule: **
+** HTTP_PROXY (UPPERCASE) : The ** standard for Linux/Unix tools (curl, wget, apt, git, docker)
+http_proxy (lowercase): Used by some tools but not universally supported
+Never mix cases in the same workflow
+Best Practice: Use UPPERCASE everywhere
+JSON
+Copy
+// devcontainer.json - UPPERCASE
+{
+  "build": {
+    "args": {
+      "HTTP_PROXY": "${localEnv:HTTP_PROXY:}",  // Reads UPPERCASE env var
+    }
+  }
+}
+dockerfile
+Copy
+# Dockerfile - UPPERCASE
+ARG HTTP_PROXY
+ENV HTTP_PROXY=${HTTP_PROXY}  # Keep it uppercase throughout
+bash
+Copy
+# Your shell - UPPERCASE
+export HTTP_PROXY=http://...  # Correct
+export http_proxy=http://...  # ❌ Avoid
+🎯 Complete Working Example
+Your WSL Setup:
+~/.bashrc (add at bottom):
+bash
+Copy
+# DevContainer proxy settings
+export HTTP_PROXY=http://172.20.80.1:10808
+export HTTPS_PROXY=http://172.20.80.1:10808
+export NO_PROXY=localhost,127.0.0.1
+devcontainer.json:
+JSON
+Copy
+{
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "HTTP_PROXY": "${localEnv:HTTP_PROXY:}",
+      "HTTPS_PROXY": "${localEnv:HTTPS_PROXY:}",
+      "NO_PROXY": "${localEnv:NO_PROXY:localhost,127.0.0.1}"
+    }
+  },
+  "remoteEnv": {
+    "HTTP_PROXY": "${localEnv:HTTP_PROXY:}",
+    "HTTPS_PROXY": "${localEnv:HTTPS_PROXY:}",
+    "NO_PROXY": "${localEnv:NO_PROXY:localhost,127.0.0.1}"
+  }
+}
+Dockerfile:
+dockerfile
+Copy
+ARG HTTP_PROXY=""
+ARG HTTPS_PROXY=""
+ARG NO_PROXY="localhost,127.0.0.1"
+
+ENV http_proxy="${HTTP_PROXY}"
+ENV https_proxy="${HTTPS_PROXY}"
+ENV no_proxy="${NO_PROXY}"
+For Users Without Proxy:
+They do nothing. The : in ${localEnv:HTTP_PROXY:} means "use empty if not set". The build will work perfectly without proxy.
+⚠️ Critical: Remove Spaces in URLs!
+I noticed your config has:
+JSON
+Copy
+"http://172.20.80.1:10808 "  // ❌ Trailing space!
+Fix it:
+JSON
+Copy
+"http://172.20.80.1:10808"  // ✅ No spaces
+Spaces break proxy parsing and cause cryptic errors!
+🧪 Verify It Works
+bash
+Copy
+# 1. In WSL terminal
+echo $HTTP_PROXY  # Should show your proxy
+
+# 2. Launch VS Code
+code .
+
+# 3. In VS Code's integrated terminal (inside container)
+echo $http_proxy  # Should show same proxy
+
+# 4. Test network
+curl -v https://go.dev/dl/  # Should work through proxy
+Bottom line: Set in WSL shell (UPPERCASE), use ${localEnv:...} syntax, and gitignore any .env files. Your repo becomes truly portable! 🌍
