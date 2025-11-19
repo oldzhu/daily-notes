@@ -1,0 +1,38 @@
+I saw dbgcopilot package already include dbgagent and dbgweb, but if only pip install dist/dbgcopilot-*.whl, then I can run dbgagent and uvicorn dbgweb.app.main:app --reload but would fail to run dbgagent as the below:
+(.venv) root ➜ /workspace (main) $ dbgagent
+bash: /workspace/.venv/bin/dbgagent: No such file or directory
+do I have to build whl for dbgagent separately in order to run dbgagent if not using local editable location?
+
+========
+
+Thanks for flagging that—here’s the short plan before the explanation:
+
+Confirm how the packages are split and which wheel carries the dbgagent entry point.
+Explain why installing only dbgcopilot isn’t enough for the CLI and what artifacts you still need.
+Give the commands to build/install the dbgagent wheel so the dbgagent script appears.
+Explanation
+
+dbgcopilot is the shared backend/core package; its wheel contains the dbgcopilot library (and dbgweb, which can be started with uvicorn because it’s just a FastAPI application inside that package).
+dbgagent is defined as a separate project in pyproject.toml, with its own project.scripts entry (dbgagent = "dbgagent.cli:main"). That means the console script is only generated when you install the dbgagent package itself—not simply when you install dbgcopilot.
+That’s why your pip show dbgagent reports an “Editable project location”: the CLI currently exists only because you installed dbgagent in editable mode (pip install -e src/dbgagent). Without that, /workspace/.venv/bin/dbgagent won’t be created.
+What to do
+
+Build both wheels so you have the artifacts:
+
+cd /workspacepython -m build                      # builds dist/dbgcopilot-*.whlcd src/dbgagentpython -m build                      # builds dist/dbgagent-*.whl
+Install the published artifacts (replace <version> accordingly):
+
+pip uninstall dbgcopilot dbgagentpip install ../dist/dbgcopilot-<version>-py3-none-any.whlpip install dist/dbgagent-<version>-py3-none-any.whl
+After reinstalling, pip show dbgagent should no longer show “Editable project location”, and /workspace/.venv/bin/dbgagent will exist so the CLI works directly.
+This let you keep dbgcopilot as the shared backend while shipping the dbgagent CLI in its own wheel for end users who don’t need the editable source tree.
+
+
+Exactly—dbgcopilot and dbgagent are separate packages, so the published artifacts are two wheels:
+
+dbgcopilot-<version>.whl contains the shared backends, REPL entry points (dbgcopilot, dbgcopilot-gdb, etc.), and dbgweb.
+dbgagent-<version>.whl produces the dbgagent console script, because dbgcopilot doesn’t declare that entry point.
+For end users you’ll therefore publish both wheels (and, if desired, dbgweb as its own wheel if you ever split it out). To make life easier for installers:
+
+
+pip install dbgcopilot==<version>pip install dbgagent==<version>
+Or, when shipping prerelease assets via GitHub, upload both dist/dbgcopilot-*.whl and src/dbgagent/dist/dbgagent-*.whl so they can pip-install each wheel directly.

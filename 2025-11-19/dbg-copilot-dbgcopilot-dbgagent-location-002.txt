@@ -1,0 +1,37 @@
+(.venv) root ➜ /workspace (main) $ pip show dbgcopilot
+Name: dbgcopilot
+Version: 0.0.1
+Summary: Debugger Copilot POC for GDB/LLDB
+Home-page:
+Author: Debugger Copilot
+Author-email:
+License: Apache-2.0 WITH LLVM-exception
+Location: /workspace/.venv/lib/python3.12/site-packages
+Requires: fastapi, pexpect, r2pipe, requests, uvicorn
+Required-by: dbgagent
+(.venv) root ➜ /workspace (main) $ pip show dbgagent
+Name: dbgagent
+Version: 0.0.1
+Summary: Autonomous debugging agent for GDB and LLDB
+Home-page:
+Author: Debugger Copilot
+Author-email:
+License: Apache-2.0 WITH LLVM-exception
+Location: /workspace/.venv/lib/python3.12/site-packages
+Editable project location: /workspace/src/dbgagent
+Requires: dbgcopilot, pexpect, requests
+Required-by:
+see above and let me know where dbgcopilot and dbgagent coming from?
+=========
+
+dbgcopilot is coming from the installed wheel: pip show reports its Location inside the venv’s site-packages and there is no Editable project location, so it’s the published artifact you installed via pip install dbgcopilot-*.whl.
+
+dbgagent, however, is currently installed in editable mode—the pip show output includes Editable project location: /workspace/src/dbgagent, which means the console script is pointing at the local source tree instead of a built wheel. You can also look for dbgagent.egg-link in site-packages; its contents will point to dbgagent.
+
+If you want both packages coming from wheels, reinstall them from dist (after running python -m build) with:
+
+
+pip uninstall dbgcopilot dbgagentpip install dist/dbgcopilot-*.whlpip install dist/dbgagent-*.whl   # only if you build dbgagent separately
+That removes the editable linkage and ensures everything comes from wheel installs.
+
+

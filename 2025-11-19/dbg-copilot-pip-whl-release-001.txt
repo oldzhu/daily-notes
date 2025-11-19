@@ -1,0 +1,47 @@
+tested and both issue fixed. Let us work in pip packe release 1st, please provide the steps and the tests we can try on another environment before make any changes to the project.
+=======
+Thanks for the confirmation—here’s the plan for the pip package release path before touching the repository:
+
+Prepare the packages
+
+Bump the versions in each pyproject.toml (dbgcopilot, dbgagent, dbgweb) so the release is unique.
+Ensure changelog/README highlights any breaking changes or new install instructions.
+Build distributables
+
+From the repo root, run:
+
+python -m build
+This will produce wheels and source archives in dist for all packages (dbgcopilot + subprojects via their pyproject).
+Run the local smoke tests
+
+Install the rebuilt wheel locally to confirm the new artifacts work before publishing:
+
+python -m pip install --upgrade dist/dbgcopilot-*.whlpython -m pytest -q
+Verify dbgagent still behaves:
+
+python -m pip install --upgrade dist/dbgagent-*.whldbgagent --help
+Publish to PyPI
+
+Tag the commit, then use twine:
+
+python -m twine upload dist/*
+Make sure your PyPI credentials are configured (~/.pypirc or TWINE_USERNAME/TWINE_PASSWORD env vars).
+Post-release documentation
+
+Update the README to point users at pip install dbgcopilot and pip install -e src/dbgagent (if editable install is still the recommended path), noting that they must install the system debugger toolchain (GDB, LLDB, Delve, Radare2, Rust, Go/JDK for jdb) outside pip as described in the Dockerfile.
+Verification steps for another environment (before any repo change):
+
+On a clean machine/VM:
+
+python -m venv .envsource .env/bin/activatepip install dbgcopilot==<new-version>pip install dbgagent==<new-version>
+Confirm the CLI tools run and find their modules:
+
+dbgcopilot --helpdbgagent --help
+Run the packaged tests or smoke commands:
+
+python -m pytest tests/test_smoke_structure.pydbgcopilot-gdb -q -ex "python import dbgcopilot.plugins.gdb.copilot_cmd" -ex quit
+For dbgagent, ensure jdb (if used) gets prompted with --classpath/--main-class; for other debuggers, --program works.
+If you’re distributing a Docker image as well, pull and run it to verify the environment mirrors the instructions.
+Once those verification steps succeed, you can proceed with updating the project (version bumps, docs, tagging) and publishing the packages. Let me know if you’d like me to help craft the exact doc/text for the release or build the twine command for CI.
+
+

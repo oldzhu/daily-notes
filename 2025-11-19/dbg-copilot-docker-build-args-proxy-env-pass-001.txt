@@ -1,0 +1,67 @@
+[6581 ms] Start: Run: docker buildx build --load --build-arg BUILDKIT_INLINE_CACHE=1 -f /tmp/devcontainercli-oldzhu/container-features/0.80.2-1763466934217/Dockerfile-with-features -t vsc-dbgcopilot-4d9bcf23a2f61c2596f9186fbf4419710df95914433034d113e4bd081e6785c9 --target dev_containers_target_stage --build-arg HTTP_PROXY=http://172.20.80.1:10808 --build-arg HTTPS_PROXY=http://172.20.80.1:10808 --build-arg NO_PROXY=localhost,127.0.0.1 --build-arg _DEV_CONTAINERS_BASE_IMAGE=dev_container_auto_added_stage_label /home/oldzhu/dbgcopilot
+
+1. in devontainer.json:
+
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "context": "..",
+    "args": {
+      "HTTP_PROXY": "${localEnv:HTTP_PROXY:}",
+      "HTTPS_PROXY": "${localEnv:HTTPS_PROXY:}",
+      "NO_PROXY": "${localEnv:NO_PROXY:localhost,127.0.0.1}"
+    }
+  },
+  "remoteEnv": {
+    "HTTP_PROXY": "${localEnv:HTTP_PROXY:}",
+    "HTTPS_PROXY": "${localEnv:HTTPS_PROXY:}",
+    "NO_PROXY": "${localEnv:NO_PROXY:localhost,127.0.0.1}"
+  }
+
+2. in Dockerfile:
+
+# Declare build args
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+
+# Use them
+ENV HTTP_PROXY=${HTTP_PROXY}
+ENV HTTPS_PROXY=${HTTPS_PROXY}
+ENV NO_PROXY=${NO_PROXY}
+
+3. In https://github.com/devcontainers/cli/blob/0efa20b34ffebff8304448fe6a3b121735aa77ec/src/spec-common/variableSubstitution.ts#L65
+
+function normalizeEnv(isWindows: boolean, originalEnv: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+	if (isWindows) {
+		const env = Object.create(null);
+		Object.keys(originalEnv).forEach(key => {
+			env[key.toLowerCase()] = originalEnv[key];
+		});
+		return env;
+	}
+	return originalEnv;
+}
+
+Analysis:
+
+[1248 ms] userEnvProbe: loginInteractiveShell (default)
+[1250 ms] userEnvProbe: not found in cache
+[1254 ms] userEnvProbe shell: /bin/bash
+[3276 ms] Start: Run in Host: /bin/sh 
+[3281 ms] Start: Run in container: for pid in `cd /proc && ls -d [0-9]*`; do { echo $pid ; readlink /proc/$pid/cwd || echo ; readlink /proc/$pid/ns/mnt || echo ; cat /proc/$pid/stat | tr "
+[3467 ms] userEnvProbe is taking longer than 2 seconds. Process tree:
+...
+
+5399 ms] Start: Checking for Dev Containers CLI
+[5407 ms] Start: Run in Host: /home/oldzhu/.vscode-server/bin/cb1933bbc38d329b3595673a600fab5c7368f0a7/node /home/oldzhu/.vscode-remote-containers/dist/dev-containers-cli-0.431.1/dist/spec-node/devContainersSpecCLI.js up --container-session-data-folder /tmp/devcontainers-5eb2afd0-4dc8-4d5a-84a1-0d1be36ec6021763466924765 --workspace-folder /home/oldzhu/dbgcopilot --workspace-mount-consistency cached --gpu-availability detect --id-label devcontainer.local_folder=\\wsl.localhost\myUbuntu\home\oldzhu\dbgcopilot --id-label devcontainer.config_file=/home/oldzhu/dbgcopilot/.devcontainer/devcontainer.json --log-level debug --log-format json --config /home/oldzhu/dbgcopilot/.devcontainer/devcontainer.json --default-user-env-probe loginInteractiveShell --remove-existing-container --mount type=volume,source=vscode,target=/vscode,external=true --mount type=bind,source=/mnt/wslg/runtime-dir/wayland-0,target=/tmp/vscode-wayland-798a10a1-1aa9-4fc4-bdb9-a9bdd498ea11.sock --skip-post-create --update-remote-user-uid-default on --mount-workspace-git-root --terminal-columns 110 --terminal-rows 24 --include-configuration --include-merged-configuration
+[5519 ms] @devcontainers/cli 0.80.2. Node.js v22.20.0. linux 6.6.87.2-microsoft-standard-WSL2 x64.
+....
+
+Solution:
+
+has to configure the proxy env vars in .bashrc as the below as new shell is started to run the docker build:
+...
+export HTTP_PROXY="http://172.20.80.1:10808"
+export HTTPS_PROXY="http://172.20.80.1:10808"
+...
+

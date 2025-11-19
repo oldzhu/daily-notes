@@ -1,0 +1,27 @@
+what is the steps to get the token to pulish to pypi. In addition, before pubish the 1st released version pypi, can we just publish the pre-release whl file into github so that the end users can download and install locally to test? if can,what will be the steps?
+
+===========
+Here’s the plan:
+
+Explain how to acquire a PyPI API token for publishing.
+Outline how to ship a pre-release wheel via GitHub so users can pip-install it locally.
+1. PyPI API token creation
+
+Log into your account on https://pypi.org and go to your account settings → “API tokens”.
+Click “Add API token”, give it a descriptive name (e.g., dbgcpilot-release), and optionally restrict it to a specific project (recommended once you’ve published the initial version).
+PyPI will show you the token string exactly once—copy it and store it securely (e.g., in your CI secrets vault or ~/.pypirc), because you can’t view it again.
+In your local or CI environment, configure either:
+Environment variables: TWINE_USERNAME=__token__ and TWINE_PASSWORD=<the-token>.
+Or a ~/.pypirc entry:
+
+[pypi]username = __token__password = <the-token>
+Use python -m twine upload dist/* (or whichever files you want) to publish using that token.
+2. Publishing a pre-release wheel via GitHub for local testing
+
+After building the wheel(s) with python -m build, create a draft GitHub release (or push a tag and let GitHub auto-release) and attach the wheel file(s) from dist to that release. Mark it as a “pre-release” in GitHub so users know it’s not final.
+Document in your README (or release notes) that users can download the attached wheel and install it manually:
+
+pip install https://github.com/oldzhu/dbgcopilot/releases/download/v0.0.1-pre/dbgcopilot-0.0.1-py3-none-any.whlpip install https://github.com/oldzhu/dbgcopilot/releases/download/v0.0.1-pre/dbgagent-0.0.1-py3-none-any.whl
+Replace URLs with the actual release and file names.
+Encourage testers to install the released wheels in a clean virtual environment, verify dbgagent --help/dbgcopilot --help, and optionally run any smoke tests (python -m pytest tests/test_smoke_structure.py).
+Once the pre-release wheel proves stable, you can use the PyPI token to publish the final version. Let me know if you’d like me to help generate the GitHub release draft or add scripted instructions to your release process.

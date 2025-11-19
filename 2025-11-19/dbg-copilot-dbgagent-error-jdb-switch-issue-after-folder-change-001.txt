@@ -1,0 +1,28 @@
+Before to push the new Docker image reference, expand the doc with exact proxy/publish commands, or prep release artifacts next. Let us fix some issues 1st in my manual testing after the change.
+
+dbgagent error.
+(.venv) root ➜ /workspace (main) $ dbgagent
+Traceback (most recent call last):
+File "/workspace/.venv/bin/dbgagent", line 3, in <module>
+from dbgagent.cli import main
+ModuleNotFoundError: No module named 'dbgagent.cli'
+in webui, when swicth previous used debugger from jdb to other debuggers, the jdb goup input fields(classpath, sourcepath and maincalss) would gone and the programinput field would appeared with the previous set classpath value - I think it is better to clean the value when that kind of switch (form jdb to other debuggers) occurs.
+========
+
+Reinstalled the dbgagent CLI, refreshed the jdb form logic, and confirmed the manual tests before wrapping up.
+
+Plan:
+
+Ensure the dbgagent executable points at dbgagent by reinstalling the editable package and verifying dbgagent --help.
+Track debugger switches in app.js so leaving jdb clears classpath/sourcepath/main class/program values and resets the selection.
+Add a README reminder telling maintainers to rerun pip install -e src/dbgagent whenever the sources move.
+Summary:
+
+CLI update: Reinstalled from dbgagent, so the console script can import the relocated package, and the dbgagent command now resolves cleanly again.
+Web UI fix: Introduced previousDebugger tracking to detect when we leave jdb; when that happens, the app clears all jdb-specific inputs plus the program field/selection so stale values don’t leak into other debugger modes.
+Docs: Added a note right after the install steps reminding contributors to rerun the editable install after relocating or updating the sources.
+Tests:
+
+dbgagent --help
+pytest -q
+Let me know if you’d like me to proceed with publishing steps (proxy-aware Docker push or release artifact prep) next.

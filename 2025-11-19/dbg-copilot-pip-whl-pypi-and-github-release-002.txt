@@ -1,0 +1,36 @@
+let us work on to release a prerelease pip package in github 1st and we could release it to pypi when the dbgcopilot functions stable. By the way, there is no dbgagentwhl under the dist folder, it is because dbgagent and dbgweb already involved in dbgcopilot.whl, right? if so, why u previously u asked to pip install dbgagent*.whl or pip instal dbgagent?
+=========
+Thanks for the context—here’s how we’ll approach the prerelease path:
+
+Plan
+
+Confirm why dist currently only contains dbgcopilot artifacts and clarify when you’d install dbgagent separately versus relying on the shared wheel.
+Sketch the GitHub prerelease workflow (build wheel, add to release, share install instructions) so testers can try the package before the PyPI cut.
+List the verification/test commands someone should run after installing the prerelease wheel locally.
+Why only dbgcopilot wheels exist
+
+The dbgcopilot package (built by python -m build from the repo root) packages the shared core plus the dbgagent and dbgweb subprojects because they live under src and import/install the dbgcopilot dependencies. There isn’t a separate dist/dbgagent-*.whl because we don’t currently build/publish it independently; instead, dbgagent is installed either via pip install dbgcopilot (to pull the shared backends) or via pip install -e src/dbgagent for a live-editable CLI. That’s why you saw instructions earlier to install dbgagent directly—it was the editable workflow rather than a built wheel. For a prerelease, you can either republish just the dbgcopilot wheel (which already includes dbgagent/dbgweb entry points) or attach the built dbgagent wheel manually if you build it separately (via python -m build inside dbgagent), but the simplest path is to use the dbgcopilot wheel and the console scripts it exposes.
+GitHub prerelease workflow
+
+From the repo root, rebuild the wheel:
+
+python -m build
+This produces dist/dbgcopilot-<version>.whl and .tar.gz.
+Create a draft GitHub release (or tag like v0.0.1-pre) and mark it as a “pre-release”.
+Upload the built artifacts (dbgcopilot-*.whl, optionally the source .tar.gz) to that release as assets.
+Annotate the release notes with install instructions and a reminder that system debugger tooling (GDB, LLDB, Delve, Radare2, Rust toolchain, Go/JDK) must still be installed separately.
+How users install/test the prerelease
+
+On another machine/environment:
+
+python -m venv .envsource .env/bin/activatepip install https://github.com/oldzhu/dbgcopilot/releases/download/<tag>/dbgcopilot-<version>-py3-none-any.whl
+Verify the toolchain works:
+
+dbgcopilot --helpdbgagent --helppython -m pytest tests/test_smoke_structure.py
+Optionally rerun the distro-specific smoke commands documented in the README (e.g., dbgcopilot-gdb -q -ex "python import dbgcopilot.plugins.gdb.copilot_cmd" -ex quit).
+If testers want to iterate on dbgagent, they can still install it editable in that environment:
+
+pip install -e src/dbgagent
+Once the prerelease proves stable, you can publish the same wheel to PyPI using the token workflow discussed earlier. Let me know if you’d like me to add scripted GitHub release steps or update the README with the prerelease download URLs.
+
+

@@ -1,0 +1,27 @@
+how to check if my dbgagent and dbgcopilot is from pip install dbgcopilot*.whl and not from pip install -e .(editable local surce folder) ?
+======
+To verify you’re using the published wheel rather than an editable local checkout:
+
+Inspect the package metadata:
+
+
+pip show dbgcopilotpip show dbgagent
+Check the Location field. If it points into your venv’s site-packages (e.g., site-packages), you’re running the installed wheel.
+Editable installs create an .egg-link in site-packages that points back to the source directory (e.g., dbgagent). If you see Location: /workspace/src/dbgagent or *.egg-link files in site-packages, it’s editable.
+Use pip list -v:
+
+
+pip list -v | grep -E 'dbgcopilot|dbgagent'
+The Location/Installer columns reveal whether the package is installed from a wheel (pip) or editable (shows editable or path to source).
+Check for .egg-link:
+
+
+ls /workspace/.venv/lib/python3.12/site-packages | grep -i 'dbgagent'
+Editable installs create dbgagent.egg-link (and similar for dbgcopilot). If those files exist, it’s the editable source; their contents point to the source directory.
+If you want to force the wheel version, reinstall from your built wheel:
+
+
+pip uninstall dbgcopilot dbgagentpip install dist/dbgcopilot-<version>-py3-none-any.whlpip install dist/dbgagent-<version>-py3-none-any.whl   # if you build one separately
+This ensures you’re using the built artifacts instead of the editable sources.
+
+
