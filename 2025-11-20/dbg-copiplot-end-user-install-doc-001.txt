@@ -1,0 +1,22 @@
+ reviewed the document for install.md and pulishing.md, and root readme.md, I still we are lacking the detailed document on how our end users can downloda, use and test our dbgcopilot and dbgagent
+in publishing.md, we described 3 ways to publish the tool
+
+pip package
+docker hub image
+clone the repo and test in dev container
+in install.md, the the steps more like for build and install in dev container for dev(no cloneand step and reopn in container step), but no steps for install from github pip package.
+What I wan to is install.md focus on end users to download/install/test view, I mean it is for end users install/test but not for dev of the project to build/test.
+=============
+pls also add the below two to install.md which are about how end users use and test the tool in other 2 ways.
+
+the holder section for download/test docker image release although publish the docker image yet.
+the section for clone the project and reopen it in dev container, build/install(can also in editable location)/test
+which means totally install.md contains all 3ways how user can use/test the tool
+================
+
+Updated the user-facing install guide so it now centers on the three supported ways to consume the release artifacts:
+
+Added a detailed end-user workflow in install.md for installing the published wheels (or prerelease GitHub artifacts), verifying the commands, and starting dbgcopilot, dbgagent, or the FastAPI dashboard.
+Added new sections covering the Docker image path and the dev-container flow (clone → open in Remote-Containers → rebuild/install/test), so the doc now documents the full set of delivery/testing options.
+Adjusted README.md to point the “Installation & Testing” link at the new doc.
+No automated tests were run (docs-only).

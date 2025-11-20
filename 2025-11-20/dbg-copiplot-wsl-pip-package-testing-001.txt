@@ -1,0 +1,62 @@
+I would like to test pip page in the same wsl host of our dev container(which is ubuntu 22.0) to simulate a user to download the whl package and install and test, after the testing, we can document the detailed steps for a user to follow. could u give the steps so I can follow to test and then document.
+Our host environment is
+
+oldzhu@oldzhu-box-999:$ python3 --version
+Python 3.10.12
+oldzhu@oldzhu-box-999:$ pip --version
+pip 25.3 from /home/oldzhu/.local/lib/python3.10/site-packages/pip (python 3.10)
+oldzhu@oldzhu-box-999:$ pip install
+Defaulting to user installation because normal site-packages is not writeable
+ERROR: You must give at least one requirement to install (see "pip help install")
+oldzhu@oldzhu-box-999:$ lsb_release -a
+No LSB modules are available.
+Distributor ID: Ubuntu
+Description: Ubuntu 22.04.5 LTS
+Release: 22.04
+Codename: jammy
+
+If u need any other information of the host environment for the steps, please let me know.
+
+===========
+
+I’ll outline the exact workflow you can follow on the Ubuntu 22.04 WSL host to simulate a user installing the prerelease wheels and verify everything works.
+
+Plan
+
+Build both wheel artifacts locally (repo/container) and upload or copy them so the host can download them.
+On the host, install each wheel in a clean venv, verify the console scripts (dbgcopilot, dbgagent, uvicorn), and run the smoke checks.
+Document any host-specific requirements (python version, debugger tooling, proxy notes) so we can publish a reproducible guide.
+Steps
+
+From the repo/devcontainer (source machine)
+
+
+python -m build                     # creates dist/dbgcopilot-*.whlcd src/dbgagentpython -m build                     # creates src/dbgagent/dist/dbgagent-*.whlcd -ls dist/ src/dbgagent/dist/         # confirm the two wheels exist
+Move or upload those wheels somewhere the host can access them (e.g., attach them to a GitHub prerelease, copy via scp, or host on your own HTTP server).
+On the Ubuntu 22.04 WSL host (simulate user)
+
+
+python3 -m venv ~/dbgcopilot-testsource ~/dbgcopilot-test/bin/activatepip install --upgrade pippip install <URL-or-path>/dbgcopilot-<version>.whlpip install <URL-or-path>/dbgagent-<version>.whl
+Replace <URL-or-path> with the actual download link from your GitHub prerelease or the local copy path (e.g., /home/oldzhu/downloads/dbgcopilot-0.0.1-py3-none-any.whl).
+Verify installations
+
+
+pip show dbgcopilot dbgagentdbgcopilot --helpdbgagent --helpuvicorn dbgweb.app.main:app --reload --port 8080  # optional UI smoke testpython -m pytest /path/to/dbgcopilot/tests/test_smoke_structure.py
+Make sure pip show reports Home-page: https://github.com/oldzhu/dbgcopilot and that both scripts run without errors.
+Document dependencies
+
+Note that the hello host needs GDB/LLDB/Delve/Radare2/Rust/Go/JDK installed separately (as described in install.md and publishing.md), and mention any proxy/LLM key requirements.
+Capture the exact commands you ran so we can paste them into the documentation with any host-specific caveats (e.g., pip install defaulting to user site-packages because of permissions).
+Cleanup (optional)
+
+
+deactivaterm -rf ~/dbgcopilot-test
+Once you’ve run through these steps, send me the command log or any issues you hit and I’ll help translate it into the final doc section describing how end users should test the prerelease wheels.
+
+===============
+
+Added the GitHub CLI to the dev image and documented that it’s already there for your prerelease workflow.
+
+Dockerfile: Registers the GitHub CLI apt repository, installs gh via apt, and cleans up caches so the image can run gh release create without extra setup.
+publishing.md: Notes that the dev container already has gh, so the prerelease steps can run inside it, and keeps the Github release guidance in sync.
+Tests were not run (docs/image-only changes).
