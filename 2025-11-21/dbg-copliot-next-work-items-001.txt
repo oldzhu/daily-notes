@@ -1,0 +1,5 @@
+1. support debug core dumps and live processes.
+2. llm tokens cost
+3. 
+4. dbgagent add role parameters. dbgagent can self improving and evolving.
+5. project self dev and improving.  
