@@ -1,0 +1,6 @@
+(.dbgcopilot) oldzhu@oldzhu-box-999:~$ dbgcopilot
+Standalone REPL. Type /help. Choose a debugger with /use <debugger> (gdb|lldb|lldb-rust|jdb|pdb|delve|radare2).
+copilot> /use lldb
+Using LLDB (subprocess backend; Python API unavailable).
+Hint: install LLDB Python bindings: sudo apt install lldb python3-lldb
+========

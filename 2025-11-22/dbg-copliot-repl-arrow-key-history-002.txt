@@ -1,0 +1,15 @@
+Is this approach complex to implement? early in standalone.py import readline (standard on Linux/macOS) and call readline.parse_and_bind("tab: complete") plus maintain history via readline.write_history_file() if desired. The existing input() call will then respect the arrow keys automatically.
+if not, pls go ahead to implement
+
+==========
+
+Added readline-backed input history to standalone.py, including optional history persistence (~/.copilot_history), tab binding, and no-op behavior when readline isn’t available so arrow keys now recall previous commands.
+Hooked the history setup before entering the REPL loop so the configuration runs once per session.
+Tests not run (not requested).
+
+===========
+is readline builtin python module? or rquire additional install?
+
+===========
+On most Unix-like systems (Linux/macOS) the readline module ships with Python because the interpreter is built against the GNU readline library—so you can import it out of the box.
+On Windows the stdlib doesn’t include GNU readline, so the import will fail unless you install a third-party package (e.g., pyreadline3 or prompt_toolkit) and adjust the code to fall back when readline isn’t available (which our changes already handle by checking for None).

@@ -1,0 +1,6 @@
+copilot> /use jdb
+Enter class path to .class/.jar (required): dbgcopilot/examples/bin/java
+Enter source path to .java (optional): dbgcopilot/examples/crash/java
+Enter Main class (optional): Crash
+Failed to initialize jdb backend: jdb executable not found on PATH
+===========

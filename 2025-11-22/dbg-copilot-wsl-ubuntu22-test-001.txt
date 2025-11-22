@@ -1,0 +1,23 @@
+oldzhu@oldzhu-box-999:~$ sudo apt install python3.11-venv python3.11-distutils
+[sudo] password for oldzhu:
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+python3.11-distutils is already the newest version (3.11.9-1+focal1).
+Some packages could not be installed. This may mean that you have
+requested an impossible situation or if you are using the unstable
+distribution that some required packages have not yet been created
+or been moved out of Incoming.
+The following information may help to resolve the situation:
+
+The following packages have unmet dependencies:
+python3.11-venv : Depends: python3.11 (= 3.11.0rc1-122.04) but 3.11.9-1+focal1 is to be installed
+E: Unable to correct problems, you have held broken packages.
+===============
+
+The failure happens because your system already pulled a 3.11 build (3.11.9-1+focal1) that doesn’t match the 3.11.0 candidate (3.11.0~rc1-1~22.04) the python3.11-venv package depends on. That usually occurs when multiple PPAs or sources provide conflicting builds.
+Fix it by loading the same provider for both packages—run:
+
+sudo apt updatesudo apt install software-properties-commonsudo add-apt-repository ppa:deadsnakes/ppasudo apt updatesudo apt install python3.11 python3.11-venv python3.11-distutils
+This ensures all 3.11 packages come from the same deadsnakes stream (which already ships 3.11.9). If you’ve already added other PPAs that supply older 3.11 builds, consider disabling them so the versions stay aligned.
+Once that succeeds, rerun python3.11 -m venv ~/.dbgcopilot—it should now be able to bootstrap pip.

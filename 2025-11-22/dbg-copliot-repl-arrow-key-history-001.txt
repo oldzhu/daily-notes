@@ -1,0 +1,6 @@
+copilot REPL has no history for key typed , can we implement that in copilot REPL? I mean like we in linux terminal shell, when we press up or down key,it will go through the previouse typed commands in the shell prompt so that we don't need to type any command we typed before. is that complex to implement?
+==========
+
+Enabling shell-like arrow-key history in copilot> means wiring the REPL input to Python’s readline (or prompt_toolkit) so up/down cycle through previous commands; it’s not built-in now because we’re using plain input(...).
+One approach: early in standalone.py import readline (standard on Linux/macOS) and call readline.parse_and_bind("tab: complete") plus maintain history via readline.write_history_file() if desired. The existing input() call will then respect the arrow keys automatically.
+If you want richer multiline editing or cross-platform arrow support, consider swapping the prompt loop to use prompt_toolkit.shortcuts.prompt() with a History() object; that also supports reverse-i-search and more.

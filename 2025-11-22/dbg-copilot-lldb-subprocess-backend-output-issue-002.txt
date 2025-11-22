@@ -1,0 +1,14 @@
+copilot> /use lldb
+Using LLDB (subprocess backend; Python API unavailable).
+Hint: install LLDB Python bindings: sudo apt install lldb python3-lldb
+copilot> /use lldb-rust
+Using LLDB (rust-friendly subprocess backend). (API backend unavailable: LLDB Python module could not be imported safely in a probe. Options:
+
+Linux: sudo apt install lldb python3-lldb liblldb-18; then set PYTHONPATH=$(lldb -P)
+macOS: install Xcode CLT; run with PYTHONPATH=$(lldb -P) python3 -c 'import lldb'
+Conda: conda install -c conda-forge lldb
+Or set DBGCOPILOT_LLDB_API=0 to force subprocess backend.)
+when I tested the lldb and lldb-rust in wls host, I got the above output. Because I still not fix the problem lldb subprocess backend always return empty command output to psexpect, so I would like to disable the lldb subprocess backend and lldb-rust subprocess backend temprarily in our project, let us still keep the implementation of the code in our project and leave with commments we will reenable once we fix the output captureing issue for subprocess backend. so now when run /use lldb or /use lldb-rust, we will only try API backend (we will enable subproces backend once we fix the output issue).
+=========
+Updated /use lldb and /use lldb-rust so they now only try the LLDB Python API backend and immediately error out if that fails, explicitly mentioning that the subprocess backends are temporarily disabled while we fix the output-capture issues (the fallback implementations remain in comments for easy reactivation later).
+No tests were run (runtime behavior change only).

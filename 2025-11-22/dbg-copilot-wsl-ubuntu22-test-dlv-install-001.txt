@@ -1,0 +1,7 @@
+copilot> /use delve
+Enter path to Go binary for Delve: dbgcopilot/examples/bin/go/crash
+Failed to start delve: The command was not found or was not executable: dlv.
+
+=========
+
+remind to install dlv
