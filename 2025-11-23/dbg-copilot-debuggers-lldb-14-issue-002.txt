@@ -1,0 +1,23 @@
+(.dbgcopilot) oldzhu@oldzhu-box-999:$ lldb -P
+/usr/lib/local/lib/python3.10/dist-packages
+(.dbgcopilot) oldzhu@oldzhu-box-999:$ ls /usr/lib/python3/dist-packages/lldb
+init.py _lldb.cpython-310-x86_64-linux-gnu.so embedded_interpreter.py formatters lldb-argdumper plugins utils
+(.dbgcopilot) oldzhu@oldzhu-box-999:$ echo $PYTHONPATH
+/usr/lib/python3/dist-packages:
+I foun lldb is under folder /usr/lib/python3/dist-packages nd PYTHONPATH is also point to that path, but lldb -P is point to /usr/lib/local/lib/python3.10/dist-packages which the folder does not exist:
+(.dbgcopilot) oldzhu@oldzhu-box-999:$ ls /usr/lib/local/lib/python3.10/dist-packages
+ls: cannot access '/usr/lib/local/lib/python3.10/dist-packages': No such file or directory
+how to fix? could we let lldb -P point to /usr/lib/python3/dist-packages?
+
+=====
+
+lldb -P reports the path that the bundled LLDB binary expects to find its Python bindings. In your case it points at /usr/lib/local/lib/python3.10/dist-packages, which doesn’t exist because the Ubuntu packages install under dist-packages instead.
+You can fix this without rebuilding LLDB by creating the expected directory and symlinking the actual module there:
+
+sudo mkdir -p /usr/lib/local/lib/python3.10/dist-packagessudo ln -s /usr/lib/python3/dist-packages/lldb /usr/lib/local/lib/python3.10/dist-packages/lldb
+That way lldb -P will continue to return the path it knows about, but Python will still find _lldb because it’s actually stored under dist-packages.
+Alternatively, keep your existing PYTHONPATH=$(lldb -P) but override it to the working location before launching dbgcopilot:
+
+export PYTHONPATH=/usr/lib/python3/dist-packagessource ~/.dbgcopilot/bin/activate
+This forces Python to import the matching bindings regardless of what lldb -P says.
+If you prefer the “official” path, reinstall LLDB from the same distro or build so that lldb -P already matches dist-packages; otherwise the symlink above is the quickest workaround.

@@ -1,0 +1,61 @@
+I tested the dbgcopilot on my wsl host (ubuntu 22) which has lldb 14 installed,
+(.dbgcopilot) oldzhu@oldzhu-box-999:$ lldb -P
+/usr/lib/local/lib/python3.10/dist-packages
+(.dbgcopilot) oldzhu@oldzhu-box-999:$ lldb --version
+lldb version 14.0.0
+when I run /use lldb, I got the be;low error:
+copilot> /use lldb
+LLDB API backend failed to initialize: LLDB Python module could not be imported safely in a probe. Options:
+
+Linux: sudo apt install lldb python3-lldb liblldb-18; then set PYTHONPATH=$(lldb -P)
+macOS: install Xcode CLT; run with PYTHONPATH=$(lldb -P) python3 -c 'import lldb'
+Conda: conda install -c conda-forge lldb
+Or set DBGCOPILOT_LLDB_API=0 to force subprocess backend.. The subprocess backend is temporarily disabled until the pexpect output capture issue is resolved.
+Hint: install LLDB Python bindings: sudo apt install lldb python3-lldb
+lldb in our dev container is lldb19,I also know there is bug in lldb 18 which prevent our using lldb api backend. Not sure why it also fial with lldb 14, pls prepare the steps for the troubleshooting and I will follow to diagnostic in my wsl host
+=====
+
+LLDB debugging tips
+
+The error means the LLDB Python module cannot be imported in your venv, so /use lldb falls back to the API probe and then stops (since subprocess is still disabled). That can happen when the Python bindings and shared libs your interpreter sees don’t match the installed LLDB version (14 in your WSL case).
+Troubleshooting steps to run in the WSL shell:
+Confirm the LLDB Python module path:
+
+python -c "import lldb; print(lldb.__file__)"
+If this raises the same “could not be imported safely” message, capture the traceback and check whether it’s complaining about liblldb version mismatches.
+Make sure the LLDB Python bindings from liblldb-14 are installed for the same Python interpreter (python3.11 in your venv). On Ubuntu 22, install with:
+
+sudo apt install lldb-14 python3.11-lldb
+(If that package isn’t available, you can install python3-lldb and then point PYTHONPATH to the lldb module that ships with LLDB 14 via lldb -P.)
+After installing, set PYTHONPATH=$(lldb -P) before launching dbgcopilot so Python picks up the LLDB module that matches the shared library. You can add this to your shell:
+
+export PYTHONPATH=$(lldb -P)
+Rerun /use lldb inside the dbgcopilot session and note any remaining errors (they’ll mention missing symbols if a version mismatch persists).
+If the API still fails and you need to keep working today, set DBGCOPILOT_LLDB_API=0 before launching dbgcopilot to force the subprocess backend; we’ll re-enable it upstream once the capture issues are resolved.
+If you capture the specific traceback from the API import failure, send it over and I can help identify whether it’s a missing PYTHONPATH, ABI mismatch, or an unsupported LLDB release.
+
+
+======
+(.dbgcopilot) oldzhu@oldzhu-box-999:~$ python -c "import lldb; print(lldb.file)"
+Traceback (most recent call last):
+File "/usr/lib/python3/dist-packages/lldb/init.py", line 42, in <module>
+import _lldb
+ModuleNotFoundError: No module named '_lldb'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+File "<string>", line 1, in <module>
+File "/usr/lib/python3/dist-packages/lldb/init.py", line 45, in <module>
+from . import _lldb
+ImportError: cannot import name '_lldb' from partially initialized module 'lldb' (most likely due to a circular import) (/usr/lib/python3/dist-packages/lldb/init.py)
+
+===========
+
+The traceback shows Python found the lldb package but _lldb (the compiled extension) isn’t available under your current interpreter. That means the bindings installed under dist-packages don’t match the Python you’re running in .dbgcopilot.
+Fixes to try:
+Install the LLDB-specific Python package for your interpreter: sudo apt install lldb-14 python3.11-lldb (or the matching python3.10-lldb if you’re on that version) so _lldb is compiled for the same ABI.
+After installing, re-export PYTHONPATH=$(lldb -P) before activating the venv so Python picks up the correct module:
+Run python -c "import lldb; print(lldb.__file__)" again to confirm the module now resolves to a path with _lldb present; then /use lldb in dbgcopilot should load the API backend.
+If Ubuntu’s packages still install _lldb for the system Python (3.10) but not your venv interpreter, you can symlink or copy the compiled _lldb shared library into the venv’s site-packages, but matching the exact Python patch level is important. Let me know which Python version the venv uses (python --version) and we can choose the right package to install.
+
