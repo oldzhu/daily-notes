@@ -1,0 +1,8 @@
+I am tetsing dbgcopilot with lldb on wsl host which is ubuntu22, and I found it is hard to start the lldb python api backend(it involves python-lldb, lldb, python, and if there is mismatch between them, then it would not work, that makes the thing complex), pexpect and lldb sub process seems more direct nd simple(if lldb itself works,then pexpect and ldb can work), now let us reenable the lldb subprocess backend and make them default for lldb and ldb-rust, we only fallback to lldb python api backend if lldb sub process backend failed. and let us start to try to fix the command output capture problem of the lldb subprocess bckend
+
+=====
+Reenabled LLDB subprocess by default
+
+Swapped the LLDB flows so /use lldb and /use lldb-rust now try the subprocess backends first and only fall back to the Python API if subprocess initialization really fails, including messaging that the API runs when capture reliability is currently under investigation.
+This keeps the existing subprocess implementations in place (so we can keep working on the capture fix) while still letting API mode kick in automatically when needed, avoiding the earlier disabling you requested.
+Tests not run (behavior change only).

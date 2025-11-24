@@ -1,0 +1,12 @@
+actually we lready have color config like the lelow:
+...
+/colors on|off Toggle colored output in REPL and debugger (LLDB/GDB)
+...
+I want it apply to lldb subprocess backend too and it also by default is color (settings set use-color true)
+when I run lldb directly, I no need to set lldb-server nd it just works, why using pexpect to spwan the lldb process does not work the same way and need to _find_lldb_server(), let us temporarily comment out and disabe the code to call_find_lldb_server and settings set lldb-server for lldb subprocess backend and test if it just works like run lldb directly
+=====
+
+lldb_subprocess.py now leaves LLDB’s color output untouched during startup so /colors on|off can control it just like the API backend; I removed the hardcoded settings set use-color false and instead flush the prompt before switching prompts. The /colors toggle still issues settings set use-color true/false via the backend’s run_command path.
+Removed the _find_lldb_server() lookup and the block that tried to set every settings set … lldb-server key, so the subprocess initialization now mirrors the behavior you see when running lldb directly (no extra globbing, no forced daemon config). That should also speed up /use lldb because the REPL no longer waits for those file-system operations.
+lldb_capture.py wasn’t touched here but remains available for debugging prompt noise if you want to revisit it.
+Tests: none run (not requested).

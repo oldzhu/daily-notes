@@ -1,0 +1,12 @@
+another issue is slowness when /use lldb, when I run lldb, I can quickly see the lldb prompt, when run /use lldb,it takes long  time to back to copilot prompt, seems subprocess initilization takes time, what actions it take when initialize the lldb subprocess backend and takes so  long time?
+
+==========
+Initializing the LLDB subprocess backend spawns a fresh lldb process (pexpect.spawn) and immediately runs a handful of setup commands (settings set use-color false, settings set prompt …, settings set auto-confirm true, and a series of settings set … lldb-server attempts). Each of those commands is sendline + expect(prompt), so the startup time is a few round-trips to the debugger plus whatever LLDB needs to scan for lldb-server binaries (we glob bin and /usr/lib/llvm-*, which can be slow on some systems). That’s why /use lldb feels slower than typing lldb directly—the REPL is doing extra configuration work before handing control back to you.
+If you’d like the colorized output back, you can remove or gate the self.child.sendline("settings set use-color false") line in lldb_subprocess.py (right now it’s forced to keep capture simple). Perhaps make it conditional on a config flag so you can opt into colors once you’re confident the capture is reliable.
+To speed up /use lldb, you could:
+Cache the result of _find_lldb_server() so the glob only runs once per session (or skip it entirely if you don’t need the daemon path).
+Defer some of the non-critical setup (e.g., settings set auto-confirm true) until after you start issuing commands, so the prompt returns faster.
+Consider selecting the LLDB Python API backend by default if it starts faster on your machine; the subprocess backend is useful when the API is unavailable, but the API path avoids repeated CLI handshakes.
+Let me know if you’d like me to help make any of those tweaks (config flag, caching, or opt-in color).
+
+

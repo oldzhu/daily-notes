@@ -1,0 +1,3 @@
+Backed out repeated LLDB prompt churn by making the subprocess backend loop past ANSI-only responses, strip escape sequences, and return the first chunk that actually mentions the command; this also adds lldb_capture.py for reproducing the issue and validating the capture behavior.
+Collapsed long runs of identical chat-log lines (e.g., the DWARF-indexing spam) before building the LLM prompt so the context stays within the token budget while still recording the repeat count.
+Tests: not run (not requested).

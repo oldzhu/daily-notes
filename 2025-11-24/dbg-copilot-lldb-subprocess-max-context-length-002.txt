@@ -1,0 +1,13 @@
+pls review the code under dbgcopilot/core/orchestrator.py and see if there is any place can insert the client-side filter. another thing is I really like to add llm provider to google gemini. but let us work on them 1 by 1 and do the client side filter 1st.
+
+========
+
+Collapsed long runs of identical chat-log entries before assembling the LLM context so repeated DWARF-indexing spam like “Manually indexing DWARF: libc.so.6…” now appears only once as a [repeat …×] summary line instead of flooding the prompt.
+
+Details CopilotOrchestrator._llm_turn now feeds a filtered chatlog (via filtered_chatlog = _collapse_repeated_lines(self.state.chatlog)) into the context builder, with the user’s latest line appended afterward, preventing redundant lines from counting toward the token budget.
+Helper Added _collapse_repeated_lines near the bottom of orchestrator.py; it emits a [repeat N×] … line whenever it sees 10 or more identical consecutive entries, otherwise preserving the original sequence.
+Testing Not run (not requested).
+Next steps you might consider:
+
+Reproduce the “Manually indexing DWARF…” flood in a session and confirm the provider no longer receives every line in the context dump.
+Once satisfied, proceed to the Gemini provider integration you mentioned.

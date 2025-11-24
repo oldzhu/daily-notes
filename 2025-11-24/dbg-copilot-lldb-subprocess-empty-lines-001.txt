@@ -1,0 +1,11 @@
+I tested locally by /exec file target> and /exec run, now could not see the lines Manually indexing DWARF: libc.so.6.., but seems still see many emry lines, I don't think it make sense to output these empty lines
+
+=======
+LLDB Output Cleanup
+
+The LLDB subprocess backend now strips out DWARF-indexing log lines and any otherwise-empty lines before returning command output, so /exec file … + /exec run no longer send those identical [n/m] Manually indexing DWARF… spikes or blank rows through the REPL output.
+This change is isolated to lldb_subprocess.py; the orchestrator no longer collapses chatlog entries because the noise reduction happens right where the output is captured.
+Diagnostic helper lldb_capture.py remains available for reproducing the prompt-noise behavior if you need to tune it further.
+Tests: backend smoke-checks already run with the repro script; no new automated tests were added.
+
+Next step: rerun the problematic /exec sequence so you can confirm the DeepSeek context limit is no longer triggered and the output matches running LLDB directly.

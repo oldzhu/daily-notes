@@ -1,0 +1,48 @@
+Context block now reuses the filtered chat log, so the repeated “[N/M] Manually indexing DWARF: libc.so.6…” entries that were still hitting DeepSeek’s 131K token limit are collapsed before the prompt is assembled. That should keep the actual caller history short even if the raw chatlog still grows.
+Earlier fixes already collapse repeated lines for the transcript and add the [repeat …×] … summaries; together they limit how much of the flood ever reaches the provider.
+Tests: not run (not requested). Please rerun the LLDB session that previously tripped the context limit and confirm the error no longer occurs; if you still see issues, we can also trim context_block’s other sections (e.g., attempts or last output) next.
+==============
+
+
+it is still the same error and still see repeated line in otuput of the
+...
+[4418/4420] Manually indexing DWARF: libc.so.6...
+
+[4419/4420] Manually indexing DWARF: libc.so.6...
+
+Crash demo starting...
+
+Process 13262 stopped
+....
+In additiom, if I run the same commands in lldb directly,I could as the below:
+
+(lldb) file examples/bin/c/crash
+Current executable set to '/workspace/examples/bin/c/crash' (x86_64).
+(lldb) run
+Process 14034 launched: '/workspace/examples/bin/c/crash' (x86_64)
+Crash demo starting...
+Process 14034 stopped
+
+thread #1, name = 'crash', stop reason = signal SIGSEGV: address not mapped to object (fault address: 0x0)
+frame #0: 0x000055555555517d crash`boom at crash.c:6:8
+3
+4 static void boom(void) {
+5 int *p = NULL;
+-> 6 p = 42; / deliberate segmentation fault */
+7 }
+8
+9 int main(int argc, char **argv) {
+(lldb)
+although I could see multiple lines [4418/4420] Manually indexing DWARF: libc.so.6... appearred quickly and then disappearred, so finally they won't displayed in the command outut of the lldb like the above when we run the same comand in lldb directly.
+Based on this obsevervation, I would like to change the client filter behavior for lldb - don't collpasing the repeat lines but just just filter them out all, I mean for lines like [n/m] Manually indexing DWARF: libc.so.6..., just don't include them in our comand output - this ensure our lldb subprocess comman output capture behave the same as run the same command in lldb directly. so pls revert back the changes for the filter we done previously in our project and move the new filter behvaior in lldb suprocess command output capture code as it only applies to lldb so far.
+
+===========
+
+lldb_subprocess.py now compiles a _DWARF_INDEXING_RE and feeds every chunk through _filter_dwarf_noise after stripping ANSI before the command echo gets removed. Any [n/m] Manually indexing DWARF: … lines are dropped locally, so the subprocess output now mirrors what LLDB itself prints (no more token-bloating noise) while retaining the existing prompt-capture fixes.
+orchestrator.py has been reverted to the upstream version, so the client-side context filter we added earlier is gone—everything that collapses or removes repeated lines now lives inside the LLDB backend only.
+lldb_capture.py remains in place as a quick repro harness for investigating prompt/noise behavior.
+Tests: python - <<'PY' … (instantiated LldbSubprocessBackend, ran help break, confirmed the repeated [n/m] Manually indexing DWARF: … lines no longer appear in the captured output).
+
+Next steps:
+
+Reproduce the original /exec help run in copilot> to verify you no longer see the DWARF indexing lines and that the DeepSeek context-limit error disappears.

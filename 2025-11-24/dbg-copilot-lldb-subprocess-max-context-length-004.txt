@@ -1,0 +1,25 @@
+I still see the same error
+...
+
+[4419/4420] Manually indexing DWARF: libc.so.6...
+
+Crash demo starting...
+
+Process 12154 stopped
+
+thread #1, name = 'crash', stop reason = signal SIGSEGV: address not mapped to object (fault address: 0x0)
+frame #0: 0x000055555555517d crash`boom at crash.c:6:8
+3
+4 static void boom(void) {
+5 int *p = NULL;
+-> 6 p = 42; / deliberate segmentation fault */
+^
+7 }
+8
+9 int main(int argc, char **argv) {
+LLM provider error: deepseek HTTP 400 for https://api.deepseek.com/v1/chat/completions: {"error":{"message":"This model's maximum context length is 131072 tokens. However, you requested 188593 tokens (188081 in the messages, 512 in the completion). Please reduce the length of the message
+====
+Extended the transcript filter in CopilotOrchestrator._llm_turn so repeating log lines like the DWARF indexing spam collapse before the prompt is sent; the new helper normalizes each line (removing [N/M] counters and squeezing whitespace) and only keeps a single [repeat …×] … summary when a sequence of ~10+ normalized lines repeats, keeping the context length hairier events compact without losing signal.
+Updated the repeat-collapsing helper rather than just comparing raw strings, ensuring streams such as [4419/4420] Manually indexing DWARF: libc.so.6… now register as one summary entry instead of 4,400 near-identical lines.
+Tests: not run (not requested).
+
