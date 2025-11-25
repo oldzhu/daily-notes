@@ -1,0 +1,11 @@
+do we really need summary or new session when max_context_chars reached?
+
+=======
+Bumped the default max_context_chars in defaults.py from 16,000 to 4096 * 1024 (4,194,304) so the summary/new-session heuristics effectively stay dormant until those features are implemented.
+Committed the change as Increase default max_context_chars.
+No tests were run (not requested). If you’d like to push this into a release candidate, rerun your test suite or smoke tests in the dev image before packaging.A
+
+You’re right that no code change is strictly needed: CopilotOrchestrator pulls max_context_chars from the prompt config, and we already bumped the built-in default in defaults.py to 4096 * 1024. So even though the inline fallback still says 16000, it will never be hit unless someone explicitly clears the prompt config entry.
+If you want to keep the fallback aligned (and avoid future confusion), we could also change that 16000 literal to the same large number or even pull it from DEFAULT_PROMPT_CONFIG instead. Let me know if you’d like me to make that tidy-up as well.
+
+let use keep fallback aligned and pull it from DEFAULT_PROMPT_CONFIG.

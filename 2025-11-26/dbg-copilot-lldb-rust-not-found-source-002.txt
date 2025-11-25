@@ -1,0 +1,140 @@
+for this one RUSTFLAGS="-C remark=location -C debuginfo=2" cargo build
+where I can set it in Makefile and how? or in Cargo.toml?
+THe blow is Makefile and Cargo.toml I used:
+
+Makefile:
+CARGO ?= cargo
+BINDIR ?= ../../bin/rust
+CRATE := rust_crash
+TARGET := $(BINDIR)/crash
+MANIFEST := Cargo.toml
+SOURCES := $(shell find src -type f -name '*.rs')
+
+all: $(TARGET)
+
+$(BINDIR):
+	mkdir -p $(BINDIR)
+
+$(TARGET): $(MANIFEST) $(SOURCES) | $(BINDIR)
+	@if ! command -v $(CARGO) >/dev/null 2>&1; then \
+		echo "cargo not found; install Rust toolchain to build $@"; \
+		exit 1; \
+	fi
+	$(CARGO) build --manifest-path $(MANIFEST)
+	cp target/debug/$(CRATE) $@
+
+clean:
+	rm -f $(TARGET)
+	@if command -v $(CARGO) >/dev/null 2>&1; then \
+		$(CARGO) clean --manifest-path $(MANIFEST); \
+	fi
+
+.PHONY: all clean
+
+Cargo.toml:
+
+[package]
+name = "rust_crash"
+version = "0.1.0"
+edition = "2021"
+
+[profile.dev]
+debug = true
+
+[dependencies]
+Edit
+Copy
+Share
+Thinking complete
+Great question! You can set RUSTFLAGS in both places, but the Makefile is the cleanest for your use case.
+Option 1: In Makefile (Recommended)
+Method A: Inline in build command
+Modify your Makefile's build line:
+makefile
+Copy
+$(TARGET): $(MANIFEST) $(SOURCES) | $(BINDIR)
+	@if ! command -v $(CARGO) >/dev/null 2>&1; then \
+		echo "cargo not found; install Rust toolchain to build $@"; \
+		exit 1; \
+	fi
+	# Add RUSTFLAGS right before cargo build
+	RUSTFLAGS="-C remark=location -C debuginfo=2" $(CARGO) build --manifest-path $(MANIFEST)
+	cp target/debug/$(CRATE) $@
+Method B: Export at top of Makefile (Cleaner)
+Set it once for all targets:
+makefile
+Copy
+# Add at top of Makefile
+CARGO ?= cargo
+BINDIR ?= ../../bin/rust
+RUSTFLAGS := -C remark=location -C debuginfo=2  # Set here
+export RUSTFLAGS  # Export to environment
+
+# ... rest of your Makefile stays the same
+The export keyword makes RUSTFLAGS available to all commands in the Makefile.
+Option 2: In Cargo.toml (Limited)
+Important: RUSTFLAGS is an environment variable, not a Cargo.toml setting. However, you can configure partial debug info in Cargo.toml:
+Enhanced Cargo.toml:
+toml
+Copy
+[package]
+name = "rust_crash"
+version = "0.1.0"
+edition = "2021"
+
+[profile.dev]
+debug = 2  # Equivalent to -C debuginfo=2
+
+# Optional: Force absolute paths
+[build]
+rustflags = ["-C", "remark=location"]  # This works in newer Cargo (1.70+)
+⚠️ Caveats:
+The [build] rustflags section overrides everything, including user settings
+remark=location is only available via RUSTFLAGS, not debug = ...
+This doesn't work in all Cargo versions (requires 1.70+ and may conflict with .cargo/config.toml)
+✅ Recommended: Makefile + Cargo.toml Combo
+Makefile (use Method B):
+makefile
+Copy
+CARGO ?= cargo
+BINDIR ?= ../../bin/rust
+RUSTFLAGS := -C remark=location -C debuginfo=2
+export RUSTFLAGS
+# ... rest unchanged
+Cargo.toml (enhanced for clarity):
+toml
+Copy
+[package]
+name = "rust_crash"
+version = "0.1.0"
+edition = "2021"
+
+[profile.dev]
+debug = 2  # Max debug info, matches your RUSTFLAGS
+
+[profile.release]
+debug = 2  # Optional: keep symbols in release builds too
+🧪 Verification
+bash
+Copy
+# Clean rebuild
+make clean
+make
+
+# Check that flags were used
+RUSTFLAGS="-C remark=location -C debuginfo=2" cargo build --verbose 2>&1 | grep rustc
+# Should show: rustc --crate-name rust_crash ... -C remark=location -C debuginfo=2
+
+# Check binary has full debug info
+objdump --dwarf=info ../../bin/rust/crash | grep DW_AT_name | head
+🎯 TL;DR
+Use Makefile Method B - it's clean, works everywhere, and doesn't override user settings:
+makefile
+Copy
+# Top of Makefile
+RUSTFLAGS := -C remark=location -C debuginfo=2
+export RUSTFLAGS
+This ensures every cargo build (in this Makefile) uses those flags automatically. Users without a Makefile can still set their own RUSTFLAGS in their shell.
+
+
+

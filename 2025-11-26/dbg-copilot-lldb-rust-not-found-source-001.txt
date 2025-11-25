@@ -1,0 +1,99 @@
+in lldb I could see the below
+   CompileUnit: id = {0x00000002}, file = "/workspace/examples/crash/rust/src/main.rs/@/0lth1q
+
+and aslo 
+(lldb) shell cat /workspace/examples/crash/rust/src/main.rs
+fn main() {
+    crash();
+}
+
+fn crash() {
+    let ptr: *mut i32 = std::ptr::null_mut();
+    println!("About to dereference a null pointer... this will crash.");
+    unsafe {
+        *ptr = 42;
+    }
+}
+
+but when I swicth to the frame of  the function of main, i still could not see the source code in lldb
+==========
+Ah, the classic source path mismatch! The debug info has a mangled path (/workspace/examples/crash/rust/src/main.rs/@/0lth1q) but your actual source is at /workspace/examples/crash/rust/src/main.rs. LLDB is looking for the exact mangled path.
+🔍 Root Cause
+The @/0lth1q suffix is from Rust's incremental compilation or macro expansion metadata. LLDB is faithfully trying to find that exact path, but the real file is at the base path without the suffix.
+✅ The Fix: Source Map Remapping
+Method 1: Map the Specific Mangled Path (Quick & Dirty)
+bash
+Copy
+(lldb) settings set target.source-map /workspace/examples/crash/rust/src/main.rs/@/0lth1q /workspace/examples/crash/rust/src
+Then try to list source again:
+bash
+Copy
+(lldb) frame select
+(lldb) list
+Method 2: Map the Parent Directory (Better)
+Map the entire source directory to handle all files:
+bash
+Copy
+(lldb) settings set target.source-map /workspace/examples/crash/rust/src/main.rs/@ /workspace/examples/crash/rust/src
+
+# Verify the mapping
+(lldb) settings show target.source-map
+Method 3: Use rust-lldb (Automatic Fix)
+Restart with rust-lldb - it handles these mangled paths automatically:
+bash
+Copy
+# Exit LLDB
+quit
+
+# Restart with rust-lldb
+rust-lldb target/debug/crash_example
+
+# Now try again
+(lldb) b main
+(lldb) run
+(lldb) frame select
+(lldb) list  # Should work!
+Method 4: Persistent .lldbinit (Best)
+Create ~/.lldbinit to auto-apply this mapping:
+bash
+Copy
+# In WSL terminal
+cat > ~/.lldbinit <<EOF
+command script import $(rustc --print sysroot)/lib/rustlib/etc/lldb_commands  # Rust support
+settings set target.source-map /workspace/examples/crash/rust/src/main.rs/@ /workspace/examples/crash/rust/src
+settings set target.source-map /rustc/$(rustc --version --verbose | grep commit-hash | cut -d' ' -f2) $(rustc --print sysroot)/lib/rustlib/src/rust  # For stdlib
+EOF
+
+# Then restart LLDB
+🛠️ Quick Test
+bash
+Copy
+# After setting source-map, verify LLDB can find the file
+(lldb) target modules dump line-table crash
+# Look for entries pointing to main.rs
+
+# Then try to list source
+(lldb) list main.rs:1
+(lldb) list -f main.rs -l 1
+⚡ The Real Problem: Build Without Split Debuginfo
+The mangled path suggests you're using incremental compilation with split debuginfo. Try rebuilding:
+bash
+Copy
+# Clean and rebuild with simpler debug info
+cd /workspace/examples/crash/rust
+cargo clean
+RUSTFLAGS="-C remark=location -C debuginfo=2" cargo build
+Then retry debugging with rust-lldb.
+🎯 TL;DR: Fastest Fix
+In LLDB session:
+bash
+Copy
+(lldb) settings set target.source-map /workspace/examples/crash/rust/src/main.rs/@ /workspace/examples/crash/rust/src
+(lldb) frame select
+(lldb) list  # Should now show source!
+Or just use:
+bash
+Copy
+rust-lldb target/debug/crash_example
+The path mangling is a Rust compiler quirk - rust-lldb is designed to handle it transparently.
+

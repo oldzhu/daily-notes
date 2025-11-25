@@ -1,0 +1,2 @@
+{"choices": [{"finish_reason": "length", "index": 0, "message": {"role": "assistant"}}], "created": 1763993818, "id": "2mgkadO1I8_jz7IPtYn28Qc", "model": "gemini-2.5-flash", "object": "chat.completion", "usage": {"completion_tokens": 0, "prompt_tokens": 3680, "total_tokens": 4191}}
+

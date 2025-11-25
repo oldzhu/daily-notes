@@ -1,0 +1,65 @@
+in lldb I could see the below
+
+CompileUnit: id = {0x00000002}, file = "/workspace/examples/crash/rust/src/main.rs/@/0lth1q
+...
+=======
+his is a "classic" problem when debugging code built by advanced build systems (like Bazel, Buck, or Pants) inside containers or remote environments.
+
+The issue is a Source Path Mismatch.
+
+The Explanation
+The Build Time View: When your binary was compiled, the build system (likely Bazel or similar) created a hermetic sandbox. To ensure the build was reproducible, it didn't compile main.rs directly. Instead, it likely copied or symlinked main.rs to a temporary "virtual" location like /workspace/examples/crash/rust/src/main.rs/@/0lth1q.
+
+main.rs was treated as a directory.
+
+0lth1q (the random string) became the actual filename of the source code during compilation.
+
+The Debug Info: The compiler recorded this weird path (.../0lth1q) into the debug information (DWARF) of your executable.
+
+The Runtime View: When you run LLDB, it looks at the debug info and tries to find a file named 0lth1q at that specific path. It fails because on your actual disk, the file is simply named main.rs.
+
+The Solution: Source Mapping
+You need to tell LLDB to "translate" the weird build path to your actual local path. You can do this using the settings set target.source-map command.
+
+Step 1: Apply the Mapping in LLDB
+Run this command inside your LLDB session:
+
+Plaintext
+
+(lldb) settings set target.source-map "/workspace/examples/crash/rust/src/main.rs/@/0lth1q" "/workspace/examples/crash/rust/src/main.rs"
+Note: If LLDB complains or if that doesn't work immediately (because of the filename mismatch between 0lth1q and main.rs), you might need to map the directory instead. However, since the filenames differ (0lth1q vs main.rs), a simple directory map often fails.
+
+The "Symlink Trick" (If source-map fails) Because the build system effectively renamed the file to 0lth1q, LLDB might stubbornly look for a file with that name. The most reliable workaround if the command above doesn't work is to recreate the expectation on your filesystem:
+
+Create the directory structure LLDB expects:
+
+Bash
+
+mkdir -p /workspace/examples/crash/rust/src/main.rs/@/
+Symlink your real source file to the weird name:
+
+Bash
+
+ln -s /workspace/examples/crash/rust/src/main.rs /workspace/examples/crash/rust/src/main.rs/@/0lth1q
+Now LLDB will find the file it wants, but it will actually be reading your real source code.
+
+Step 2: Verify it Works
+After applying the source map (or the symlink), try listing the source code again in LLDB to confirm it found it:
+
+Plaintext
+
+(lldb) source list -n main
+Step 3: Make it Persistent
+Once you find the working mapping, you don't want to type it every time. Create or edit the file ~/.lldbinit inside your container and add the command there:
+
+Bash
+
+# In ~/.lldbinit
+settings set target.source-map "/workspace/examples/crash/rust/src/main.rs/@/0lth1q" "/workspace/examples/crash/rust/src/main.rs"
+(Pro Tip for VS Code users): If you are using the CodeLLDB extension, you can add this directly to your launch.json configuration so it handles it automatically:
+
+JSON
+
+"sourceMap": {
+    "/workspace/examples/crash/rust/src/main.rs/@/0lth1q": "/workspace/examples/crash/rust/src/main.rs"
+}

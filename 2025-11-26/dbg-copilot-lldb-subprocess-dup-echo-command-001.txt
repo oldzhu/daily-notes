@@ -1,0 +1,35 @@
+when tested dbgweb with lldb subprocess backend, could see the below
+
+(lldb) run
+[7Grun
+Process 3859 launched: '/home/oldzhu/dbgcopilot/examples/bin/c/crash' (x86_64)
+.....
+
+(lldb)
+
+(lldb) list crash.c:1,10
+[7Glist crash.c:1,10
+
+actually when tested dbgcoplot repl with lldb subprocess backend, could see the similar
+copilot> /use lldb
+Using LLDB (subprocess backend).
+copilot> /exec file examples/bin/c/crash
+(lldb) file examples/bin/c/crash
+file examples/bin/c/crash
+Current executable set to '/workspace/examples/bin/c/crash' (x86_64).
+
+But gdb subproess has no such probem:
+
+copilot> /use gdb
+Using GDB (subprocess backend).
+copilot> /exec file examples/bin/c/crash
+(gdb) file examples/bin/c/crash
+
+Reading symbols from examples/bin/c/crash...
+
+I mean when tested with lldb subprocess backend, could see additional dulicate executed command with unprintable character pretended, we need to fix this
+========
+
+LLDB subprocess output now strips ANSI sequences before checking for the echoed command so duplicates like [7Grun/[7Glist… are removed from the captured text, matching what GDB already does.
+The sanitized lines are also fully cleaned of ANSI codes before being returned, so dbgweb/repl no longer see the spurious control characters.
+No automated tests were run (not requested). Please rerun your LLDB subprocess scenario to confirm the prompt echoes are gone.

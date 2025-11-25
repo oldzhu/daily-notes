@@ -1,0 +1,25 @@
+    () at library/std/src/sys/backtrace.rs:174
+#10 0x0000555555569a0d in std::panicking::panic_handler () at library/std/src/panicking.rs:698
+#11 0x00005555555a8d3d in core::panicking::panic_nounwind_fmt::runtime () at library/core/src/panicking.rs:117
+#12 core::panicking::panic_nounwind_fmt () at library/core/src/intrinsics/mod.rs:2435
+#13 0x00005555555a8f1d in core::panicking::panic_null_pointer_dereference () at library/core/src/panicking.rs:302
+#14 0x00005555555696de in main::crash () at main.rs:9
+#15 0x0000555555569656 in main::main () at main.rs:2
+(gdb) f 14
+#14 0x00005555555696de in main::crash () at main.rs:9
+9               *ptr = 42;
+(gdb) list
+4
+5       fn crash() {
+6           let ptr: *mut i32 = std::ptr::null_mut();
+7           println!("About to dereference a null pointer... this will crash.");
+8           unsafe {
+9               *ptr = 42;
+10          }
+11      }
+(gdb) exit
+A debugging session is active.
+
+        Inferior 1 [process 5593] will be killed.
+
+Quit anyway? (y or n) y
