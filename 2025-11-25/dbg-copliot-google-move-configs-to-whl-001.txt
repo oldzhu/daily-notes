@@ -1,0 +1,13 @@
+I am considering to move configs into the dbgcopilot and involve it into whl, what do u think? pros and cons?
+==========
+Pros: Bundling configs inside the dbgcopilot wheel would make the Gemini provider (and any other defaults) immediately available to every install, eliminating the “missing file” surprises you saw on WSL hosts. It also keeps defaults versioned alongside the code, so new providers or doc tweaks ship together with the wheel.
+Cons: Shipping editable configs inside the package means they can’t be tweaked without touching site-packages (which is why we currently write to ~/.config/...), so you’d still need an override mechanism or copying step for site-specific settings. It slightly increases wheel size (not much for small JSON), and if users expect to edit llm_providers.json directly, we’d need to document how to drop their overrides into a writable location instead of mutating the bundled file.
+Suggestion: Keep the shipped defaults inside the wheel (as you now do via _merge_default_providers) but keep the repo’s configs dir as optional overrides. That gives the best of both worlds—everyone gets sensible defaults, yet power users can still supply custom files in a dedicated ~/.config or environment path without rebuilding the wheel.
+
+==========
+Status Update
+
+Gemini defaults are now bundled into every install via _merge_default_providers, so /llm list and dbgweb consistently show the same providers even if the shipped configs directory isn’t present.
+The Debugger Copilot title change (FastAPI metadata + landing page) and the packaging fixes (PyPI config + static asset inclusion) are committed.
+Short Gemini description change committed earlier keeps the CLI listing tidy.
+Let me know if you need a new prerelease wheel or want docs updated further.

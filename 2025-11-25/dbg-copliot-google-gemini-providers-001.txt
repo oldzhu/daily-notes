@@ -1,0 +1,39 @@
+the openapi compitible base url and path are not correct for google gemini provide, please refer the following code,I copied from the google document page:
+curl "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions" \
+-H "Content-Type: application/json" \
+-H "Authorization: Bearer GEMINI_API_KEY" \
+-d '{
+    "model": "gemini-2.5-flash",
+    "messages": [
+        {"role": "user", "content": "Explain to me how AI works"}
+    ]
+    }'
+ I would like the default model for google gemini provider is gemini-2.5-flash, pols modify the changes accordingly.
+ In addition, I know the modles list supported by google llm provider can be get from https://generativelanguage.googleapis.com/v1beta/openai/models but it require authroziation header, which means we only can get the list once we set the api-key, pls also note and code accordingly. 
+=======
+Added the Google Gemini entry to providers.py so it appears in /llm list with the OpenAI-compatible endpoint (https://generativelanguage.googleapis.com/v1beta/openai/chat/completions) and defaults to gemini-2.5-flash.
+Updated openai_compat.py so list_models switches to Gemini’s /v1beta/openai/models path (which also requires the Authorization header derived from the configured API key) before falling back to the usual /v1/models path.
+Documented the new provider in llm.md, noting the endpoint/model defaults and reminding users that listing models needs the Gemini API key.
+Tests: not run (not requested).
+=========
+base_url is https://generativelanguage.googleapis.com/v1beta/openai
+and path is /chat/completions
+
+=======
+Added a gemini entry to the default provider registry that points at https://generativelanguage.googleapis.com/v1beta/openai with /chat/completions, defaults to gemini-2.5-flash, and exposes the same OpenAI-compatible capability list as the other vendors.
+Tweaked the OpenAI-compatible helper so list_models hits <base_url>/models for Gemini (rather than hardcoding /v1beta/openai twice) and still uses the configured Authorization header, meaning the provider only returns Gemini’s model list once you’ve supplied the API key.
+Documented the provider in llm.md, updating the summary of defaults and noting that model listing requires the same Authorization header/API key.
+Next step: run copilot> /llm use gemini and set the API key (/llm key gemini …), then confirm /llm list works and /exec commands still behave with the new provider.
+
+===
+
+- Added the `gemini` definition to llm_providers.json (OpenAI-compatible base/path, `gemini-2.5-flash`, `supports_model_list`) so `/llm list`/`/llm use gemini` now have a built-in provider entry instead of being unknown.
+- Clarified llm.md so the convenience-alias list now names `gemini` alongside the other configured endpoints and calls out that `/models` needs the same API key before running `/llm list`.
+
+No automated tests were run (not requested). Please reload or restart the REPL, set your Gemini API key, and run `/llm list` plus `/llm use gemini` to confirm everything appears as expected; ensure the key is set before listing models.
+
+
+====
+Trimmed the gemini description in both llm_providers.json and the source default in providers.py so /llm list now shows Google Gemini OpenAI-compatible API without the extra text you found too verbose.
+Nothing else changed; docs and behavior remain the same.
+Let me know if you also want to rephrase the doc snippet or adjust any messaging for /llm use output.

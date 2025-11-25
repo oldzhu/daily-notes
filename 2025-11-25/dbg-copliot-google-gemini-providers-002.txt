@@ -1,0 +1,3 @@
+Added _merge_default_providers in providers.py and updated _load_config so the installer now injects any built-in defaults (like gemini) when an existing llm_providers.json is missing them; the config file is rewriten once with the merged defaults so future installs keep the same list.
+This ensures /llm list and dbgweb see the same providers even after you’ve already created a per-environment config file (no need to delete the old JSON by hand).
+No automated tests were run (not requested). Please reinstall the updated wheel or run from the repo, then check dbgcopilot /llm list and uvicorn dbgweb.app.main:app --reload to confirm gemini now appears without manual config edits.

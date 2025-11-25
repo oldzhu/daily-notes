@@ -1,0 +1,24 @@
+Searched for text `minimax`, 4 results
+
+- The mismatch is coming from a stale llm_providers.json that lives under your WSL wheel install; it was written before we renamed `glm` to `zhipuglm` and before the `minimax` entry was added, so `/llm list` keeps reading the old key names and missing the new provider.  
+- When you run the REPL in the dev container (from the repo) you’re reading the fresh defaults right out of llm_providers.json, which is why that list looks correct.
+
+**What to do on the WSL host:**  
+1. Delete the llm_providers.json that lives next to the installed wheel (something like llm_providers.json).  
+2. Restart `dbgcopilot`/`dbgweb`; the registry will recreate that file with the up‑to‑date defaults (including `zhipuglm`, `minimax`, and no `glm`).  
+3. Alternatively, run `/llm provider reload` after removing `glm` manually or editing the JSON so it matches the latest list.
+
+If you’d rather automate it, let me know and I can add a helper that renames `glm` → `zhipuglm` and re-injects missing entries whenever the config is stale.
+
+====
+The wheel no longer ships a standalone llm_providers.json; instead the first time the registry runs it creates that file from the embedded defaults (including zhipuglm/minimax). That’s why /llm list in the clean install shows the out-of-date list—your host still has the old JSON from the prerelease (with glm and missing minimax).
+On the WSL host delete the stale file (llm_providers.json) so the registry can recreate it with the new defaults, then restart dbgcopilot/dbgweb. If you prefer not to delete the file, edit it to remove glm and add the new entries and run /llm provider reload.
+Once that file is regenerated you’ll see the same providers (and order) on WSL as you do in the container; if you’d like me to add a migration helper that renames old keys automatically I can do that next.
+
+========
+
+Exactly—dbgcopilot writes llm_providers.json the first time it runs (or whenever the file is missing) by dumping the embedded defaults from the wheel and then saving that JSON in whatever configs path you’ve configured (DBGCOPILOT_LLM_PROVIDERS or <repo_root>/configs by default).
+You can also edit that JSON file manually to add new providers, tweak URLs/models, or disable entries. After editing, either restart the REPL/dbgweb or run /llm provider reload (or the equivalent API call) so the new data is picked up.
+==========
+
+pls not in dev container configs/llm_providers.json - we have minimax but in providers.py we have no minimax
