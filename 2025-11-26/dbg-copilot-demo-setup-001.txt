@@ -1,0 +1,27 @@
+Look at the page https://github.com/plasma-umass/ChatDBG, you could see the home pages containes 3 embeded svg images for demo, if u click on them, it will redirect to asciinema demo pages which have the 3 uploaded asciinema cast files and you can see the demo in the redirect page.
+Actually I reccorded 7 cast files for our demo.
+(.dbgcopilot) oldzhu@oldzhu-box-999:~$ ls -lr dbgcopilot-*.cast
+-rw-r--r-- 1 oldzhu oldzhu 14986 Nov 26 15:45 dbgcopilot-rust-gdb-001.cast
+-rw-r--r-- 1 oldzhu oldzhu 16096 Nov 26 15:58 dbgcopilot-radare2-001.cast
+-rw-r--r-- 1 oldzhu oldzhu 10417 Nov 25 19:17 dbgcopilot-pdb-001.cast
+-rw-r--r-- 1 oldzhu oldzhu 10827 Nov 25 18:13 dbgcopilot-lldb-001.cast
+-rw-r--r-- 1 oldzhu oldzhu 7967 Nov 25 18:16 dbgcopilot-jdb-001.cast
+-rw-r--r-- 1 oldzhu oldzhu 11128 Nov 25 18:12 dbgcopilot-gdb-001.cast
+-rw-r--r-- 1 oldzhu oldzhu 10065 Nov 25 18:18 dbgcopilot-delve-001.cast
+
+now I am think the two ways to show these demo from home page
+
+like the https://github.com/plasma-umass/ChatDBG, create svg image for these cats files and embeded the svgs in home pages which click link to uploaded asciineme demo casts
+convert these cast into gifs and then like the https://github.com/plasma-umass/ChatDBG, create svg image for these gifs, embeded the svgs in home pages which click link to the convrted gifs.
+Do you think which one is better? pros and cons. Do you have any other ideas for demo in our repo home page?
+
+==========
+No files touched here—answering from the README/UX side.
+
+Embedding the asciinema casts via SVG tiles (option 1) keeps the demos lightweight and interactive; clicking opens the hosted cast page so folks can scrub through the real terminal output and see playback controls. The pros: no conversion work, the cast stays exact, and asciinema handles streaming/hosting. Con: visitors leave the repo page for the demo viewer and need an internet connection to asciinema; the preview tile is static (unless you rig an animated SVG preview).
+
+Converting to GIFs (option 2) keeps everything in-repo—you can show animated previews right on the GitHub landing page and link to the GIFs (or host them elsewhere). The pros: instant, inline motion without extra clicks. Cons: GIFs are larger, lose terminal fidelity (colors/legibility and no interactivity), and you still need to host them somewhere (GitHub raw, GitHub Pages, S3, etc.).
+
+Another idea: keep the SVG tiles but add a short descriptive caption (debugger name + goal) and a “Play demo” button that points to a dedicated Markdown page or section where you embed the cast (via asciinema’s iframe) and maybe summarize what was shown. That keeps the landing page lean while still offering follow-through detail.
+
+

@@ -1,0 +1,32 @@
+ I would like to add new subprocess backend for rust-gdb and modify the lldb-rust subprocess backend to rust-lldb.
+1. add rust-gdb subprocess backend which inherit from gdb subprocess backend and lauch the debugger process rust-gdb.
+2. modify the lldb-rust subprocess backend code to rename it as rust-lldb, and launch the debugger process rust-lldb and no need to do initialize commands for the previous lldb-rust as the debugger rust-lldb will do rust related initiliae jobs by itself.
+
+Pls add the new and moify the related codes as I asked aboave. 
+
+==========
+
+Added a dedicated RustGdbBackend, simplified the Rust LLDB subprocess defaults, and wired the standalone REPL/agents/ dbgweb UI so rust-gdb can be selected just like the other supported debuggers.
+
+rust_gdb.py now wraps GdbSubprocessBackend, preferring the rust-gdb binary when present; lldb_rust.py keeps only the Rust-specific settings (step avoidance + bt alias) after leaner initialization.
+The standalone REPL help, /use handling, and initial banner now mention rust-gdb, while dbgagent/CLI and dbgweb session manager/static assets expose the new backend and treat it like GDB when loading binaries/cores.
+Documentation (README.md, gdb.md) highlights the new selection path, and test_smoke_structure.py now imports the rust_gdb module to prove it exists.
+Tests: pytest -q tests/test_smoke_structure.py (the runTests tool reported “No tests found”, so I ran the command directly).
+
+Next steps:
+
+Try /use rust-gdb (or select it via dbgweb/dbgagent) against a Cargo-built binary to ensure the subprocess output flows cleanly.
+Verify that the target environment has rust-gdb/rust-lldb on PATH; without them the backends fall back to the regular GDB/LLDB binaries.
+
+Rust LLDB rename
+
+Renamed the subprocess and API Rust LLDB backends to rust-lldb (and its (rust-lldb) prompt) while keeping the old lldb-rust alias for compatibility; the REPL _select_rust_lldb, backend selection labels, and output sanitization all reflect the new name (lldb_rust.py, lldb_rust_api.py, standalone.py, session_manager.py).
+Updated every frontend/agent path to expose the new identifier—dbgweb now offers the rust-lldb option and validates program requirements, while dbgagent’s CLI/runner and the standalone REPL support both rust-lldb and lldb-rust; prompts, help text, and keyboard shortcuts also advertise the rename (index.html, app.js, cli.py, runner.py).
+Documented the new command in gdb.md, called out the Rust LLDB wrapper in README.md, and ensured the smoke test imports the new backend module (test_smoke_structure.py).
+Testing
+
+python -m pytest -q tests/test_smoke_structure.py
+Next Steps
+
+Try /use rust-lldb (or select it via dbgweb/dbgagent) against a Cargo-built binary to confirm the output capture is clean and the alias still works when needed.
+If you rely on automation, rerun any broader test suites or workflows that assume the old lldb-rust name to double-check there are no downstream regressions.

@@ -1,0 +1,41 @@
+I copied all convcerted gifs and corresponding svgs to docs/media
+(.venv) root ➜ /workspace (main) $ ls -la docs/media/
+total 5720
+drwxr-xr-x 2 root root 4096 Nov 26 14:01 .
+drwxr-xr-x 3 vscode vscode 4096 Nov 19 06:55 ..
+-rw-r--r-- 1 root root 532058 Nov 26 11:13 dbgcopilot-delve-001.gif
+-rw-r--r-- 1 root root 79355 Nov 26 14:01 dbgcopilot-delve-001.svg
+-rw-r--r-- 1 root root 654192 Nov 26 11:13 dbgcopilot-gdb-001.gif
+-rw-r--r-- 1 root root 64119 Nov 26 14:01 dbgcopilot-gdb-001.svg
+-rw-r--r-- 1 root root 506206 Nov 26 11:13 dbgcopilot-jdb-001.gif
+-rw-r--r-- 1 root root 71710 Nov 26 14:01 dbgcopilot-jdb-001.svg
+-rw-r--r-- 1 root root 833450 Nov 26 11:13 dbgcopilot-lldb-001.gif
+-rw-r--r-- 1 root root 73620 Nov 26 14:01 dbgcopilot-lldb-001.svg
+-rw-r--r-- 1 root root 656744 Nov 26 11:13 dbgcopilot-pdb-001.gif
+-rw-r--r-- 1 root root 82948 Nov 26 14:01 dbgcopilot-pdb-001.svg
+-rw-r--r-- 1 root root 1052563 Nov 26 11:13 dbgcopilot-radare2-001.gif
+-rw-r--r-- 1 root root 81019 Nov 26 14:01 dbgcopilot-radare2-001.svg
+-rw-r--r-- 1 root root 1057873 Nov 26 11:13 dbgcopilot-rust-gdb-001.gif
+-rw-r--r-- 1 root root 75767 Nov 26 14:01 dbgcopilot-rust-gdb-001.svg
+
+Pls implement the quick way and keep the SVG tiles with a short descriptive caption(dbugger name + crash)
+====
+Media Gallery
+
+Replaced the placeholder README.md with a small gallery: each row shows the SVG tile (kept in media) plus a short caption describing the debugger/crash workflow, and links to the corresponding GIF so clicking a tile launches the converted demo playback.
+The SVG tiles remain local so the README renders on GitHub without extra tooling, while the GIF links let users watch the recorded terminal sessions inline.
+No automated tests were run for this doc-only change.
+===========
+
+I would like to put two demo tiles  into the root readme.md(gdb and radare2) Demo highlights section and one additonal text link to more demos to docs/media.
+==========
+Added GDB and Radare2 demo tiles (with SVG previews linking to the GIFs) right in the README’s “Demo highlights” section, plus a pointer to media for the full gallery of captures.
+
+==========
+
+Demo Tiles Added
+
+README “Demo highlights” now shows two grouped tiles for dbgcopilot (GDB and Radare2) plus a separate tiles section for the dbgweb dashboard, keeping the Copilot CLI demo note as “coming soon.”
+README.md renders a full gallery of SVG tiles linking to the converted GIFs so anyone can click through to the recorded terminal replays; the directory now contains every SVG/GIF pair for the seven demos plus rust-gdb.
+Newly added files include all demo assets plus the rust_gdb backend and the example Rust source (previous commits staged them for completeness).
+Tests were not run (doc/media assets only).
