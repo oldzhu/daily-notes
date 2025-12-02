@@ -1,0 +1,8 @@
+copilot> /use delve
+Enter path to Go binary for Delve: /home/oldzhu/dbgcopilot/examples/bin/go/crash
+Failed to start delve: Delve failed to start: 2025-11-25T17:15:53+08:00 error layer=debugger could not patch runtime.mallogc: no type entry found, use 'types' for a list of valid types
+Version of Delve is too old for Go version 1.25.0 (maximum supported version 1.18, suppress this error with --check-go-version=false)
+
+=======
+
+how to handle this kind of things...

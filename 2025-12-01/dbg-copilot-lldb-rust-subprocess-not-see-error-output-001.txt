@@ -1,0 +1,3 @@
+(lldb) file home/oldzhu/dbgcopilot/examples/crash/rust/target/debug/rust_crash
+error: unable to find executable for 'home/oldzhu/dbgcopilot/examples/crash/rust/target/debug/rust_crash'
+the above error not displayed in dbgcopilot repl but can seen when run in lldb directly

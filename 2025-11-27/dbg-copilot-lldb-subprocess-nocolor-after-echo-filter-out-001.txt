@@ -1,0 +1,6 @@
+the lldb color gone after removeing duplicate echo command with control 
+
+=========
+
+Reverted the LLDB subprocess output sanitizer so we now only strip ANSI sequences when comparing the first line against the issued command (to drop duplicate echoes) but return the original lines so the colored prompt/parser output stays intact.
+Committed as Preserve LLDB output colors; no tests were run (not requested). Let me know if you’d like a quick LLDB smoke run to confirm the display looks right alongside the cleaned echoes.

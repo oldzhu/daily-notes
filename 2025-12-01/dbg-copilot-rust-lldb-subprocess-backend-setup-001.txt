@@ -1,0 +1,41 @@
+i(.dbgcopilot) oldzhu@oldzhu-box-999:~/dbgcopilot$ rust-lldb
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+ModuleNotFoundError: No module named 'lldb.embedded_interpreter'
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+ModuleNotFoundError: No module named 'lldb.embedded_interpreter'
+Current symbol store settings:
+-> Cache: /home/oldzhu/.dotnet/symbolcache
+-> Server: https://msdl.microsoft.com/download/symbols/ Timeout: 4 RetryCount: 0
+(lldb) command script import "/home/oldzhu/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/etc/lldb_lookup.py"
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+NameError: name 'run_one_line' is not defined
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+NameError: name 'run_one_line' is not defined
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+NameError: name 'run_one_line' is not defined
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+NameError: name 'run_one_line' is not defined
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+NameError: name 'run_one_line' is not defined
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+NameError: name 'run_one_line' is not defined
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+NameError: name 'lldb' is not defined
+error: module importing failed: Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/home/oldzhu/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/etc/lldb_lookup.py", line 3, in <module>
+    from lldb_providers import *
+  File "/home/oldzhu/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/etc/lldb_providers.py", line 6, in <module>
+    from lldb import (
+ImportError: cannot import name 'SBData' from 'lldb' (unknown location)
+(lldb) exit
+=======

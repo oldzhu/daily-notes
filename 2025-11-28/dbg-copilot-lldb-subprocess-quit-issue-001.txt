@@ -1,0 +1,34 @@
+(lldb) quit
+[lldb eof] quit: End Of File (EOF). Exception style platform.
+<pexpect.pty_spawn.spawn object at 0x71762d091b10>
+command: /usr/bin/lldb
+args: [b'/usr/bin/lldb']
+buffer (last 100 chars): ''
+before (last 100 chars): '\x1b[7Gquit\r\n'
+after: <class 'pexpect.exceptions.EOF'>
+match: None
+match_index: None
+exitstatus: None
+flag_eof: True
+pid: 4686
+child_fd: 23
+closed: False
+timeout: 10.0
+delimiter: <class 'pexpect.exceptions.EOF'>
+logfile: None
+logfile_read: None
+logfile_send: None
+maxread: 2000
+ignorecase: False
+searchwindowsize: None
+delaybeforesend: 0.05
+delayafterclose: 0.1
+delayafterterminate: 0.1
+searcher: searcher_re:
+    0: re.compile('(?:\\x1b\\[[0-9;]*m)*\\(lldb\\)(?:\\x1b\\[[0-9;]*m)*\\s*')
+
+==========
+Added local handling for LLDB subprocess EOF/timeout inside _send_and_capture, so quit no longer surfaces the raw pexpect stack trace and repeated timeout feedback only logs the first warning.
+_shutdown_child now closes and clears the child so we don’t reuse a dead pexpect spawn, and _timeout_reported tracks whether a timeout has already been reported for the session.
+Updated run_command to treat the special timeout warning as non-resetting output, which preserves the old empty-output counter behavior needed for the reliability hint.
+No automated tests were run (not requested). Give the instance another LLDB /exec session to confirm both the quiet quit and the single timeout warning.

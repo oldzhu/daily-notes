@@ -1,0 +1,16 @@
+LLDB Rust backend init
+
+/use lldb-rust still builds on LldbSubprocessBackend, so most of the startup work (spawning lldb/rust-lldb, setting a fixed prompt, tweaking auto-confirm, etc.) is identical to /use lldb.
+The extra latency you’re seeing comes from LldbRustBackend.initialize_session, which runs three additional LLDB commands after the base prompt setup:
+settings set target.process.thread.step-avoid-regexp '…' — tells LLDB to skip over common Rust runtime/stdlib frames during stepping, which requires the backend to send the command and wait for the prompt.
+settings set prompt (lldb-rust) — updates the prompt again (even though the base class already set it) so the assistant can match a Rust-specific prompt.
+command alias bt backtrace — defines a convenient alias.
+Each of those commands incurs the run_command overhead (sending, waiting for the prompt, stripping echoes), so the rust backend “takes longer” purely because it deliberately runs a small configuration script before the session is ready.
+If that still feels too slow, you could:
+
+Cache that setup (run it once per environment instead of every session),
+Batch the commands with script/command script import to reduce round-trips, or
+Drop less critical commands (e.g., skip the prompt reset if the base class already sets it).
+Let me know which direction you’d prefer and I can sketch a follow-up change.
+
+
