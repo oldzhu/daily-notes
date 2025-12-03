@@ -1,0 +1,29 @@
+The GitHub CLI (gh release create) automatically preserves the original filenames when you specify local paths as arguments. So when you run:
+
+
+gh release create v0.0.1-pre dist/dbgcopilot-0.0.1-py3-none-any.whl dist/dbgcopilot-0.0.1.tar.gz \   src/dbgagent/dist/dbgagent-0.0.1-py3-none-any.whl \   Dockerfile docker-compose.yml \   --prerelease --title "v0.0.1-pre" --notes "Pre-release for early testing"
+The release assets will be named:
+
+dbgcopilot-0.0.1-py3-none-any.whl
+dbgcopilot-0.0.1.tar.gz
+dbgagent-0.0.1-py3-none-any.whl
+Dockerfile
+docker-compose.yml
+Best practices:
+
+Wheels/tarballs: Already versioned by python -m build (e.g., dbgcopilot-0.0.1-py3-none-any.whl), so no changes needed.
+
+Dockerfile/compose: Since these don't have versions in their filenames by default, you have two options:
+
+Keep simple names (Dockerfile, docker-compose.yml) – easier for testers to download and use directly with docker build . or docker compose build without renaming.
+Add version suffix (e.g., Dockerfile-v0.0.1-pre, docker-compose-v0.0.1-pre.yml) – makes it explicit which release they belong to, but testers must rename them before running docker commands.
+Recommended approach: Keep the simple names (Dockerfile, docker-compose.yml) so the wget commands in install.md work without modification and testers can immediately run docker build . after downloading. The release tag (v0.0.1-pre) already identifies the version, and the URL includes the tag, so there's no ambiguity.
+
+If you want to version them explicitly, you'd modify the gh release create command to rename on upload:
+
+
+cp Dockerfile Dockerfile-v0.0.1-precp docker-compose.yml docker-compose-v0.0.1-pre.ymlgh release create v0.0.1-pre \   dist/dbgcopilot-0.0.1-py3-none-any.whl \   dist/dbgcopilot-0.0.1.tar.gz \   src/dbgagent/dist/dbgagent-0.0.1-py3-none-any.whl \   Dockerfile-v0.0.1-pre docker-compose-v0.0.1-pre.yml \   --prerelease --title "v0.0.1-pre" --notes "Pre-release for early testing"
+But this requires testers to rename the files back after downloading, which adds friction. Stick with the simple names unless you have a specific reason to version them in the filename.
+
+============
+Added image: dbgcopilot-dev:latest to the docker-compose.yml so when you run docker compose build, the resulting image will be tagged as dbgcopilot-dev:latest. You can now push it to Docker Hub with docker tag dbgcopilot-dev:latest oldzhu/dbgcopilot-dev:latest && docker push oldzhu/dbgcopilot-dev:latest.

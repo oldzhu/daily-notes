@@ -1,0 +1,21 @@
+Reordered the “Clone + Dev Container”/“Docker image (pending publication)” blocks so the documented commands match their headings:
+
+“Clone + Dev Container” now covers cloning the repo, building the wheels, and running the smoke tests locally (and mentions editable dbgagent installs), which is what you do before you fire up the dev container.
+“Docker image (pending publication)” now explains how to pull and run oldzhu/dbgcopilot-dev:latest once it lands, with the familiar dbgcopilot/dbgagent smoke-test commands inside the container.
+No tests were run; this is a documentation change.
+=======
+Added guidance in install.md to mention that the pending Docker image can still be validated by downloading the released Dockerfile/docker-compose.yml assets and building locally via docker build or docker compose build, then running the usual smoke-test commands inside the container.
+Suggested that the compose YAML and Dockerfile be distributed in the release so end users can build the image themselves until the published image is available.
+No tests were run; let me know if you’d like me to exercise the smoke test commands inside either workflow.
+========
+Added docker-compose.yml at the repo root that builds the existing Dockerfile, forwards the proxy build args, mounts the repo into workspace, and drops you into an interactive bash session so the smoke-test commands can be run from inside the container.
+With this in place you can now follow the install.md “Docker image” section’s “build yourself” instructions by downloading the release artifacts (the same file) and using docker compose run --rm app bash to inspect/test the environment.
+Let me know if you’d like me to wire up a README mention or automation for generating the release artifact bundle.
+===========
+Updated publishing.md so the GitHub release checklist now explicitly says to attach the Dockerfile and docker-compose.yml artifacts alongside the wheel files, ensuring testers can download those files and build the Docker image themselves before the published container is available.
+Let me know if I should also document how to tag or name those artifacts for the release assets.
+=======
+
+Updated the example gh release create command in publishing.md so it now explicitly uploads both Dockerfile and docker-compose.yml along with the wheel artifacts, ensuring the release bundles everything needed for testers to rebuild the container themselves.
+Let me know if you’d also like a reminder to update those filenames when cutting a new release (e.g., include the current tag in artifact names).
+========
