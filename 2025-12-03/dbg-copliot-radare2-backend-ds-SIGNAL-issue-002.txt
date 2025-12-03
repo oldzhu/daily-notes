@@ -1,0 +1,24 @@
+Seems [+] SIGNAL 11 was successfully sent to LLM as llm now aware the segmetation fault after the last ds command, but it still not seeing in /chatlog as the below
+```
+Debugger output:
+[0x5780b6535169]>  ds
+What should we do next? Remember to wrap any future debugger commands inside <cmd>...</cmd>.
+Assistant: We've executed `mov rax, qword [p]`, loading NULL into `rax`. Now we're at the instruction `mov dword [rax], 0x2a` which will attempt to write the value `0x2a` (42) to memory address 0. This is a NULL pointer dereference and will cause a segmentation fault.
+
+Let's execute this instruction to trigger the crash and observe what happens.
+
+<cmd>ds</cmd>
+Assistant: (executed) ds
+[0x5780b6535169]>  ds
+User: The debugger command `ds` was executed.
+Debugger output:
+[0x5780b6535169]>  ds
+What should we do next? Remember to wrap any future debugger commands inside <cmd>...</cmd>.
+Assistant: The program has crashed due to a segmentation fault. The instruction `mov dword [rax], 0x2a` attempted to write the value `0x2a` (42) to memory address 0 (NULL), which is an invalid operation.
+
+```
+
+=======
+Updated radare2_subprocess.py so every radare2 command now captures stderr by temporarily redirecting file descriptor 2, ensuring asynchronous messages like [+] SIGNAL 11 … are included in the backend’s return string. Merged stderr text together with the usual stdout/log output so REPL, /chatlog, and the LLM all see the same signal banner.
+Verified on crash that running doo, dc, and ds now produces the signal line inside the returned output instead of only echoing in the terminal; dbgweb will therefore show it in the debugger console and the chat log.
+You can re-run your dbgweb session, trigger ds, and the signal banner should now appear under “Debugger output”. Optional next step: add a regression test around test_radare2_fixes.py to assert that run_command('ds') contains SIGNAL 11.

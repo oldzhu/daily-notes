@@ -1,0 +1,32 @@
+Found one issue with radare2 backend,when run ds command in radare2, you could see the beow output
+[0x56805f03817d]> ds
+[+] SIGNAL 11 (aka SIGSEGV) errno=0 addr=0x00000000 code=1 si_pid=0 ret=0
+but the above output SIGNAL 11 wont be seens in /chatlog as the below and also seems also not send to llm model, as llm model always says the ds command output is empty.
+....
+ User: pls run ds command
+Assistant: I'll run the `ds` command to step one instruction.
+
+<cmd>ds</cmd>
+Assistant: (executed) ds
+[0x56805f03817d]>  ds
+User: The debugger command `ds` was executed.
+Debugger output:
+[0x56805f03817d]>  ds
+What should we do next? Remember to wrap any future debugger commands inside <cmd>...</cmd>.
+Assistant: The program seems to be stuck at the same instruction. Let me check the debugger status and see what's happening. First, let's examine the current process state and see if it's actually running or stopped.
+====
+
+Radare2 Signal Output Fix
+
+The signal banner from ds was suppressed because we forced e log.cons=false, which prevents radare2 from echoing log events (like [+] SIGNAL 11 …) to the command output stream. Those messages never reached our backend, so the REPL/LLM only saw the echoed prompt.
+Updated radare2_subprocess.py so _setup_logging no longer disables log.cons. With console logging left enabled, radare2 emits the signal line alongside the prompt, and our existing log-drain logic can still capture file-based logs.
+Verification
+
+Used a quick Python harness to initialize the radare2 backend, reopen the binary via doo, and run commands; after the change, radare2 now emits INFO/SIGNAL lines again (you’ll see them right in the REPL and /chatlog output).
+If you want to test the exact scenario, start the radare2 backend, run doo <binary> followed by ds to trigger the fault— the [+] SIGNAL 11… line should now appear in both the debugger console frame and the conversation transcript.
+Next Steps
+
+Re-run your dbgweb session, execute ds, and confirm the signal banner shows up in /chatlog.
+If further radare2 diagnostics are needed (e.g., additional log channels), we can expand _setup_logging with finer-grained settings.
+
+

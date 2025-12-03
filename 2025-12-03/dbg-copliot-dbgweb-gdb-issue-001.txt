@@ -1,0 +1,23 @@
+I found one issue when testing gdb wth the program set in dbgweb,
+
+[debugger] session 538580fb created
+
+Reading symbols from examples/bin/c/crash...
+
+(gdb)
+
+[debugger] connected
+
+You can see the above in debugger console frame in webu afte clickstart session buttoni, which looks gdbstarted with the program loaded, but if u try to run file in this gbd session, you could see the below
+(gdb) file
+
+No executable file now.
+No symbol file now.
+
+looks like the started gdb session actually not load the target program set in dbgweb
+
+========
+
+Running file with no arguments in GDB clears the currently loaded executable and symbols; that’s exactly why you see No executable file now / No symbol file now. I reproduced the dbgweb flow locally: start session with program=examples/bin/c/crash, GDB prints Reading symbols from examples/bin/c/crash..., but the moment I issue file (without a path) it unloads the target and shows the same error you captured. So the program is loaded correctly at session start; the subsequent bare file command is what resets it.
+To verify the loaded binary without unloading it, use info files, info target, or rerun file <path> explicitly. Those commands will show the current executable without clearing it.
+If you want the web UI to display the current binary automatically, we could hook in an info files command after startup, but no backend change is required for the program load itself. Let me know if you’d like that enhancement.

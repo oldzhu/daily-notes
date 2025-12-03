@@ -1,0 +1,6 @@
+Added a persistent debugger-output log and exposed it via a new /dbglog REPL command.
+
+Session tracking: state.py now includes a DebuggerLogEntry list plus SessionState.append_debugger_log() so every debugger command/output pair is retained (capped at 200 entries).
+Command execution paths: orchestrator.py, standalone.py, and session_manager.py all append to that log whenever they run backend commands. Orchestrator execution also now captures both the user-facing display text and the raw backend output separately.
+User interface: /dbglog [n] in the REPL (documented in the help text) prints the last n debugger entries (default 20) including command and output, so you can review signal banners and other console text even though /chatlog remains LLM-only.
+
