@@ -1,0 +1,47 @@
+Removed the debugger-log data structures from SessionState and restored the prior _execute_and_format flow so commands behave exactly as before.
+Dropped the /dbglog handler and related help text in standalone.py, along with the extra logging hook in session_manager.py.
+The REPL and dbgweb now operate just like they did prior to the /dbglog experiment; no additional logging is performed.
+Let me know if you’d like to explore a different approach for surfacing radare2 signal output.
+
+(.venv) root ➜ /workspace (main) $ radare2 examples/bin/c/crash
+WARN: Relocs has not been applied. Please use `-e bin.relocs.apply=true` or `-e bin.cache=true` next time
+ -- Welcome to IDA 10.0.
+[0x00001080]> ood
+WARN: Environment corrupted after null bytes injected via r_sys_setenv2
+WARN: Environment corrupted after null bytes injected via r_sys_setenv2
+INFO: File dbg:///workspace/examples/bin/c/crash reopened in read-write mode
+[0x7d3c60f00540]> dc
+Crash demo starting...
+[+] SIGNAL 11 (aka SIGSEGV) errno=0 addr=0x00000000 code=1 si_pid=0 ret=0
+[0x5c16b9a2f17d]> 
+
+Proposed debugger command:
+[0x1080]>  ood
+Run it? (y(es)/n(o)/a(uto yes))
+copilot> y
+INFO: File dbg:///workspace/examples/bin/c/crash reopened in read-write mode
+[0x767321b4f540]>  ood
+INFO: File dbg:///workspace/examples/bin/c/crash reopened in read-write mode
+Now let's run the program to see the crash. We'll use `dc` (continue) to execute it.
+Proposed debugger command:
+[0x767321b4f540]>  dc
+Run it? (y(es)/n(o)/a(uto yes))
+copilot> y
+[+] SIGNAL 11 (aka SIGSEGV) errno=0 addr=0x00000000 code=1 si_pid=0 ret=0
+[0x62769694317d]>  dc
+Crash demo starting...
+The program crashed as expected. Let's check the current state and see the crash details.
+
+copilot> /use radare2
+Enter path to binary for radare2: examples/bin/c/crash
+WARN: Relocs has not been applied. Please use `-e bin.relocs.apply=true` or `-e bin.cache=true` next time
+radare2 session ready for crash
+Using radare2 (-q examples/bin/c/crash).
+copilot> /exec ood
+[0x1080]> ood
+INFO: File dbg:///workspace/examples/bin/c/crash reopened in read-write mode
+INFO: File dbg:///workspace/examples/bin/c/crash reopened in read-write mode
+copilot> /exec dc
+[0x753b052ec540]> dc
+[+] SIGNAL 11 (aka SIGSEGV) errno=0 addr=0x00000000 code=1 si_pid=0 ret=0
+Crash demo starting...

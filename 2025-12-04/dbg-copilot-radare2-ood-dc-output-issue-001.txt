@@ -1,0 +1,41 @@
+I found some issues only occurs for radarae2 backend
+1. if run try to debug the same program in radare2 directly, you could see thge outout as the below:
+(.venv) root ➜ /workspace (main) $ radare2 examples/bin/c/crash
+WARN: Relocs has not been applied. Please use `-e bin.relocs.apply=true` or `-e bin.cache=true` next time
+ -- Press 'c' in visual mode to toggle the cursor mode
+[0x00001080]> ood
+WARN: Environment corrupted after null bytes injected via r_sys_setenv2
+WARN: Environment corrupted after null bytes injected via r_sys_setenv2
+INFO: File dbg:///workspace/examples/bin/c/crash reopened in read-write mode
+[0x7471a639d540]> dc 
+Crash demo starting...
+[+] SIGNAL 11 (aka SIGSEGV) errno=0 addr=0x00000000 code=1 si_pid=0 ret=0
+[0x5c766235f17d]> 
+2. if try the same command in dbgcopilot with radare2, you would see the output as the below:
+copilot> /exec ood
+[0x1080]> ood
+INFO: File dbg:///workspace/examples/bin/c/crash reopened in read-write mode
+INFO: File dbg:///workspace/examples/bin/c/crash reopened in read-write mode
+copilot> /exec dc
+[0x774a76c2f540]> dc
+[+] SIGNAL 11 (aka SIGSEGV) errno=0 addr=0x00000000 code=1 si_pid=0 ret=0
+Crash demo starting...
+copilot> 
+3. if run the same in dbgweb debugger console frame, you could see the output as the below:
+
+[0x1080]> ood
+INFO: File dbg:///workspace/examples/bin/c/crash reopened in read-write mode
+ 
+[0x7967aea1a540]> 
+ 
+[0x7967aea1a540]> dc
+Crash demo starting...
+
+based on the above output, if treat the 1st output (run in radare2 directly) as the standard, we could see the below issues:
+1. in dbgcopilot repl output,, there is no two WARN msgs and there are duplicate INFO  msgs after /exec ood. {in radare2 there are 2 WARN and only 1 INFO after ood). 
+[+] SIGNAL output coming before the crash demo starting. after /exec dc(in radare2 after dc,crash demostarting.. coming before [+] SIGNAL )
+2. in dbgweb debugger concole, after ood, there are no TWO WARN msgs too , there is only one INFO wihich does match with radare2. after dc, there is only Crash demo starting... and there is no [+] SIGNAL output.
+
+We expect to see the same as run command in radare2 for bothdbgcopilot repl and dbgweb.
+there is test_radare2_fixes.py u can use or modify to test the output behavior for running command ood,dc and investigate why and try to fix
+========
