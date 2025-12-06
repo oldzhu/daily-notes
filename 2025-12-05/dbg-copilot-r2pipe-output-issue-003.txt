@@ -1,0 +1,6 @@
+Tested and it worked as expect, 1 question about the change of radare2_subprocess.py, we are not using the r2pipe now, right? we borrowed some code from r2pipe and open the process radare2 directly? right? could u summary the new implemetention now? we are also not using pexpect, right?
+========
+We’re still using r2pipe—its command API, session lifecycle, and prompt handling remain intact. The only twist is that we monkey-patch r2pipe.open_sync.Popen so every radare2 process it launches has stderr=subprocess.PIPE. That lets us read radare2’s stderr without touching r2pipe internals.
+The backend doesn’t use pexpect anymore. Instead, after r2pipe.open() returns, we grab the underlying Popen.stderr, run a tiny background thread that decodes whatever radare2 writes there (WARN/INFO/SIGNAL banners), and stash the text in a deque.
+Every command now pulls from that deque (plus the optional log file) both before and after calling r2pipe.cmd(...), then merges stderr + stdout + logs into the response. That’s how /exec ood and /exec dc show the same WARN/SIGNAL ordering as the native radare2 CLI, while dbgweb and the REPL receive identical output.
+So in short: still r2pipe under the hood, no pexpect, but we hijack its subprocess to capture stderr and weave it into the command results.

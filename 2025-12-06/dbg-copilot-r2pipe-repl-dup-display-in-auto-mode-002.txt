@@ -1,0 +1,17 @@
+it worked fine in my testing, now one minor issue as the below
+
+Auto-approved debugger command:
+
+pd 1 @rip
+[0x61cf792c317d]>  pd 1 @rip
+
+u could see the above in dbgcopilot repl auto mode, there is line break betwen Auto-approved debugger command and the proposed cmd pd 1 @rip
+
+what I want is, remove the line break between the  Auto-approved debugger command and the proposed cmd pd 1 @rip to make them close as they are closely related - one is proposed by another one
+==========
+
+Auto-mode now renders the heading and command as a single block:
+
+
+Auto-approved debugger command:pd 1 @rip
+so there’s no blank line between them in the REPL or dbgweb. Ran the smoke test to confirm everything still passes. Let me know if you’d like any additional spacing tweaks.

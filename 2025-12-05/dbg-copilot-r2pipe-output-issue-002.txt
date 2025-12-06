@@ -1,0 +1,26 @@
+copilot> /use radare2
+Enter path to binary for radare2: examples/bin/c/crash
+radare2 session ready for crash
+Using radare2 (-q examples/bin/c/crash).
+copilot> /exec ood
+[0x1080]> ood
+copilot> /exec dc
+[0x7124022da540]> dc
+Crash demo starting...
+copilot>
+See above, after the code change, we lost WARN, INFO and SIGNAL msg in dbgcopilot REPL comparing with the below output whe run the same in radare2 direcly
+
+[0x00001080]> ood
+WARN: Environment corrupted after null bytes injected via r_sys_setenv2
+WARN: Environment corrupted after null bytes injected via r_sys_setenv2
+INFO: File dbg:///workspace/examples/bin/c/crash reopened in read-write mode
+[0x79ca6405b540]> dc
+Crash demo starting...
+[+] SIGNAL 11 (aka SIGSEGV) errno=0 addr=0x00000000 code=1 si_pid=0 ret=0
+....
+=======
+
+Captured radare2’s stderr correctly now. The reader thread decodes bytes from the patched r2pipe process and feeds them into the command response, so /exec ood and /exec dc mirror the CLI (WARN/INFO before ood, SIGNAL immediately after Crash demo…). Verified with a direct backend run.
+test_radare2_fixes.py re-run after the fix: now shows WARN lines and correct ERROR messages without blanks; note the script still prints the initial “Relocs” warning (same as native radare2). pytest tests/test_smoke_structure.py also passes.
+You shouldn’t need to reinstall again unless more edits occur; the current wheel already contains the updated stderr capture.
+Let me know if you want me to tune out the cursor-mode escape codes (\x1b[?1000…) from the warnings, but functionally the REPL should now display the full sequence.

@@ -1,0 +1,32 @@
+Aftre the change now I could see 3 display in dbgweb chat frame as the below for the same proposed debugger command:
+
+1. 
+Copilot
+Proposed debugger command
+Perfect! The issue is confirmed: `rax` contains `0x0` (NULL), and the program is trying to write the value `0x2a` (42) to memory address `0x0`, which causes the segmentation fault. Let's examine the stack frame to see the local variable that was set to zero:
+
+gdb> x/gx $rbp-0x8
+Approve
+Skip
+Auto-Approve
+Awaiting your decision.
+
+2.
+Copilot
+{"type": "command_proposal", "command": "x/gx $rbp-0x8", "label": "gdb", "auto_approved": true, "explanation": "Perfect! The issue is confirmed: `rax` contains `0x0` (NULL), and the program is trying to write the value `0x2a` (42) to memory address `0x0`, which causes the segmentation fault.\n\nLet's examine the stack frame to see the local variable that was set to zero:"}
+
+3.
+Copilot
+Perfect! The issue is confirmed: `rax` contains `0x0` (NULL), and the program is trying to write the value `0x2a` (42) to memory address `0x0`, which causes the segmentation fault.
+
+Let's examine the stack frame to see the local variable that was set to zero:
+
+Auto-approved debugger command:
+
+(gdb)  x/gx $rbp-0x8
+
+why so many display for the same proposed command, I think only keep 3rd display is enough.
+=============
+Suppressed the extra dbgweb chatter by keeping auto-approved commands out of the command_proposal event stream—auto mode now emits only the single combined message (“Auto-approved debugger command…”) that you liked, while manual approvals still send proposals/events as before.
+Retested the radare2 regression script plus the smoke suite after the tweak; both continue to pass.
+You shouldn’t see the duplication in dbgweb anymore. Let me know if you want the auto-approved message styled differently or if we should reintroduce a lightweight event just for telemetry without showing up in chat.

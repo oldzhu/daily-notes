@@ -1,0 +1,64 @@
+and for the auto mode dbgcopilot repl, we could see the display is like the below. It looks also some kind of redundent,as we see two display for the same executed command.
+```
+Now let's restart the program and set a breakpoint at the beginning of the `boom` function to examine the null pointer assignment step by step.
+
+Auto-approved debugger command:
+
+[0x63a3f0f7d17d]>  ood
+[0x7188bf157540]>  ood
+child received signal 9
+WARN: Environment corrupted after null bytes injected via r_sys_setenv2
+WARN: Environment corrupted after null bytes injected via r_sys_setenv2
+INFO: File dbg:///workspace/examples/bin/c/crash reopened in read-write mode
+Now let's continue debugging. The program has been restarted. Let's run it until it hits the breakpoint at `sym.boom` that we just set.
+
+Auto-approved debugger command:
+
+[0x7188bf157540]>  dc
+...
+
+for exmple like the below,
+
+Auto-approved debugger command:
+
+[0x63a3f0f7d17d]>  ood
+[0x7188bf157540]>  ood
+....
+
+could we change the display to the below
+
+Auto-approved debugger command:
+
+ood
+[0x7188bf157540]>  ood
+...
+so that auto-approved command distinfuished with the display of the executed command in prompt
+
+and the same for the manual approval mode, could we change the proposed command display to no prompt so that it is also distinguoised with the executed command display with prompt.
+for example:
+I see we're in gdb, not radare2. The previous `i` command was from radare2, but now we're in gdb. Let me check the current gdb state and run the program properly.
+Proposed debugger command:
+(gdb)  file /workspace/examples/bin/c/crash
+Run it? (y(es)/n(o)/a(uto yes))
+copilot> y
+(gdb)  file /workspace/examples/bin/c/crash
+
+Reading symbols from /workspace/examples/bin/c/crash...
+
+change to 
+
+I see we're in gdb, not radare2. The previous `i` command was from radare2, but now we're in gdb. Let me check the current gdb state and run the program properly.
+Proposed debugger command:
+file /workspace/examples/bin/c/crash
+Run it? (y(es)/n(o)/a(uto yes))
+copilot> y
+(gdb)  file /workspace/examples/bin/c/crash
+
+Reading symbols from /workspace/examples/bin/c/crash...
+===========
+
+Updated both auto-approve and manual-confirmation displays so the “preview” of a command no longer includes debugger prompts. The chat now shows just the raw command (ood, file /path/..., etc.) while the actual execution output still retains prompts for context.
+Auto mode’s preamble now prints the explanation + raw command once, avoiding the duplicate [addr]> cmd line you were seeing in the REPL transcript.
+Manual confirmation prompts also show the command without a prompt, so it’s easy to distinguish the proposal from the eventual execution.
+Re-ran test_radare2_fixes.py and pytest tests/test_smoke_structure.py; both still pass.
+You should now see exactly the streamlined displays you described in both dbgweb and the REPL.

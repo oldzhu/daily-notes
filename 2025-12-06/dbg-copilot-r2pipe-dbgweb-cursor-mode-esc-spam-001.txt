@@ -1,0 +1,19 @@
+in dbgweb testing, I see some non-ascii character in debugger console frame as the below
+[0x1080]> ie
+[?1000;1006;1015l[?1000;1006;1015l[?1000;1006;1015l
+paddr vaddr phaddr vhaddr type
+――――――――――――――――――――――――――――――――――――――――――――――――
+0x00001080 0x00001080 0x00000018 0x00000018 program
+[?1000;1006;1015l
+
+pls fix it. In addtion, in dbgweb auto approve mode, I no longer see the proposed command in each setp in chat frame and just see llm responsed analysis of the executed command.
+
+=====
+
+Escape noise fixed. radare2_subprocess.py now strips private-mode escape sequences (those \x1b[?1000;… cursor toggles) during _sanitize_output, so dbgweb’s console frame only shows the real WARN/INFO/data lines.
+Auto-approve UX restored. When auto mode runs a command:
+A green explanation plus “Auto-approved debugger command:” appears in the chat stream alongside the echoed prompt.
+A command_proposal event is still emitted (with auto_approved=True) so dbgweb’s UI can display the proposed command just like manual mode.
+If auto mode can’t reserve another round, it falls back to the confirmation flow as before.
+Re-ran test_radare2_fixes.py and pytest tests/test_smoke_structure.py—both pass with the new changes.
+Let me know if you’d like to strip all ANSI color codes entirely for dbgweb (currently we still keep legit colorized disassembly).

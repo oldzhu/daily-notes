@@ -1,0 +1,19 @@
+another minor display issue for dbgweb chat frame in auto mode
+
+....
+Auto-approved debugger command:
+pd 1 @rip
+....
+in dbgweb automode, we can see the display as the above actually the content is the same as in dbgcopilot repl auto mode, but in repl display, pd 1 @tip - the proposed command has the different color so that it could be easily distinguished with the others, but in dbgweb, pd 1 @rip has the same color as the others in this chat box copilot reply and can we make it display as differnt color or other way to make it diffetrent with the other copilot reply?
+
+===========
+
+Auto-mode and manual confirmation messages now wrap commands in inline backticks whenever colors are disabled. That way dbgweb (which strips ANSI) still renders pd 1 @rip distinct from the surrounding prose. In the REPL nothing changes—colored text still appears—while dbgweb will show:
+
+
+Auto-approved debugger command:`pd 1 @rip`
+Similarly, the manual prompt shows:
+
+
+Proposed debugger command:`file /workspace/examples/bin/c/crash`
+Both the radare2 regression script and the smoke test still pass. Let me know if you’d prefer full code blocks instead of inline backticks.
