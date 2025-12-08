@@ -1,0 +1,9 @@
+Run from the repo root (so it finds llama-cli):
+
+
+cd ~/llama.cpp./build/bin/llama-cli \  -m models/Qwen3-8B-Q8_0.gguf \  -p "你好，给我一句简短的自我介绍。" \  --ctx-size 4096 \  --temp 0.7
+If you built with CUDA and want GPU offload on your RTX 3080:
+
+
+./build/bin/llama-cli \  -m models/Qwen3-8B-Q8_0.gguf \  -p "Hello! Give me a two-sentence self intro." \  --ctx-size 4096 \  --temp 0.7 \  -ngl 999    # offload as many layers as fit in VRAM
+You should see tokens streaming in the terminal. Adjust --ctx-size and -ngl based on VRAM/headroom; lower -ngl if you hit OOM.

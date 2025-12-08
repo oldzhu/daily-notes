@@ -1,0 +1,24 @@
+You now have the new HF CLI installed and working via the Python 3.11 environment. The installed commands/modules are here:
+
+hf (symlink/entrypoint): hf (this one was broken earlier because click was missing; we installed it).
+huggingface_hub package: site-packages (version 1.2.1).
+Working invocation (bypasses any stale shebangs): /bin/python3.11 -m huggingface_hub.cli.hf --help.
+To use the CLI normally:
+
+Ensure ~/.local/bin is on your PATH (add export PATH="$HOME/.local/bin:$PATH" to ~/.bashrc if needed), then run:
+
+hf --help
+If that ever fails, use the explicit module form:
+
+
+/bin/python3.11 -m huggingface_hub.cli.hf --help
+If you specifically need the legacy huggingface-cli name, reinstall with:
+
+
+/bin/python3.11 -m pip install --user --upgrade "huggingface_hub[cli]"
+and ensure ~/.local/bin is on PATH.
+
+https://huggingface.co/Qwen/Qwen3-8B-GGUF
+
+oldzhu@oldzhu-box-999:~/llama.cpp/models$ hf download Qwen/Qwen3-8B-GGUF Qwen3-8B-Q8_0.gguf --local-dir .
+Qwen3-8B-Q8_0.gguf:   2%|▉                                                        | 149M/8.71G [08:39<16:37:23, 143kB/s]

@@ -1,0 +1,25 @@
+oldzhu@oldzhu-box-999:~/llama.cpp/models$ hf download Qwen/Qwen3-8B-GGUF Qwen3-8B-Q8_0.gguf --local-dir .
+Qwen3-8B-Q8_0.gguf: 2%|▉ | 149M/8.71G [08:39<16:37:23, 143kB/s]
+looks like the downloading speed is very slow as I am in China, download from modelscope could be fast than huggingface, how to download from modelscope instead usng hf?
+
+==========
+
+You can pull from ModelScope with its CLI instead of HF:
+
+Install the CLI (user scope):
+pip install --user modelscope
+
+Download to models (example for Qwen3 8B GGUF):
+modelscope download --model qwen/Qwen3-8B-GGUF --filename Qwen3-8B-Q8_0.gguf --local-dir ./models
+
+Notes:
+
+Replace --filename … with the exact file name published in that ModelScope repo.
+If the model isn’t mirrored on ModelScope, you’ll need to stick with Hugging Face (you can speed it up with aria2c, e.g., HF_HUB_ENABLE_HF_TRANSFER=0 hf download … --local-dir . --max-workers 4 --quiet and let aria2 handle it).
+For ModelScope, credentials may be needed for gated models: run modelscope login first if required.
+
+oldzhu@oldzhu-box-999:~/llama.cpp/models$ HF_HUB_ENABLE_HF_TRANSFER=0 hf download Qwen/Qwen3-8B-GGUF Qwen3-8B-Q8_0.gguf --local-dir . --max-workers 4
+Qwen3-8B-Q8_0.gguf:   1%|▍                                                         | 71.5M/8.71G [01:15<41:35, 3.46MB/s]
+
+
+
