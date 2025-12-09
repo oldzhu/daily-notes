@@ -1,0 +1,26 @@
+two things
+
+I got time out as the below when using llama-cpp in local wsl, it is expected lllm takes longer time as loimited local resource, any place I can increase the timeout or can we add /llm command we can use to increate the llm http read timeout?
+copilot> pls debug it
+LLM provider error: llama-cpp request failed: HTTPConnectionPool(host='host.docker.internal', port=8080): Read timed out. (read timeout=20)
+copilot> pls debug it
+LLM provider error: llama-cpp request failed: HTTPConnectionPool(host='host.docker.internal', port=8080): Read timed out. (read timeout=20)
+copilot> pls debug it
+I need the path to the executable or binary file you want to debug. Please provide the file location (e.g., "./myprogram") so I can load it into radare2.
+copilot> it is already loaded in radare2
+LLM provider error: llama-cpp request failed: HTTPConnectionPool(host='host.docker.internal', port=8080): Read timed out. (read timeout=20)
+copilot> it is already loaded in radare2
+LLM provider error: llama-cpp request failed: HTTPConnectionPool(host='host.docker.internal', port=8080): Read timed out. (read timeout=20)
+Besides localhost,127.0.1 fpr NO_PROXY args in delcontainer.json, I would like to add host.docker.internal, pls modify the container json
+
+==========
+
+Changes made:
+- Added per-provider LLM HTTP timeout support. Use `/llm timeout [provider] <seconds|clear>`; it stores a session override and the client now honors `{provider}_timeout` (also via `{PREFIX}_TIMEOUT` env). Chat requests fall back to 20s, model-list to 15s if unset.
+- Updated devcontainer.json to include `host.docker.internal` in `NO_PROXY` (build args and remoteEnv); also fixed the missing comma.
+
+Notes:
+- To apply the timeout now: `/llm use llama-cpp` then `/llm timeout 60` (or `/llm timeout llama-cpp 60`). Clear with `/llm timeout llama-cpp clear`.
+- To pick up the NO_PROXY change, rebuild/reopen the devcontainer (or export `NO_PROXY=localhost,127.0.0.1,host.docker.internal` in your shell).
+
+Made changes.

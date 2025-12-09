@@ -1,0 +1,29 @@
+opilot> /llm use llama-cpp
+Selected provider: llama-cpp
+copilot> /llm provider set llama-cpp base_url http://host.docker.internal:8080
+Updated base_url for provider llama-cpp: http://host.docker.internal:8080
+copilot> hi
+LLM provider error: llama-cpp HTTP 503 for http://host.docker.internal:8080/v1/chat/completions:
+copilot>
+see above, I tested 'curl -v http://host.docker.internal:8080/v1/models' and I saw it works fine in container, why still failed in dbgcopilot?
+
+=======
+
+Root cause: the devcontainer has HTTP(S)_PROXY set and NO_PROXY lacks host.docker.internal, so requests routed through the proxy and returned a 503 without ever reaching llama.cpp. Curl also would have proxied, but your proxy happened to allow it; requests did not.
+
+Fix applied: openai_compat.py now auto-disables proxies for local/private hosts (localhost/127/host.docker.internal/10./172.16-31./192.168./.local). Calls to llama-cpp will connect directly.
+
+What to do now:
+
+Restart dbgcopilot (or re-run the REPL) so the updated code loads, then /llm use llama-cpp and try hi again. It should succeed.
+Optional: also set NO_PROXY=localhost,127.0.0.1,host.docker.internal in your shell to keep proxies out for local targets.
+If you want, I can also add a tiny log snippet to surface when proxies are bypassed, but it’s not required.
+
+Reverted the proxy-bypass changes in openai_compat.py; it’s back to the original behavior.
+
+To fix the 503 without code changes:
+
+Set your environment to bypass the proxy for the local host:
+export NO_PROXY=localhost,127.0.0.1,host.docker.internal
+Restart dbgcopilot, /llm use llama-cpp, then try hi again.
+Let me know if you still see 503s after updating NO_PROXY.

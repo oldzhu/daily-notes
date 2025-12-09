@@ -1,0 +1,11 @@
+orn[standard]>=0.30->dbgcopilot==0.0.1) (1.1.1)
+Requirement already satisfied: websockets>=10.4 in ./.venv/lib/python3.12/site-packages (from uvicorn[standard]>=0.30->dbgcopilot==0.0.1) (15.0.1)
+dbgcopilot is already installed with the same version as the provided wheel. Use --force-reinstall to force an installation of the wheel.
+WARNING: There was an error checking the latest version of pip.
+=====
+
+The wheel is already installed, so pip skipped it. To reinstall the fresh build, do one of:
+
+pip install --force-reinstall dist/dbgcopilot-0.0.1-py3-none-any.whl
+or pip uninstall -y dbgcopilot && pip install dist/dbgcopilot-0.0.1-py3-none-any.whl
+The pip version-check warning is benign and usually due to network/proxy restrictions; you can ignore it.

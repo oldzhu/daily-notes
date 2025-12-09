@@ -1,0 +1,39 @@
+# sample server running Qwen3-8B-Q4_K_M.gguf at http://127.0.0.1:8080
+
+build/bin/llama-server -m models/Qwen3-8B-Q4_K_M.gguf  --port 8080
+
+build/bin/llama-server -m models/Qwen3-8B-Q4_K_M.gguf --jinja -c 0 --host 127.0.0.1 --port 8033
+
+ cloned and build llama.cpp locally and now I would like to test llama.cpp llm provider in our poejct and see how it works, now I started the llama.cpp in wsl host as the below:
+build/bin/llama-server -m models/Qwen3-8B-Q4_K_M.gguf --port 8080
+and see part of the output as the below:
+...
+main: model loaded
+main: server is listening on http://127.0.0.1:8080
+main: starting the main loop...
+srv update_slots: all slots are idle
+
+when tried use llama-cpp in dbgcoplot in devcontainer, I saw the below error:
+copilot> pls debug it
+LLM provider error: llama-cpp request failed: HTTPConnectionPool(host='localhost', port=8080): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7859b4f590a0>: Failed to establish a new connection: [Errno 111] Connection refused'))
+===========
+
+The container is hitting its own loopback. Your llama.cpp server is on the WSL host, so localhost:8080 from inside the devcontainer doesn’t reach it. Point the llama-cpp provider at the host IP (or host.docker.internal if available) and verify connectivity.
+
+Quick steps:
+
+From inside the devcontainer, check reachability:
+
+curl -v http://host.docker.internal:8080/v1/models# If that fails, grab the WSL host IP:# ip route | awk '/default/ {print $3}'# then curl http://<that-ip>:8080/v1/models
+Update the provider base URL (pick the reachable address):
+
+python - <<'PY'from dbgcopilot.llm import providersproviders.set_provider_field('llama-cpp', 'baseurl', 'http://host.docker.internal:8080')PY
+(If host.docker.internal doesn’t resolve, replace with the IP you found.)
+
+Retry in Copilot:
+
+/use llama-cpp/ask hello
+If you prefer zero networking fuss, you can also run llama-server inside the devcontainer itself and keep base_url at http://localhost:8080.
+
+
+

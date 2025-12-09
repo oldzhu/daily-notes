@@ -1,0 +1,10 @@
+Let’s start debugging **`examples/bin/c/crash`**.
+**Note**: `crash` is likely a simple C program that causes a segmentation fault (e.g., `strcpy` with `NULL`).
+
+Let’s start debugging **`examples/bin/c/crash`**.
+**Note**: `crash` is likely a simple C program that causes a segmentation fault (e.g., `strcpy` with `NULL`).
+
+Let’s start debugging **`examples/bin/c/crash`**.
+**Note**: `crash` is likely a simple C program that causes a segmentation fault (e.g., `strcpy` with `NULL`).
+....
+endless loop

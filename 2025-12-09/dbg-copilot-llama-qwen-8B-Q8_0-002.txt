@@ -1,0 +1,18 @@
+I tested curl -v http://host.docker.internal:8080/v1/models, it works
+I set the para of the llama-cpp provider as the below:
+copilot> /llm params set llama-cpp base_url http://host.docker.internal:8080
+Session override for llama-cpp base_url set to http://host.docker.internal:8080 (provider did not declare this parameter)
+copilot> /use radare2
+Enter path to binary for radare2: examples/bin/c/crash
+radare2 session ready for crash
+Using radare2 (-q examples/bin/c/crash).
+copilot> pls debug it
+LLM provider error: llama-cpp request failed: HTTPConnectionPool(host='localhost', port=8080): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x78975ae39490>: Failed to establish a new connection: [Errno 111] Connection refused'))
+but seems it still try to connect the default loalhost baseurl, pls help to check...
+
+=======
+Restored: reverted the recent /llm params session-override handling; openai_compat.py and REPL /llm params logic are back to baseline (no pending diffs).
+Ready to rethink /llm commands; if you want, I can draft a clearer split between connection settings (base_url/model/key) and payload params, and adjust help text accordingly.
+
+copilot> /llm provider
+Usage: /llm provider list | /llm provider path | /llm provider reload | /llm provider show <name> | /llm provider get <name> [field] | /llm provider set <name> <field> <value> | /llm provider add <name> <base_url> [path] [model] [description]

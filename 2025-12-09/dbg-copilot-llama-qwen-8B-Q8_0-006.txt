@@ -1,0 +1,9 @@
+Pip choked while downloading build deps in the isolated env (JSONDecodeError from the index response). Quick workaround: build without isolation so it uses the deps already in your venv.
+
+Run either:
+
+python3 -m build --no-isolation
+or make build BUILD_ARGS=--no-isolation
+If you prefer to keep isolation, set a clean index (e.g. PIP_INDEX_URL=https://pypi.org/simple) and ensure your proxy isn’t mangling responses.
+=======
+export PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
