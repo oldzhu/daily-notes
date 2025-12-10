@@ -1,0 +1,6 @@
+copilot> /llm provider set llama-cpp base_url http://host.docker.internal:8080
+Updated base_url for provider llama-cpp: http://host.docker.internal:8080
+copilot> hi
+No debugger selected. Use /use gdb first.
+
+=======

@@ -1,0 +1,22 @@
+=8080): Read timed out. (read timeout=30.0)
+copilot> /llm timeout 60
+Timeout set to 60.0 seconds for llama-cpp (session only).
+copilot> it is already loaded in radare2 and pls run and debug it
+
+copilot> /llm timeout 90
+Timeout set to 90.0 seconds for llama-cpp (session only).
+copilot> pls continue
+Proposed debugger command:
+c
+Run it? (y(es)/n(o)/a(uto yes))
+copilot> y
+[0x1080]>  c
+WARN: Relocs has not been applied. Please use `-e bin.relocs.apply=true` or `-e bin.cache=true` next time
+ERROR: Invalid ` ` subcommand, try `c?`
+
+copilot> what command can run loaded program in r2?
+
+copilot> /llm timeout 120
+Timeout set to 120.0 seconds for llama-cpp (session only).
+copilot> what command can run loaded program in r2?
+=====

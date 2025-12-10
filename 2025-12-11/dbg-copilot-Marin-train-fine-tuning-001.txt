@@ -1,0 +1,7 @@
+“Marin” (https://github.com/marin-community/marin) is not a local LLM inference provider. It’s an open-source framework for training/fine-tuning foundation models (data curation, tokenization, training pipelines, experiments, infra configs). It doesn’t expose an OpenAI-compatible server you can point Copilot at. You’d still need a serving runtime (e.g., llama.cpp, Ollama, vLLM, TGI, LocalAI, LM Studio) to host a model for dbgcopilot.
+
+Summary:
+
+Purpose: training/experimentation stack (reproducible pipelines, resource configs), not a chat/completions API server.
+Outputs: produces models/checkpoints; you then serve them via a separate runtime.
+Fit for your use case: use Marin if you want to train models; for dbgcopilot inference you still need one of the serving backends above.

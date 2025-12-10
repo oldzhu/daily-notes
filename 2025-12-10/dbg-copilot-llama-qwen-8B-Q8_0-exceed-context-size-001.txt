@@ -1,0 +1,8 @@
+            0x000023a2      ff             invalid
+            0x000023a3      ff             invalid
+            0x000023a4      ff             invalid
+            0x000023a5      ff             invalid
+            0x000023a6      ff             invalid
+LLM provider error: llama-cpp HTTP 400 for http://host.docker.internal:8080/v1/chat/completions: {"error":{"code":400,"message":"the request exceeds the available context size, try increasing it","type":"exceed_context_size_error","n_prompt_tokens":234321,"n_ctx":4096}}
+
+=======

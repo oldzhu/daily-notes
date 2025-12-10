@@ -1,0 +1,32 @@
+ere are pragmatic local providers you could add, with differences and trade-offs:
+
+llama.cpp (already): C++/CPU-first, great portability, minimal deps, quantized GGUF; slower on CPU; GPU support via cuBLAS/Metal but not as fast as full CUDA engines; OpenAI-compatible server is included. Best for simple, portable setups and low-memory quantized models.
+Ollama (already): Easy UX, model registry & pull, manages weights + prompt templates, OpenAI-compatible endpoint, supports GPU if available. Less configurable; tied to Ollama’s runtime and packaging cadence.
+LM Studio: Desktop app with OpenAI-compatible endpoint; quick to try models; good for interactive use. Less automation/server control; not ideal for headless/CI; licensing varies per model.
+LocalAI: Go-based OpenAI-compatible server; supports multiple backends (GGML/gguf, TensorRT, etc.) in one binary; good for containerized deployments. Less polished model management; config YAML required; community-driven updates.
+GPT4All: Lightweight desktop/server; simple REST API; good CPU support with gguf. Smaller ecosystem; fewer GPU-optimized paths than vLLM/TensorRT stacks.
+vLLM: High-throughput CUDA/ROCm server with OpenAI-compatible API; strong batching/streaming; best for GPUs. Heavyweight (needs GPUs, VRAM), more setup (Python + CUDA/ROCm), less friendly for pure CPU laptops.
+text-generation-inference (TGI): Hugging Face server for GPUs; optimized kernels, streaming, multi-GPU. Heavier container, more ops overhead; less CPU-friendly.
+What to pick:
+
+Fast GPU lab/benchmarks: vLLM or TGI.
+Lightweight CPU/GPU devcontainer: stick with llama.cpp or add LocalAI.
+User-friendly desktop testers: mention Ollama or LM Studio.
+Single-binary, headless, container-ready: LocalAI (Go) or llama.cpp server.
+High-throughput production: vLLM (requires GPU).
+Implementation note: Prefer providers with stable OpenAI-compatible /v1/chat/completions and /v1/models to integrate quickly.
+==
+
+All of the options I listed are open source (permissive licenses). “Martin” isn’t a local LLM runtime I know of—perhaps you meant “Mistral” (that’s a model family, not a server) or another tool; if you have a link/name I can check.
+
+Rough popularity (community use) order for local runtimes:
+
+Ollama — most widely used desktop/server wrapper; OpenAI-compatible; easy pulls.
+llama.cpp — very widely used core engine; OpenAI-compatible server; great CPU/quant support.
+vLLM — popular on GPUs for high throughput; OpenAI-compatible.
+LM Studio — popular desktop GUI with an OpenAI-compatible endpoint.
+LocalAI — Go single-binary server; OpenAI-compatible; growing steadily.
+GPT4All — lightweight desktop/server; smaller ecosystem.
+TGI (Hugging Face) — solid GPU server; popular in HF ecosystem but heavier to run.
+
+

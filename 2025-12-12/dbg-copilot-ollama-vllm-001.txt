@@ -1,0 +1,16 @@
+A few ways to speed this up from China:
+
+Shallow clone only what you need:
+
+git clone --depth 1 --single-branch https://github.com/oldzhu/ollama.git
+If you need history later: git fetch --unshallow
+Use a proxy/mirror that fronts GitHub:
+
+git clone https://ghproxy.com/https://github.com/oldzhu/ollama.git
+Or set once: git config --global url."https://ghproxy.com/https://github.com/".insteadOf "https://github.com/"
+If you only need the code snapshot (no Git history), download a tarball via proxy:
+
+curl -L https://ghproxy.com/https://github.com/oldzhu/ollama/archive/refs/heads/main.zip -o ollama.zip
+Ensure your git uses HTTPS (not SSH) if your SSH path is slower.
+
+Try the shallow + ghproxy clone first; it usually brings the biggest speedup.
