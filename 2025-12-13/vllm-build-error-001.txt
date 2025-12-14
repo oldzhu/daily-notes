@@ -1,0 +1,70 @@
+oldzhu@oldzhu-box-999:~/vllm$ source .venv/bin/activate
+(vllm) oldzhu@oldzhu-box-999:~/vllm$ uv pip install -e .
+  × Failed to build `vllm @ file:///home/oldzhu/vllm`
+  ├─▶ The build backend returned an error
+  ╰─▶ Call to `setuptools.build_meta.build_editable` failed (exit status: 1)
+
+      [stderr]
+      Traceback (most recent call last):
+        File "/usr/lib/python3/dist-packages/numpy/core/__init__.py", line 22, in <module>
+          from . import multiarray
+        File "/usr/lib/python3/dist-packages/numpy/core/multiarray.py", line 12, in <module>
+          from . import overrides
+        File "/usr/lib/python3/dist-packages/numpy/core/overrides.py", line 7, in <module>
+          from numpy.core._multiarray_umath import (
+      ModuleNotFoundError: No module named 'numpy.core._multiarray_umath'
+
+      During handling of the above exception, another exception occurred:
+
+      Traceback (most recent call last):
+        File "<string>", line 14, in <module>
+        File "/home/oldzhu/.cache/uv/builds-v0/.tmpOGnuzV/lib/python3.12/site-packages/setuptools/build_meta.py", line
+      473, in get_requires_for_build_editable
+          return self.get_requires_for_build_wheel(config_settings)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/home/oldzhu/.cache/uv/builds-v0/.tmpOGnuzV/lib/python3.12/site-packages/setuptools/build_meta.py", line
+      331, in get_requires_for_build_wheel
+          return self._get_build_requires(config_settings, requirements=[])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/home/oldzhu/.cache/uv/builds-v0/.tmpOGnuzV/lib/python3.12/site-packages/setuptools/build_meta.py", line
+      301, in _get_build_requires
+          self.run_setup()
+        File "/home/oldzhu/.cache/uv/builds-v0/.tmpOGnuzV/lib/python3.12/site-packages/setuptools/build_meta.py", line
+      317, in run_setup
+          exec(code, locals())
+        File "<string>", line 17, in <module>
+        File "/home/oldzhu/.cache/uv/builds-v0/.tmpOGnuzV/lib/python3.12/site-packages/torch/__init__.py", line 1851,
+      in <module>
+          from torch import storage as storage  # usort: skip
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/home/oldzhu/.cache/uv/builds-v0/.tmpOGnuzV/lib/python3.12/site-packages/torch/storage.py", line 27,
+      in <module>
+          import numpy as np
+        File "/usr/lib/python3/dist-packages/numpy/__init__.py", line 150, in <module>
+          from . import core
+        File "/usr/lib/python3/dist-packages/numpy/core/__init__.py", line 48, in <module>
+          raise ImportError(msg)
+      ImportError:
+
+      IMPORTANT: PLEASE READ THIS FOR ADVICE ON HOW TO SOLVE THIS ISSUE!
+
+      Importing the numpy C-extensions failed. This error can happen for
+      many reasons, often due to issues with your setup or how NumPy was
+      installed.
+
+      We have compiled some common reasons and troubleshooting tips at:
+
+          https://numpy.org/devdocs/user/troubleshooting-importerror.html
+
+      Please note and check the following:
+
+        * The Python version is: Python3.12 from "/home/oldzhu/.cache/uv/builds-v0/.tmpOGnuzV/bin/python"
+        * The NumPy version is: "1.21.5"
+
+      and make sure that they are the versions you expect.
+      Please carefully study the documentation linked above for further help.
+
+      Original error was: No module named 'numpy.core._multiarray_umath'
+
+
+      hint: This usually indicates a problem with the package or the build environment.
