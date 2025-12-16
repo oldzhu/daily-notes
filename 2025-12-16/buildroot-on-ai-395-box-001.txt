@@ -1,0 +1,9 @@
+install on windows 11 wsl2 ubuntu 24.04
+https://buildroot.org/downloads/manual/manual.html#requirement
+sudo apt list <packagename>
+sudo apt install build-essential
+sudo apt install cpio
+sudo apt install unzip
+sudo apt libncurses-dev
+binutils 2.45.1
+using docker to Vagrant to prepare a container or vm to prepare a vm for building? 

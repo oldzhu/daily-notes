@@ -1,0 +1,43 @@
+oldzhu@DESKTOP-JJ9N1E3:~/buildroot$ make menuconfig
+mkdir -p /home/oldzhu/buildroot/output/build/buildroot-config/lxdialog
+PKG_CONFIG_PATH="" make CC="/usr/bin/gcc" HOSTCC="/usr/bin/gcc" \
+    obj=/home/oldzhu/buildroot/output/build/buildroot-config -C support/kconfig -f Makefile.br mconf
+make[1]: Entering directory '/home/oldzhu/buildroot/support/kconfig'
+ *** Unable to find the ncurses libraries or the
+ *** required header files.
+ *** 'make menuconfig' requires the ncurses libraries.
+ ***
+ *** Install ncurses (ncurses-devel or libncurses-dev
+ *** depending on your distribution) and try again.
+ ***
+make[1]: *** [Makefile:253: /home/oldzhu/buildroot/output/build/buildroot-config/dochecklxdialog] Error 1
+make[1]: Leaving directory '/home/oldzhu/buildroot/support/kconfig'
+make: *** [Makefile:962: /home/oldzhu/buildroot/output/build/buildroot-config/mconf] Error 2
+oldzhu@DESKTOP-JJ9N1E3:~/buildroot$ make xconfig
+mkdir -p /home/oldzhu/buildroot/output/build/buildroot-config/lxdialog
+PKG_CONFIG_PATH="" make CC="/usr/bin/gcc" HOSTCC="/usr/bin/gcc" \
+    obj=/home/oldzhu/buildroot/output/build/buildroot-config -C support/kconfig -f Makefile.br qconf
+make[1]: Entering directory '/home/oldzhu/buildroot/support/kconfig'
+/bin/sh: 2: pkg-config: Permission denied
+/bin/sh: 6: pkg-config: Permission denied
+*
+* Could not find Qt via pkg-config.
+* Please install either Qt 4.8 or 5.x. and make sure it's in PKG_CONFIG_PATH
+*
+make[1]: *** No rule to make target '/home/oldzhu/buildroot/output/build/buildroot-config/.tmp_qtcheck', needed by '/home/oldzhu/buildroot/output/build/buildroot-config/qconf.o'.  Stop.
+make[1]: Leaving directory '/home/oldzhu/buildroot/support/kconfig'
+make: *** [Makefile:962: /home/oldzhu/buildroot/output/build/buildroot-config/qconf] Error 2
+oldzhu@DESKTOP-JJ9N1E3:~/buildroot$ make gconfig
+mkdir -p /home/oldzhu/buildroot/output/build/buildroot-config/lxdialog
+PKG_CONFIG_PATH="" make CC="/usr/bin/gcc" HOSTCC="/usr/bin/gcc" \
+    obj=/home/oldzhu/buildroot/output/build/buildroot-config -C support/kconfig -f Makefile.br gconf
+make[1]: Entering directory '/home/oldzhu/buildroot/support/kconfig'
+/bin/sh: 1: pkg-config: Permission denied
+*
+* Unable to find the GTK+ installation. Please make sure that
+* the GTK+ 2.0 development package is correctly installed...
+* You need gtk+-2.0, glib-2.0 and libglade-2.0.
+*
+make[1]: *** No rule to make target '/home/oldzhu/buildroot/output/build/buildroot-config/.tmp_gtkcheck', needed by '/home/oldzhu/buildroot/output/build/buildroot-config/gconf.o'.  Stop.
+make[1]: Leaving directory '/home/oldzhu/buildroot/support/kconfig'
+make: *** [Makefile:962: /home/oldzhu/buildroot/output/build/buildroot-config/gconf] Error 2
