@@ -1,0 +1,62 @@
+Checking the memory for your AMD Ryzen AI Max+ 395 is a bit different than checking a standard graphics card. Because your Radeon 8060S is an integrated GPU (iGPU), it uses Unified Memory Architecture (UMA). This means it borrows memory from your system RAM.
+
+
+There are three ways to check how much memory is allocated and how much is being used:
+
+1. Check via Windows Task Manager (The easiest way)
+Windows manages the pool of memory that WSL2 can "see."
+
+Open Task Manager (Ctrl + Shift + Esc).
+
+Go to the Performance tab and select GPU 0 (or your Radeon 8060S).
+
+Look for Dedicated GPU Memory and Shared GPU Memory.
+
+Dedicated: This is the "base" amount reserved in your BIOS (often 512MB to 4GB).
+
+Shared: This is the extra RAM Windows can give the GPU on demand.
+
+Total: The sum of these two is the maximum your iGPU can use for models.
+
+2. Check via Linux Terminal (Inside WSL2)
+Since you have ROCm installed, you can use the rocminfo command you ran earlier, but specifically look at the "Pool Info":
+
+Bash
+
+rocminfo | grep -A 3 "Pool Info"
+In your previous output, you saw Size: 16187520 KB. This means WSL2 currently has access to ~15.4 GB of memory for GPU tasks.
+
+3. Check via radeontop (Real-time monitoring)
+To see memory being used while a model is actually running, install radeontop:
+
+Bash
+
+sudo apt install radeontop
+sudo radeontop
+This will show a live bar graph of your VRAM (GTT) usage.
+
+How to increase the memory for larger models
+If you find that 15GB isn't enough to run a large model (like Llama 3 70B), you can increase it:
+
+Option A: The BIOS "UMA Framebuffer" (Permanent)
+
+Restart your PC and enter the BIOS/UEFI.
+
+Look for Advanced -> UMA Framebuffer Size.
+
+Change it from "Auto" to a fixed value like 16G or 32G (if you have enough total RAM). This makes that memory "Dedicated" so it's always ready for the GPU.
+
+Option B: AMD Adrenalin (Windows Side)
+
+Open AMD Software: Adrenalin Edition.
+
+Go to Performance -> Tuning.
+
+Look for Variable Graphics Memory. Set it to "Gaming" or manually increase the slider to reserve more RAM for the iGPU.
+
+Next Step
+Would you like me to help you create a .wslconfig file to ensure WSL2 itself isn't capping the amount of RAM it can take from Windows?
+
+For more details on how integrated graphics share system RAM, you can check out this AMD VRAM Guide. This video explains how to verify VRAM in Windows and how dynamic allocation works for integrated systems like yours.A
+
+https://www.youtube.com/watch?v=F3p8JzwvmCs

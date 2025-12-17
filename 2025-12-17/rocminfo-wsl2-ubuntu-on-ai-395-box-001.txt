@@ -1,0 +1,45 @@
+HSA System Attributes
+These lines describe the "Health and Capabilities" of the link between your Windows host and the WSL2 Linux guest.
+
+Runtime Version: 1.1 / Ext Version: 1.7: This is the version of the HSA (Heterogeneous System Architecture) software layer.
+
+Machine Model: LARGE: Indicates a 64-bit system with a large memory address space.
+
+XNACK enabled: NO: XNACK allows for GPU page faults (similar to virtual memory on a CPU). It is usually disabled on consumer hardware; this is normal.
+
+DMAbuf Support: YES: Crucial for WSL2. This allows the GPU to share memory buffers directly with the Linux environment without expensive copying.
+
+Agent 1: The "Identity Crisis"
+In a standard desktop with a discrete GPU, Agent 1 is usually the CPU and Agent 2 is the GPU. On your Ryzen AI Max+, ROCm is seeing the integrated nature of the chip.
+
+Name: AMD RYZEN AI MAX+ 395 w/ Radeon 8060S: ROCm correctly identifies your specific hardware string from the Windows driver.
+
+Vendor Name: CPU / Device Type: CPU: This is the most important part. Even though it lists the "Radeon 8060S" in the name, it is labeling the device type as CPU.
+
+Why? In WSL2, integrated GPUs often appear as a unified agent. This is exactly why you must use the HSA_OVERRIDE_GFX_VERSION=11.0.0 variable later—to tell llama.cpp to treat this "CPU" agent as a GPU capable of running graphics kernels.
+
+Compute Unit: 32: This is a great sign! It is seeing the 32 Compute Units of your Radeon 8060S. This confirms the hardware abstraction is working.
+
+Memory Pools (The RAM)
+Because this is an APU, your "Video RAM" is actually part of your System RAM.
+
+Pool 1-4 (GLOBAL): These represent the different ways the system can allocate memory.
+
+Size: 16187520 KB (~15.4 GB): This is the amount of memory currently visible to the ROCm runtime in WSL2.
+
+Note: If you have 32GB or 64GB of RAM, Windows is currently "carving out" about 16GB for the GPU/WSL. You can often increase this in your BIOS (UMA Framebuffer size) or via a .wslconfig file.
+
+Flags: FINE GRAINED / COARSE GRAINED:
+
+Fine Grained: The CPU and GPU can "see" the same memory at the same time (excellent for APUs).
+
+Coarse Grained: Standard GPU memory behavior where data is moved in larger chunks.
+
+What is missing? (The ISA Info)
+You'll notice the output cuts off or doesn't show a gfx1151 identifier under ISA Info. This confirms that the ROCm library in Ubuntu doesn't natively "know" the instruction set architecture (ISA) of the 8060S yet.
+
+Summary for your Build: Since rocminfo sees 32 Compute Units but labels the device as a CPU, your build of llama.cpp will only work if you:
+
+Compile with AMDGPU_TARGETS="gfx1100" (to provide the code instructions).
+
+Run with HSA_OVERRIDE_GFX_VERSION=11.0.0 (to tell the driver "Ignore the CPU label, use the GPU instructions for this agent").

@@ -1,0 +1,28 @@
+mkdir -p /home/oldzhu/buildroot/output/host/sbin/
+ln -sf ../bin/kmod /home/oldzhu/buildroot/output/host/sbin/depmod
+>>> libkrb5 1.22-beta1 Downloading
+wget -nd -t 3 --connect-timeout=10 -O '/home/oldzhu/buildroot/output/build/.krb5-1.22-beta1.tar.gz.6pkZQf/output' 'https://web.mit.edu/kerberos/dist/krb5/1.22/krb5-1.22-beta1.tar.gz'
+--2025-12-17 11:19:36--  https://web.mit.edu/kerberos/dist/krb5/1.22/krb5-1.22-beta1.tar.gz
+Resolving web.mit.edu (web.mit.edu)... 23.34.43.128, 2600:1406:5400:5a4::255e, 2600:1406:5400:5a7::255e
+Connecting to web.mit.edu (web.mit.edu)|23.34.43.128|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 8752256 (8.3M) [application/x-tar]
+Saving to: ‘/home/oldzhu/buildroot/output/build/.krb5-1.22-beta1.tar.gz.6pkZQf/output’
+
+/home/oldzhu/buildroot/output 100%[=================================================>]   8.35M  2.55MB/s    in 3.3s
+
+2025-12-17 11:19:41 (2.55 MB/s) - ‘/home/oldzhu/buildroot/output/build/.krb5-1.22-beta1.tar.gz.6pkZQf/output’ saved [8752256/8752256]
+
+ERROR: No hash found for krb5-1.22-beta1.tar.gz
+make: *** [package/pkg-generic.mk:179: /home/oldzhu/buildroot/output/build/libkrb5-1.22-beta1/.stamp_downloaded] Error 1
+
+oldzhu@DESKTOP-JJ9N1E3:~/buildroot$ git checkout upstream/master package/libkrb5/libkrb5.mk
+Updated 1 path from 68bf9b2127
+oldzhu@DESKTOP-JJ9N1E3:~/buildroot$ less package/libkrb5/libkrb5.mk
+oldzhu@DESKTOP-JJ9N1E3:~/buildroot$ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        modified:   package/libkrb5/libkrb5.mk

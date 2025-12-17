@@ -1,0 +1,34 @@
+https://rocm.docs.amd.com/projects/radeon-ryzen/en/latest/docs/install/installrad/wsl/install-radeon.html
+
+Since you are building llama.cpp and Ollama on your Ryzen AI Max+ (Strix Halo), please be aware:
+
+Do NOT run the full amdgpu-install script to install kernel drivers inside WSL. WSL uses the Windows host driver.
+
+If you were trying to install that package just to get the ROCm repositories, you can proceed with the installation of the .deb above, but when you run the command, only use it to install the keys/repos, like this:
+sudo amdgpu-install --usecase=rocm --no-dkms
+
+steps:
+
+
+wget https://repo.radeon.com/amdgpu-install/7.1.1/ubuntu/noble/amdgpu-install_7.1.1.70101-1_all.deb
+
+mv ./amdgpu-install_7.1.1.70101-1_all.deb /tmp
+sudo apt install /tmp/amdgpu-install_7.1.1.70101-1_all.deb
+sudo amdgpu-install --list-usecase
+/tmp/amdgpu-install -y --usecase=wsl,rocm --no-dkms
+
+...
+Reading package lists... Done
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+E: Unable to locate package hsa-runtime-rocr4wsl-amdgpu
+E: Unable to locate package hsa-runtime-rocr4wsl-amdgpu
+
+wget https://repo.radeon.com/amdgpu-install/6.4.2.1/ubuntu/noble/amdgpu-install_6.4.60402-1_all.deb
+
+mv ./amdgpu-install_6.4.60402-1_all.deb /tmp
+sudo apt install /tmp/amdgpu-install_6.4.60402-1_all.deb
+sudo amdgpu-install --list-usecase
+amdgpu-install -y --usecase=wsl,rocm --no-dkms
+

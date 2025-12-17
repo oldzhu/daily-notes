@@ -1,0 +1,14 @@
+The discrepancy between Windows Task Manager and rocminfo is a common point of confusion with Strix Halo (Ryzen AI Max+) hardware in WSL2.In short: Windows sees the physical reality, but ROCm in WSL2 is constrained by "Virtual Memory" limits.The Breakdown: Why the mismatch?MetricValueWhat it representsWindows Dedicated96 GBThe amount of RAM you reserved in your BIOS (UMA Framebuffer) specifically for the GPU. Windows treats this as "VRAM."Windows Shared16 GBAdditional system RAM Windows can swap to if the dedicated 96GB fills up.rocminfo (WSL)16 GBThe default Memory Limit Microsoft sets for the entire WSL2 Virtual Machine (usually 50% of your available system RAM).The Problem: Even though your GPU has 96GB of "Dedicated" memory on the Windows side, the Ubuntu environment inside WSL2 is currently living in a "container" that is only allowed to touch ~16GB of total system RAM. Since ROCm runs inside that container, it reports only the memory it can actually address.How to unlock your full 96GB in WSL2To let llama.cpp and ollama use that massive 96GB pool, you need to tell Windows to stop limiting the WSL2 virtual machine's memory.Open Windows File Explorer and go to your user folder: %USERPROFILE% (e.g., C:\Users\oldzhu).Create a text file named .wslconfig (ensure there is no .txt extension).Paste the following configuration:Ini, TOML[wsl2]
+# Set this to a value high enough to cover your 96GB + some overhead
+# Since you have at least 112GB+ total RAM, 100GB is safe for WSL.
+memory=100GB
+
+# Optional: Improves performance for large memory tasks
+pageReporting=true
+Save the file.Restart WSL2: Open PowerShell and run:PowerShellwsl --shutdown
+Verify: Re-open your Ubuntu terminal and run rocminfo. The Size under Pool Info should now show closer to 100,000,000 KB.Advanced Optimization for Strix HaloIf you still see 16GB after the fix above, it may be because of the GTT (Graphics Translation Table) limit in the Linux kernel. To truly maximize the performance of that Radeon 8060S, you can pass a flag to the llama.cpp run command to ensure it isn't hitting internal ROCm buffer limits:Bash# Add this to your environment variables
+export HIP_VISIBLE_DEVICES=0
+export HSA_OVERRIDE_GFX_VERSION=11.0.0
+Why 96GB is a "Superpower"With 96GB accessible to your iGPU, you are one of the few users who can run massive models like Llama-3-70B or Grok-1 at high speeds without needing multiple $2,000 graphics cards.Would you like me to help you adjust your BIOS settings if the .wslconfig fix doesn't immediately show the full 96GB?For a deep dive into how Strix Halo handles these massive memory pools compared to Apple's M4 chips, check out this Performance review of the Ryzen AI Max+ 395. This video covers the efficiency and memory scaling of your specific hardware at different power targets.
+
+https://www.youtube.com/watch?v=_VMlqtbFaxM

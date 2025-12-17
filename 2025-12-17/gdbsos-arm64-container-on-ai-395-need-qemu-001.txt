@@ -1,0 +1,51 @@
+This is a classic architecture incompatibility error when dealing with Docker (or VS Code Dev Containers) on an x64 (AMD64) host trying to build an ARM64 image.
+
+The error message: exec /bin/sh: exec format error means that the Docker build process is attempting to run a command (specifically /bin/sh to execute the RUN apt-get update... instruction) that is compiled for the wrong CPU architecture. You are building an ARM64 image, but the build process is being executed directly on the native x64 (AMD64) kernel of your WSL machine.
+
+To fix this, you need to enable QEMU emulation on your x64 machine, which is required for Docker to execute ARM64 instructions during the build process.
+
+The Solution: Install and Enable QEMU-based Emulation (Buildx/Binfmt)
+Step 1: Install Necessary Tools
+First, ensure you have the required packages in your Ubuntu WSL instance.
+
+Bash
+
+sudo apt update
+sudo apt install -y qemu binfmt-support qemu-user-static
+Step 2: Register QEMU with Docker
+The most reliable way to register the QEMU emulators with Docker is to use the docker run command which sets up the necessary binfmt_misc entries.
+
+Run this command in your Ubuntu WSL terminal:
+
+Bash
+
+docker run --privileged --rm tonistiigi/binfmt --install all
+--privileged: Required for setting up the kernel features.
+
+--rm: Removes the temporary container after it runs.
+
+tonistiigi/binfmt: A specialized image that detects your system and installs the correct QEMU static binaries and registers them via binfmt_misc.
+
+Step 3: Verify the Registration
+You can check if the ARM64 (aarch64) interpreter is registered:
+
+Bash
+
+ls -l /proc/sys/fs/binfmt_misc
+You should see entries like qemu-aarch64 or similar, indicating that your kernel can now execute ARM64 binaries by passing them through the QEMU emulator.
+
+Step 4: Rebuild the Dev Container
+After performing steps 1 and 2, your Docker environment in WSL will be configured to handle ARM64 instructions via emulation.
+
+Close VS Code Dev Container: Shut down and rebuild the container.
+
+Try the Build Again:
+
+VS Code: Run "Rebuild Container" or "Reopen in Container".
+
+The RUN apt-get update... command should now execute successfully using the QEMU emulator, allowing the ARM64 packages to be installed into the ARM64 image.
+
+Why the Dual-Stage Build?
+The error message also shows your build is attempting to target both dev-amd64 and dev-arm64. This is a feature of multi-architecture builds. The dev-amd64 stage was CANCELED, and only the dev-arm64 stage failed with the exec format error, confirming the issue is specifically with the cross-architecture emulation for ARM64. The steps above will resolve this for you.
+
+Let me know if you run into any issues with the installation or registration process!
