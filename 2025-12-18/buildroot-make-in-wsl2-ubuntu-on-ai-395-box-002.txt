@@ -1,0 +1,6 @@
+CMake Error at cmake/modules/HandleLLVMOptions.cmake:434 (message):
+  Host compiler does not support '-fuse-ld=lld'.  Please make sure that 'lld'
+  is installed and that your host compiler can compile a simple program when
+  given the option '-fuse-ld=lld'.
+Call Stack (most recent call first):
+  CMakeLists.txt:1083 (include)

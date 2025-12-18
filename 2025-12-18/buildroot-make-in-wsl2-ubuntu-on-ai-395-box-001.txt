@@ -1,0 +1,35 @@
+-- Didn't find assembler
+CMake Error at CMakeLists.txt:46 (project):
+  The CMAKE_C_COMPILER:
+
+    /usr/bin/clang-12
+
+  is not a full path to an existing compiler tool.
+
+  Tell CMake where to find the compiler by setting either the environment
+  variable "CC" or the CMake cache entry CMAKE_C_COMPILER to the full path to
+  the compiler, or to the compiler name if it is in the PATH.
+
+
+CMake Error at CMakeLists.txt:46 (project):
+  The CMAKE_CXX_COMPILER:
+
+    /usr/bin/clang++-12
+
+  is not a full path to an existing compiler tool.
+
+  Tell CMake where to find the compiler by setting either the environment
+  variable "CXX" or the CMake cache entry CMAKE_CXX_COMPILER to the full path
+  to the compiler, or to the compiler name if it is in the PATH.
+
+
+CMake Error at CMakeLists.txt:46 (project):
+  No CMAKE_ASM_COMPILER could be found.
+
+  Tell CMake where to find the compiler by setting either the environment
+  variable "ASM" or the CMake cache entry CMAKE_ASM_COMPILER to the full path
+  to the compiler, or to the compiler name if it is in the PATH.
+
+
+-- Configuring incomplete, errors occurred!
+make: *** [package/pkg-generic.mk:263: /home/oldzhu/buildroot/output/build/host-lldb-origin_main/.stamp_configured] Error 1

@@ -1,0 +1,2 @@
+ok, does that mean the recommend way is decreasing the dedicated GPU memory to minimal 512M or auto so that AMD GTT can get up to ~75 system RAM for GPU when a llm model needs it besides the dedicated CPU memory for both windows host and WSL2, am I right?
+========

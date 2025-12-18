@@ -1,0 +1,164 @@
+I think I know why wsl2 rocminfo show the result as the below even if I set memory = 100G in .wslconfig. I think that is because although we have total 128G memory in this box, but 96G was used for GPU and left 32G for CPU in windows 11 host. Seems wsl2 only see the memory used for host cpu which is 32G. if this is the case, does that mean rocm in wsl2 only can access the cpu memory 32G and cannot access host gpu memory 96G? or hsa and rocm still can access host gpu memory 96G through wsl2 driver?
+
+
+
+==========
+
+HSA Agents
+
+==========
+
+*******
+
+Agent 1
+
+*******
+
+  Name:                    AMD RYZEN AI MAX+ 395 w/ Radeon 8060S
+
+  Uuid:                    CPU-XX
+
+  Marketing Name:          AMD RYZEN AI MAX+ 395 w/ Radeon 8060S
+
+  Vendor Name:             CPU
+
+  Feature:                 None specified
+
+  Profile:                 FULL_PROFILE
+
+  Float Round Mode:        NEAR
+
+  Max Queue Number:        0(0x0)
+
+  Queue Min Size:          0(0x0)
+
+  Queue Max Size:          0(0x0)
+
+  Queue Type:              MULTI
+
+  Node:                    0
+
+  Device Type:             CPU
+
+  Cache Info:
+
+    L1:                      49152(0xc000) KB
+
+  Chip ID:                 0(0x0)
+
+  Cacheline Size:          64(0x40)
+
+  Internal Node ID:        0
+
+  Compute Unit:            32
+
+  SIMDs per CU:            0
+
+  Shader Engines:          0
+
+  Shader Arrs. per Eng.:   0
+
+  Memory Properties:
+
+  Features:                None
+
+  Pool Info:
+
+    Pool 1
+
+      Segment:                 GLOBAL; FLAGS: FINE GRAINED
+
+      Size:                    32495736(0x1efd878) KB
+
+      Allocatable:             TRUE
+
+      Alloc Granule:           4KB
+
+      Alloc Recommended Granule:4KB
+
+      Alloc Alignment:         4KB
+
+      Accessible by all:       TRUE
+
+    Pool 2
+
+      Segment:                 GLOBAL; FLAGS: EXTENDED FINE GRAINED
+
+      Size:                    32495736(0x1efd878) KB
+
+      Allocatable:             TRUE
+
+      Alloc Granule:           4KB
+
+      Alloc Recommended Granule:4KB
+
+      Alloc Alignment:         4KB
+
+      Accessible by all:       TRUE
+
+    Pool 3
+
+      Segment:                 GLOBAL; FLAGS: KERNARG, FINE GRAINED
+
+      Size:                    32495736(0x1efd878) KB
+
+      Allocatable:             TRUE
+
+      Alloc Granule:           4KB
+
+      Alloc Recommended Granule:4KB
+
+      Alloc Alignment:         4KB
+
+      Accessible by all:       TRUE
+...
+=======
+
+Your intuition is 100% correct. You have identified the "Visibility Gap" that occurs when using high-end AMD APUs like the Strix Halo with WSL2.
+
+The Breakdown: Why you see 32G instead of 100G
+In a system with 128GB of RAM where 96GB is reserved in the BIOS as "Dedicated VRAM," the Windows memory manager treats that 96GB as Hardware Reserved.
+
+Windows Host View: It thinks the physical system only has 32GB of "System RAM" available for applications.
+
+WSL2 View: WSL2 is a virtual machine that "requests" its memory from the Windows Host's System RAM pool.
+
+The Conflict: When you set memory=100GB in .wslconfig, WSL2 asks Windows for 100GB. But Windows replies: "I only have 32GB of system RAM left; the rest is locked for the GPU." Consequently, WSL2 caps itself at what is available (your ~32GB).
+
+Because your rocminfo shows Agent 1 as a "CPU" device type, ROCm is attempting to use the Unified Memory Architecture of the APU. It is looking at the system RAM allocated to the WSL VM (the 32GB) and ignoring the "Hardware Reserved" 96GB pool because the paravirtualized WSL driver doesn't map that BIOS-locked buffer directly into the Linux VM's memory space.
+
+The Solution: Unlock the full 128GB Pool
+To get the best performance and maximum memory for your LLMs on Strix Halo, you should actually stop locking the memory in the BIOS.
+
+Change BIOS UMA Setting: Restart your PC, enter the BIOS, and change the UMA Framebuffer Size from "96G" to "Auto" or a minimum value (like 4G).
+
+Why? On modern RDNA 3.5 APUs, the driver is smart enough to dynamically allocate "Shared Memory" as needed. By setting it to Auto, Windows will see the full 128GB as System RAM.
+
+Update .wslconfig: Now your 100GB request will actually work.
+
+Ini, TOML
+
+[wsl2]
+memory=110GB  # Give most of it to WSL
+Let ROCm do the rest: Once Windows sees 128GB of RAM, and WSL2 sees 110GB, ROCm will see a ~110GB "Global" pool in rocminfo. Because your Radeon 8060S shares the same physical memory bus as the CPU, there is zero performance penalty for using this "Shared" memory versus the BIOS "Dedicated" memory.
+
+Checking the Mapping Inside Ubuntu
+After you make the BIOS change and restart, run these two commands to confirm the fix:
+
+To check the VM's total "Bucket": free -h
+
+To check ROCm's view of that Bucket: rocminfo | grep -A 5 "Pool 1"
+
+Required Environment Variables
+Since the Strix Halo is so new, you must keep these variables in your ~/.bashrc to ensure the "CPU-labeled" agent is treated as a high-performance GPU:
+
+Bash
+
+export HSA_OVERRIDE_GFX_VERSION=11.0.0
+export ROC_GLOBAL_MEM_MAX_PERCENT=95
+Next Step
+Would you like me to provide the specific commands to verify if your Linux kernel version in WSL is new enough to support the gfx1151 architecture without bugs?
+
+For a detailed look at how this hardware handles these massive memory pools, you can check out this Review of the Strix Halo Beelink GTR9 Pro, which discusses the unique architecture and memory scaling of the Ryzen AI Max+ 395 in AI workstations. This video explains the unified memory benefits and why high BIOS reservations are often unnecessary for modern ROCm workloads.
+
+https://www.youtube.com/watch?v=crO7vIymfOg

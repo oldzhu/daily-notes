@@ -1,0 +1,74 @@
+Would you like me to provide the specific commands to verify if your Linux kernel version in WSL is new enough to support the gfx1151 architecture without bugs?
+
+Yes, pls. In addition, u mentioend we use -no-dkms to insatll amd rocm in wsl ubuntu as wsl will use the windows host driver, if we decrease the dedicated gpu memory from 96G to 4G or even smaller, would that impact the windows host driver to use amd gpu through romc?
+=======
+
+That is a very insightful question. You have hit on the core "conflict" of memory management in high-end APUs like the Strix Halo.
+
+The BIOS VRAM Question: Will decreasing to 4G hurt?
+No, it will not negatively impact your performance or your ability to use the GPU. In fact, for WSL2, decreasing the BIOS reservation is highly recommended.
+
+Here is why:
+
+Physical reality: Whether you set the BIOS to 4GB or 96GB, the memory is physically the same LPDDR5X RAM on the same bus. The speed is identical.
+
+Dynamic Allocation (GTT): Modern AMD drivers use something called GTT (Graphics Translation Table). Even if "Dedicated" memory is only 512MB or 4GB, the driver can dynamically "borrow" up to ~75% of your system RAM from Windows whenever a model needs it.
+
+WSL2 limitation: WSL2 is a "guest" inside Windows. If Windows "hides" 96GB from itself (by dedicating it to BIOS VRAM), it only has 32GB left to give to its guests (WSL2). By setting BIOS VRAM to Auto or 512MB, you give Windows back the full 128GB. You then tell WSL2 to take 100GB. The GPU driver in WSL2 will then reach out and use that 100GB as if it were VRAM.
+
+Recommendation: Set your BIOS UMA Framebuffer to Auto or 512MB. This allows the memory to be "fluid" between your CPU and GPU tasks.
+
+How to verify your Kernel and gfx1151 support
+Since you are on the cutting-edge Ryzen AI Max+ (Strix Halo), your Linux kernel inside WSL needs to be aware of the RDNA 3.5 (gfx1151) architecture.
+
+Run these specific commands in your Ubuntu terminal:
+
+1. Check the Kernel Version
+Bash
+
+uname -r
+Good: 5.15.x or 6.1.x (Standard WSL kernels).
+
+Best: 6.6.x or higher. Microsoft has been backporting AMD RDNA 3.5 support to recent WSL kernels.
+
+2. Check if the AMD Driver is initialized
+Bash
+
+dmesg | grep -i amdgpu
+Look for lines mentioning "gfx1151" or "Strix". If you see "Direct rendering enabled" or "Initialized amdgpu," your kernel is communicating with the Windows driver correctly.
+
+3. Check the "Agent" status
+In your previous rocminfo output, your GPU was listed as Agent 1 but labeled as Device Type: CPU. This usually happens if the environment variables aren't set yet. Let's force it to recognize the GPU:
+
+Bash
+
+# Add these to ~/.bashrc if they aren't there
+export HSA_OVERRIDE_GFX_VERSION=11.5.0
+export HIP_VISIBLE_DEVICES=0
+(Note: For Strix Halo, sometimes 11.0.0 works, but 11.5.0 is the specific target for RDNA 3.5).
+
+4. Check Firmware Loading
+Bash
+
+ls /lib/firmware/amdgpu/ | grep gfx_11_5
+If this directory is empty, you may need to install the firmware package (even in WSL):
+
+Bash
+
+sudo apt update && sudo apt install linux-firmware
+Final Configuration Strategy
+BIOS: Set UMA to Auto or 512M.
+
+Windows: You should now see ~127GB of available RAM.
+
+.wslconfig:
+
+Ini, TOML
+
+[wsl2]
+memory=110GB
+ROCm: Run rocminfo. You should now see a COARSE GRAINED pool that is ~110GB in size.
+
+Would you like me to show you how to run a quick benchmark (like llama-bench) to prove that your GPU is actually doing the heavy lifting and not the CPU?
+
+For more details on why modern AMD systems perform better with lower BIOS reservations in virtualized environments, check out this AMD Memory Management Deep Dive. This video explains how the GTT allows for near-native performance without "locking" RAM away from the operating system.
