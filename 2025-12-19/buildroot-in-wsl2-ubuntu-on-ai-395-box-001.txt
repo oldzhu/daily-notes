@@ -1,0 +1,58 @@
+when using buildroot in wsl2 to build lldb, building terminated and saw the below msg:
+
+[  426.743064] Out of memory: Killed process 3445 (cc1plus) total-vm:1757192kB, anon-rss:1154048kB, file-rss:3072kB, shmem-rss:0kB, UID:1000 pgtables:3416kB oom_score_adj:0
+
+========
+
+This error is a classic OOM (Out of Memory) kill. When building large packages like lldb or llvm, the C++ compiler (cc1plus) can consume several gigabytes of RAM per file, especially if it's applying heavy optimizations or generating debug symbols.
+
+Because WSL2 defaults to using only 50% of your total system RAM (or 8GB, whichever is less on older versions), your build environment is running out of "air" and the Linux kernel is stepping in to kill the process to save the system.
+
+Here are the three ways to fix this, ordered from most effective to easiest.
+
+1. Increase WSL2 RAM and Swap (Best Fix)
+You can manually override the default memory limits by creating or editing a configuration file on the Windows side.
+
+In Windows, open your user folder: C:\Users\<YourUsername>\.
+
+Create (or edit) a file named .wslconfig.
+
+Add the following lines (adjust the numbers based on your actual physical RAM—I recommend giving it 75-80% of your RAM for heavy builds):
+
+Ini, TOML
+
+[wsl2]
+# Set memory to something high, e.g., 16GB or 32GB
+memory=16GB 
+# Add a large swap file as a safety net
+swap=16GB
+Crucial: Save the file, then open PowerShell and run wsl --shutdown to apply the changes. Restart your terminal and check the new limit with free -h.
+
+2. Reduce Build Parallelism (The "Slow but Steady" Fix)
+Buildroot usually detects your CPU cores and tries to run as many simultaneous jobs as possible (e.g., make -j16). If each job takes 2GB of RAM and you have 16 cores, you'd need 32GB of RAM just to stay afloat.
+
+Run make menuconfig in your Buildroot directory.
+
+Navigate to Build options.
+
+Find Number of jobs to run simultaneously (0 for auto).
+
+Change it from 0 to a small number like 2 or 4.
+
+Alternatively, you can run the make command manually once: make BR2_JLEVEL=2.
+
+3. Disable Debug Symbols
+If you are building lldb but don't intend to debug lldb itself, ensure you aren't building it in "Debug" mode. Debug builds of LLVM projects are notorious for requiring 10GB+ of RAM during the linking stage.
+
+In Buildroot, check your toolchain and package settings to ensure BR2_ENABLE_DEBUG is not set unless absolutely necessary.
+
+If you are using a custom CMake rule for lldb, ensure -DCMAKE_BUILD_TYPE=Release is set.
+
+Why specifically cc1plus?
+The cc1plus process is the actual C++ compiler. When it encounters complex template-heavy code (common in LLVM/lldb), it builds a massive internal representation of the code in memory. If you are using many cores, you have many cc1plus instances fighting for the same limited WSL2 RAM.
+
+Would you like me to help you calculate the ideal .wslconfig settings based on your specific PC's total RAM?
+
+... Changing WSL Default RAM and Swap Space ... This video provides a quick visual guide on how to create and modify the .wslconfig file to prevent OOM errors during resource-intensive tasks.
+
+https://www.youtube.com/watch?v=mPwk9Td4JmE

@@ -1,0 +1,7 @@
+https://github.com/ROCm/ROCm/issues/495
+[Feature]: WSL2 Support for AMD RYZEN AI MAX+ 395 #4952
+After installing the AMD GPU driver for WSL2, the system fails to recognize the Radeon 8060S graphics card (gfx1151). The only hardware detected is the CPU, and there are no signs of the GPU functioning within the Windows Subsystem for Linux environment. Could add the support for AMD RYZEN AI MAX+ 395 w/ Radeon 8060S?
+
+https://github.com/ROCm/ROCm/issues/5509
+
+[Issue]: 'Unable to locate package hsa-runtime-rocr4wsl-amdgpu' on win 11 wsl2 ubuntu 24.04 ROCm 7.0.2 on ryzen ai max+ 395 #5509

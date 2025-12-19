@@ -1,0 +1,50 @@
+Yes, for your specific hardware (Ryzen AI Max+ 395 with Radeon 8060S), you absolutely still need dxg:dxgk.
+
+Here is the technical breakdown of why, and why it is crashing on your specific "Strix Halo" machine.
+
+1. What "dxg:dxgk" actually does
+The error you are seeing (misc dxg: dxgk: ... Ioctl failed) confirms that the communication bridge between Linux and your Host GPU is broken.
+
+dxgkrnl (Linux side): This is a kernel driver inside WSL2.
+
+dxgk (Host side): This talks to the Windows Display Driver Model (WDDM).
+
+Why you need it: WSL2 does not have direct access to your Radeon 8060S hardware. Instead, it uses "GPU-PV" (Para-Virtualization). It wraps GPU instructions in a dxg packet and shoots them over to Windows to execute. If you disable this, you lose all hardware acceleration—meaning no GUI apps (WSLg), no OpenGL, and no AI/Compute (ROCm/DirectML).
+
+2. Why it is failing on your Radeon 8060S
+Your hardware (Ryzen AI Max+ / Strix Halo) uses the RDNA 3.5 architecture, which is significantly different from older AMD iGPUs. The crashes indicate a "version mismatch" or driver regression:
+
+The Mismatch: The Linux kernel inside your WSL2 instance (likely version 6.6 or similar) is sending commands that your Windows Host driver (Adrenalin 25.x) doesn't understand or refuses to process, causing the Ioctl failed (Input/Output Control) error.
+
+The Result: The bridge collapses, and since dxgkrnl is deeply integrated into the WSL init process, it takes the whole terminal down with it.
+
+3. How to fix it for Ryzen AI Max
+Since you likely want to use the NPU/GPU for AI tasks (given your CPU model), disabling the GPU (my previous "Stability Workaround") defeats the purpose of your hardware.
+
+Step A: Force the "LTS" Kernel (Temporary Fix) Newer AMD hardware often has regressions in the bleeding-edge WSL kernel. Reverting to the Long Term Support (LTS) kernel often stabilizes the dxg handshake.
+
+Run PowerShell as Admin.
+
+Execute:
+
+PowerShell
+
+wsl --update --web-download
+(If that fails, try wsl --update --pre-release to jump ahead of the bug, as Strix Halo support might be better in the absolute latest preview).
+
+Step B: The "VRAM Slice" Issue The Radeon 8060S uses "Variable Graphics Memory" (sharing your 128GB LPDDR5X). WSL2 sometimes panics when it tries to reserve a slice of this shared pool if Windows hasn't strictly defined it.
+
+Fix: Go into your BIOS/UEFI. Look for UMA Frame Buffer Size (or "integrated graphics memory").
+
+Action: If it is set to "Auto," change it to a fixed value (e.g., 8GB or 16GB). This forces a strict reservation that the dxgk driver can safely map to WSL2 without crashing the address translator.
+
+Step C: Verify ROCm/DirectML status
+
+If you are running AI workloads, ensure you are not mixing driver stacks. For the 8060S, you should use the ROCm 6.x series for WSL2, as older versions do not fully support RDNA 3.5 instructions, which can trigger these kernel disconnects.
+
+Summary
+You cannot delete or bypass dxg if you want to use that GPU. The crash is likely due to the Dynamic VRAM allocation on the Strix Halo chip confusing the virtualization bridge.
+
+... The Radeon 8060S is Insane - Bossgame M5 Mini PC Benchmarks ...
+
+This video reviews the performance of the exact Radeon 8060S GPU in your system, which helps confirm the specific shared-memory architecture ("Strix Halo") that is likely causing the variable memory crashes in WSL2.

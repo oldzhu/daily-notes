@@ -1,0 +1,6 @@
+seems wifi and eth network downloading and connection not stable and slow or broken intermittenly
+
+disable MediaTek Wi-Fi 7 MT7925 Wireless LAN Card #6 seems Ugreen WiFi6 Wireless USB NIC more stable although speed is 
+500M
+
+will test to see if two Intel(R) Ethernet Controller E610 for 10GBASE-T stable or not
