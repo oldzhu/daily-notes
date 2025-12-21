@@ -1,0 +1,48 @@
+C:\localrepos\llama.cpp>cmake -S . -B build -G Ninja -DAMDGPU_TARGETS=gfx1151 -DGGML_HIP=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release
+-- The C compiler identification is Clang 20.1.8 with GNU-like command-line
+-- The CXX compiler identification is Clang 20.1.8 with GNU-like command-line
+...
+-- x86 detected
+-- Adding CPU backend variant ggml-cpu: -march=native
+CMake Error at C:/ROCm-7.1.1/_rocm_sdk_devel/lib/cmake/hip/hip-config.cmake:144 (message):
+  Unexpected HIP_PLATFORM:
+Call Stack (most recent call first):
+  ggml/src/ggml-hip/CMakeLists.txt:42 (find_package)
+
+
+-- Configuring incomplete, errors occurred!
+====
+set HIP_PLATFORM=amd
+
+-- Adding CPU backend variant ggml-cpu: -march=native
+CMake Warning (dev) at C:/ROCm-7.1.1/_rocm_sdk_devel/lib/cmake/hip/hip-config-amd.cmake:70 (message):
+  AMDGPU_TARGETS is deprecated.  Please use GPU_TARGETS instead.
+Call Stack (most recent call first):
+  C:/ROCm-7.1.1/_rocm_sdk_devel/lib/cmake/hip/hip-config.cmake:138 (include)
+  ggml/src/ggml-hip/CMakeLists.txt:42 (find_package)
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+CMake Error at C:/ROCm-7.1.1/_rocm_sdk_devel/lib/cmake/hip/hip-targets.cmake:97 (message):
+  The imported target "hip::amdhip64" references the file
+
+     "C:/ROCm-7.1.1/_rocm_sdk_devel/lib/amdhip64.lib"
+
+  but this file does not exist.  Possible reasons include:
+
+  * The file was deleted, renamed, or moved to another location.
+
+  * An install or uninstall procedure did not complete successfully.
+
+  * The installation package was faulty and contained
+
+     "C:/ROCm-7.1.1/_rocm_sdk_devel/lib/cmake/hip/hip-targets.cmake"
+
+  but not all the files it references.
+
+Call Stack (most recent call first):
+  C:/ROCm-7.1.1/_rocm_sdk_devel/lib/cmake/hip/hip-config-amd.cmake:128 (include)
+  C:/ROCm-7.1.1/_rocm_sdk_devel/lib/cmake/hip/hip-config.cmake:138 (include)
+  ggml/src/ggml-hip/CMakeLists.txt:42 (find_package)
+
+
+-- Configuring incomplete, errors occurred!

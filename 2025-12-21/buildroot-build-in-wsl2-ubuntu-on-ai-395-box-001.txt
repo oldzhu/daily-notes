@@ -1,0 +1,26 @@
+  -- Performing Test HAVE_PR_SET_PTRACER - Success
+  CMake Error at pal/src/configure.cmake:706 (message):
+    Cannot find liblttng-ust-dev.  Try installing liblttng-ust-dev (or the
+    appropriate packages for your platform)
+  Call Stack (most recent call first):
+    pal/src/CMakeLists.txt:26 (include)
+===
+strange my build is for cross linux arm64 and why it ask to install host liblttng-ust-dev?
+
+  -- Performing Test HAVE_LTTNG_TRACEPOINT_H
+  CMake Debug Log at /home/oldzhu/buildroot/output/host/share/cmake-4.2/Modules/Internal/CheckSourceCompiles.cmake:104 (try_compile):
+    Executing try_compile (HAVE_LTTNG_TRACEPOINT_H) in:
+
+      /home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/artifacts/obj/coreclr/linux.arm64.Release/x64/CMakeFiles/CMakeScratch/TryCompile-mn5GSz
+  Call Stack (most recent call first):
+    /home/oldzhu/buildroot/output/host/share/cmake-4.2/Modules/CheckCXXSourceCompiles.cmake:103 (cmake_check_source_compiles)
+    pal/src/configure.cmake:74 (check_cxx_source_compiles)
+    pal/src/CMakeLists.txt:26 (include)
+
+
+  -- Performing Test HAVE_LTTNG_TRACEPOINT_H - Failed
+  CMake Error at pal/src/configure.cmake:706 (message):
+    Cannot find liblttng-ust-dev.  Try installing liblttng-ust-dev (or the
+    appropriate packages for your platform)
+  Call Stack (most recent call first):
+    pal/src/CMakeLists.txt:26 (include)

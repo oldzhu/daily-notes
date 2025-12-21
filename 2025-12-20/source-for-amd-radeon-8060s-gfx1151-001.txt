@@ -1,0 +1,72 @@
+another question is about driver of amd Radeon 8060s gfx1151 for windows 11, linux and wsl2, is the source code of these drivers are open sourced? if they are, what are their architecture and source code layout?
+========
+The AMD Radeon 8060S (Strix Halo) belongs to the **GFX1151** architecture. Whether the drivers are open-source depends entirely on which operating system you are looking at. AMD’s strategy is "Open on Linux, Proprietary on Windows."
+
+Here is the breakdown of the source code status and layout for each platform:
+
+---
+
+### 1. Linux (Native Ubuntu/Fedora)
+
+**Status: Open Source**
+AMD is a leader in open-source graphics on Linux. The driver is split into two distinct parts:
+
+* **Kernel Space (`amdgpu`):** This is part of the mainline Linux kernel. It handles memory management, power, and low-level hardware communication.
+* **Source:** [Linux Kernel Git](https://github.com/torvalds/linux/tree/master/drivers/gpu/drm/amd/amdgpu)
+* **Layout:**
+* `amdgpu/`: The core logic.
+* `display/`: The Display Core (DC) which handles monitor outputs.
+* `include/`: Header files defining hardware registers for **GFX11**.
+
+
+
+
+* **User Space (Mesa):** This implements APIs like OpenGL and Vulkan.
+* **Source:** [Mesa3D Git](https://gitlab.freedesktop.org/mesa/mesa)
+* **Layout:**
+* `src/amd/vulkan/ (RADV)`: The community-favored Vulkan driver.
+* `src/amd/compiler/ (ACO)`: The shader compiler that turns game code into machine code for your 8060S.
+
+
+
+
+
+---
+
+### 2. Windows 11 (Host)
+
+**Status: Closed Source (Proprietary)**
+The Windows Adrenalin driver is proprietary. While it uses some shared code with the Linux driver (specifically the **AMD Common Language** or **PAL** - Platform Abstraction Layer), the source code is not public.
+
+* **Architecture:** It uses the **WDDM (Windows Display Driver Model)**.
+* **Source:** Not available. It is shipped as a compiled binary (`.sys` and `.dll` files).
+
+---
+
+### 3. WSL2 (Windows Subsystem for Linux)
+
+**Status: Mixed (Open Kernel / Proprietary User-Space)**
+This is where it gets tricky. WSL2 uses a "Split Driver" architecture to allow the Linux guest to talk to the Windows host GPU.
+
+* **The Linux Guest Side (`dxgkrnl`):** Microsoft has open-sourced the Linux kernel driver that acts as a bridge. It creates a device called `/dev/dxg`.
+* **Source:** [Microsoft WSL2-Linux-Kernel](https://www.google.com/search?q=https://github.com/microsoft/WSL2-Linux-Kernel/tree/linux-msft-wsl-6.6.y/drivers/hv/dxgkrnl)
+
+
+* **The User-Space Side:** To actually do AI (ROCm) or Graphics, you need libraries like `libdxcore.so`. These are **Proprietary** and provided by Microsoft/AMD.
+* **The Hardware Bridge:** Your `gfx1151` 8060S is virtualized via Hyper-V. The Linux kernel sends commands to the Windows host driver, which then executes them on the real silicon.
+
+---
+
+### Source Code Layout Comparison
+
+| Component | Linux (Native) | WSL2 (Guest) | Windows 11 (Host) |
+| --- | --- | --- | --- |
+| **Kernel Driver** | `amdgpu` (Open) | `dxgkrnl` (Open) | `amdkmdag.sys` (Closed) |
+| **Vulkan/GL** | Mesa (Open) | Mesa + D3D12 (Open/Closed) | Adrenalin (Closed) |
+| **Compute** | ROCm (Open) | ROCm for WSL (Closed) | HIP SDK (Closed) |
+
+### The "Strix Halo" (GFX1151) Specifics
+
+For your specific hardware, AMD uses a **Unified Shader Compiler**. In the open-source Linux code, you will find references to your chip under the `GFX11` family folders. The code layout for GFX11 focuses heavily on **Workgraph** support and **VCN 4.x** (Video Core Next) for encoding.
+
+**Would you like me to show you the specific shell commands to check which parts of your current driver stack are using open-source modules versus proprietary ones?**

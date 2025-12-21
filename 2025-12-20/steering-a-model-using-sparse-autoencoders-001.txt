@@ -1,0 +1,4 @@
+https://huggingface.co/spaces/dlouapre/eiffel-tower-llama
+https://www.youtube.com/watch?v=F2jd5WuT-zg
+https://www.neuronpedia.org/
+https://huggingface.co/collections/dlouapre/sparse-auto-encoders-saes-for-mechanistic-interpretability

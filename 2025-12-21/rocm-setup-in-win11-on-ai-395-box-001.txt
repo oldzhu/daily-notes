@@ -1,0 +1,43 @@
+https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/rocm_sdk_devel-0.1.dev0-py3-none-win_amd64.whl
+extract rocm_sdk_devel-0.1.dev0-py3-none-win_amd64.whl to c:\rocm_7.1.1
+
+C:\ROCm-7.1.1>tar -xf rocm_sdk_devel-0.1.dev0-py3-none-win_amd64.zip
+
+C:\ROCm-7.1.1>tar -xf _devel.tar
+tar need to run as admin
+
+:: Set the root path to your extracted folder
+set ROCM_PATH=C:\rocm-7.1.1A
+set HIP_PATH=%ROCm_PATH%
+
+:: Add the bin directory to your path so CMake can find the compiler
+set PATH=%ROCm_PATH%\bin;%PATH%
+
+:: Tell CMake where to find the ROCm/HIP configuration files
+set CMAKE_PREFIX_PATH=%ROCm_PATH%
+
+cmake -S . -B build -G Ninja ^
+  -DGGML_HIP=ON ^
+  -DAMDGPU_TARGETS=gfx1151 ^
+  -DCMAKE_BUILD_TYPE=Release ^
+  -DCMAKE_C_COMPILER="%ROCm_PATH%\bin\clang.exe" ^
+  -DCMAKE_CXX_COMPILER="%ROCm_PATH%\bin\clang++.exe" ^
+  -Dhip_DIR="%ROCm_PATH%\lib\cmake\hip" ^
+  -Damd_comgr_DIR="%ROCm_PATH%\lib\cmake\amd_comgr" ^
+  -Drocm_smi_DIR="%ROCm_PATH%\lib\cmake\rocm_smi"
+
+After the build finishes, you will have a llama-cli.exe in your build/bin folder. However, it won't run unless it can find the ROCm DLLs (like amdhip64.dll).
+
+You have two choices:
+
+Permanent: Add C:\ROCm-Portable\bin to your system's PATH environment variable.
+
+Quick Fix: Copy all .dll files from your extracted bin folder directly into the same folder as llama-cli.exe.
+
+===========
+
+https://github.com/ROCm/llama.cpp/blob/amd-integration/docs/build.md
+
+set PATH=%HIP_PATH%\bin;%PATH%
+cmake -S . -B build -G Ninja -DAMDGPU_TARGETS=gfx1100 -DGGML_HIP=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release
+cmake --build build

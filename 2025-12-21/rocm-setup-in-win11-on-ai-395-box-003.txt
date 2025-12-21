@@ -1,0 +1,22 @@
+pip install --no-cache-dir rocm_sdk_core-0.1.dev0-py3-none-win_amd64.whl rocm_sdk_devel-0.1.dev0-py3-none-win_amd64.whl rocm_sdk_libraries_custom-0.1.dev0-py3-none-win_amd64.whl rocm-0.1.dev0.tar.gz
+
+C:\Users\orien\Downloads>pip install --no-cache-dir rocm_sdk_core-0.1.dev0-py3-none-win_amd64.whl rocm_sdk_devel-0.1.dev0-py3-none-win_amd64.whl
+Processing c:\users\orien\downloads\rocm_sdk_core-0.1.dev0-py3-none-win_amd64.whl
+Processing c:\users\orien\downloads\rocm_sdk_devel-0.1.dev0-py3-none-win_amd64.whl
+Installing collected packages: rocm-sdk-devel, rocm-sdk-core
+Successfully installed rocm-sdk-core-0.1.dev0 rocm-sdk-devel-0.1.dev0
+
+C:\Users\orien\Downloads>pip install --no-cache-dir rocm_sdk_libraries_custom-0.1.dev0-py3-none-win_amd64.whl rocm-0.1.dev0.tar.gz
+Processing c:\users\orien\downloads\rocm_sdk_libraries_custom-0.1.dev0-py3-none-win_amd64.whl
+Processing c:\users\orien\downloads\rocm-0.1.dev0.tar.gz
+  Installing build dependencies ... done
+  Getting requirements to build wheel ... done
+  Preparing metadata (pyproject.toml) ... done
+Requirement already satisfied: rocm-sdk-core==0.1.dev0 in c:\users\orien\appdata\local\python\pythoncore-3.14-64\lib\site-packages (from rocm==0.1.dev0) (0.1.dev0)
+Building wheels for collected packages: rocm
+  Building wheel for rocm (pyproject.toml) ... done
+  Created wheel for rocm: filename=rocm-0.1.dev0-py3-none-any.whl size=18722 sha256=1477015b8de55dc25c079ddcd7cd5a8239c24abde6f56174e37db2a619927aa2
+  Stored in directory: C:\Users\orien\AppData\Local\Temp\pip-ephem-wheel-cache-yaaxr12f\wheels\8f\28\eb\2078307b4d115c3818807eca3072e3137569745cf5f2efe52d
+Successfully built rocm
+Installing collected packages: rocm-sdk-libraries-custom, rocm
+Successfully installed rocm-0.1.dev0 rocm-sdk-libraries-custom-0.1.dev0

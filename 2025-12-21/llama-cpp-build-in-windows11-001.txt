@@ -1,0 +1,44 @@
+C:\localrepos\llama.cpp>hipconfig -l
+
+C:\localrepos\llama.cpp>C:\Users\orien\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_rocm_sdk_core\lib\llvm\binhipconfig -p
+
+C:\localrepos\llama.cpp>C:\Users\orien\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_rocm_sdk_core
+C:\localrepos\llama.cpp>set HIP_PATH=C:\Users\orien\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_rocm_sdk_core
+
+C:\localrepos\llama.cpp>set HIP_CLANG_PATH=C:\Users\orien\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_rocm_sdk_core\lib\llvm\bin
+
+C:\localrepos\llama.cpp>set PATH=%HIP_CLANG_PATH%;%HIP_PATH%\bin;%PATH%
+
+C:\localrepos\llama.cpp>where clang
+C:\Users\orien\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_rocm_sdk_core\lib\llvm\bin\clang.exe
+C:\Program Files\Microsoft Visual Studio\18\Professional\VC\Tools\Llvm\x64\bin\clang.exe
+
+C:\localrepos\llama.cpp>cmake -S . -B build -G Ninja -DAMDGPU_TARGETS=gfx1151 -DGGML_HIP=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release
+
+==========
+
+C:\Users\orien\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages>tar -xvf "C:\Users\orien\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rocm_sdk_devel\_devel.tar"
+
+set HIP_PATH=C:\Users\orien\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_rocm_sdk_devel
+set HIP_CLANG_PATH=C:\Users\orien\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_rocm_sdk_devel\lib\llvm\bin
+
+set PATH=%HIP_CLANG_PATH%;%HIP_PATH%\bin;%PATH%
+
+set HIP_PLATFORM=amd
+
+cmake -S . -B build -G Ninja -DLLAMA_CURL=OFF -DGPU_TARGETS=gfx1151 -DGGML_HIP=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release
+
+========
+If you really want the auto-download feature, the easiest way to get it on Windows is via vcpkg:
+
+git clone https://github.com/microsoft/vcpkg
+
+.\vcpkg\bootstrap-vcpkg.bat
+
+.\vcpkg\vcpkg install curl:x64-windows
+
+Then add -DCMAKE_TOOLCHAIN_FILE=C:/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake to your original CMake command.
+
+DCMAKE_TOOLCHAIN_FILE=C:\localrepos\vcpkg\scripts\buildsystems\vcpkg.cmake
+
+cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=C:\localrepos\vcpkg\scripts\buildsystems\vcpkg.cmake -DGPU_TARGETS=gfx1151 -DGGML_HIP=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release
