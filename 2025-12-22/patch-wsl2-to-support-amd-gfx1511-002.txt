@@ -1,0 +1,106 @@
+To help you move forward efficiently, I have synthesized the necessary changes for the **v6.6-y WSL2 kernel** to support your **Strix Halo (gfx1151)**.
+
+As we discussed, a full sync of the `amdgpu` folder from mainline is dangerous due to breaking API changes between kernel 6.6 and 6.13. Instead, you can use the following "Targeted Backport" approach.
+
+### 1. Preparation in WSL2 Terminal
+
+Before patching, ensure you have the build dependencies. Run this in your Ubuntu terminal:
+
+```bash
+sudo apt update && sudo apt install -y build-essential flex bison libssl-dev libelf-dev bc python3 pahole cpio
+git clone https://github.com/microsoft/WSL2-Linux-Kernel.git --depth=1 -b linux-msft-wsl-6.6.y
+cd WSL2-Linux-Kernel
+
+```
+
+---
+
+### 2. The Patch File
+
+You can create this file (e.g., `gfx1151.patch`) and apply it. It targets the three critical files where the kernel "checks the ID" of the GPU.
+
+```diff
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_discovery.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_discovery.c
+@@ -1650,6 +1650,7 @@ static int amdgpu_discovery_set_gc_ip_blocks(struct amdgpu_device *adev)
+ 	case IP_VERSION(11, 0, 1):
+ 	case IP_VERSION(11, 0, 4):
+ 	case IP_VERSION(11, 5, 0):
++	case IP_VERSION(11, 5, 1):
+ 		amdgpu_device_ip_block_add(adev, &gfx_v11_0_ip_block);
+ 		break;
+ 	default:
+--- a/drivers/gpu/drm/amd/amdgpu/gmc_v11_0.c
++++ b/drivers/gpu/drm/amd/amdgpu/gmc_v11_0.c
+@@ -625,6 +625,7 @@ static int gmc_v11_0_sw_init(void *handle)
+ 	case IP_VERSION(11, 0, 1):
+ 	case IP_VERSION(11, 0, 4):
+ 	case IP_VERSION(11, 5, 0):
++	case IP_VERSION(11, 5, 1):
+ 		set_bit(AMDGPU_GFXHUB(0), adev->vmhubs_mask);
+ 		set_bit(AMDGPU_MMHUB0(0), adev->vmhubs_mask);
+ 		amdgpu_vm_adjust_size(adev, 256 * 1024, 9, 3, 48);
+--- a/drivers/gpu/drm/amd/amdgpu/soc21.c
++++ b/drivers/gpu/drm/amd/amdgpu/soc21.c
+@@ -730,6 +730,7 @@ static int soc21_set_ip_blocks(struct amdgpu_device *adev)
+ 	case IP_VERSION(11, 0, 1):
+ 	case IP_VERSION(11, 0, 4):
+ 	case IP_VERSION(11, 5, 0):
++	case IP_VERSION(11, 5, 1):
+ 		amdgpu_device_ip_block_add(adev, &soc21_common_ip_block);
+ 		break;
+ 	default:
+
+```
+
+**To apply this without VS Code:**
+
+1. Save the text above as `gfx1151.patch`.
+2. Run `patch -p1 < gfx1151.patch`.
+
+---
+
+### 3. Build and Configuration
+
+Now, configure the kernel to ensure the driver is **Built-in** (to fix the `-22` error) rather than a module.
+
+1. **Generate Config:** `make Microsoft/config-wsl`
+2. **Set Built-in:** Use `sed` to force the AMD driver to be part of the kernel binary:
+```bash
+sed -i 's/CONFIG_DRM_AMDGPU=m/CONFIG_DRM_AMDGPU=y/' .config
+
+```
+
+
+3. **Compile:** (This will use all 16+ cores of your Ryzen AI Max)
+```bash
+make -j$(nproc) bzImage
+
+```
+
+
+
+### 4. Moving to Windows
+
+Once finished, copy the kernel to your Windows User folder:
+
+```bash
+cp arch/x86/boot/bzImage /mnt/c/Users/<YourWindowsUser>/vmlinux-custom
+
+```
+
+Update your `%USERPROFILE%\.wslconfig`:
+
+```ini
+[wsl2]
+kernel=C:\\Users\\<YourWindowsUser>\\vmlinux-custom
+
+```
+
+Then run `wsl --shutdown` and restart Ubuntu.
+
+**Would you like me to help you verify the `dmesg` output after you boot into this custom kernel to ensure the GFX1151 block initialized correctly?**
+
+[AMD RADEON ADRENALINE for WSL with PyTORCH ROCm ComfyUI on WINDOWS](https://www.youtube.com/watch?v=p1jKqV9IV8I)
+
+This video is a practical guide on setting up the software stack once your kernel and drivers are correctly communicating, ensuring your AMD hardware is fully utilized for AI workloads.

@@ -1,0 +1,47 @@
+Your plan is technically sound, but there is one major "landmine" in step 1 that you must avoid. Let’s break down the kernel synchronization and the ROCm versioning.
+
+### 1. The Kernel Patch Strategy (The "Landmine")
+
+**Warning:** Do **not** simply copy all files from `mainline/drivers/gpu/drm/amd` into the **WSL2 6.6.y** kernel.
+
+The `amdgpu` driver has deep dependencies on the internal Linux kernel APIs (Memory management, DMA-BUF, Scheduler). The mainline (v6.12+) AMD driver uses kernel APIs that **do not exist** in the v6.6 kernel. If you copy everything, the kernel will fail to compile with hundreds of "undefined" errors.
+
+**The Better Approach:**
+Instead of a full sync, you should only "Backport" the specific hardware support.
+
+* Keep the WSL2 `amdgpu` folder as it is.
+* Only modify the files related to **IP Discovery** and **GMC** (like `gmc_v11_0.c`, `soc21.c`, and `amdgpu_discovery.c`).
+* Add the `case IP_VERSION(11, 5, 1):` blocks manually, mimicking the logic for `11, 5, 0`.
+
+### 2. ROCm 6.4.2 (WSL) vs. ROCm 7.1.1 (Host)
+
+You are correct: **This is not a big problem.** In the WSL2 architecture, the "User Mode" (ROCm 6.4.2 inside Ubuntu) talks to the "Kernel Mode" (the `amdgpu` driver you are patching + `dxgkrnl`).
+
+* **The Interface:** The interface between ROCm and the kernel is the **AMDGPU IOCTL API**. This API is designed to be backwards compatible.
+* **The Logic:** As long as your patched kernel correctly identifies the `gfx1151` hardware and sets up the memory windows (the GMC fix), ROCm 6.4.2 will see a valid `gfx1151` device.
+* **Version Mismatch:** It is very common for the Windows Host driver (supporting ROCm 7.x) to be newer than the WSL guest libraries. The `dxgkrnl` bridge handles the translation.
+
+### 3. Will this fix the `-22` error?
+
+**Yes.** The `-22` (`EINVAL`) is happening because `dxgkrnl` is asking the guest driver to initialize a device it doesn't recognize. Once you patch the kernel:
+
+1. The guest `amdgpu` driver will stop saying "I don't know this hardware."
+2. It will return `0` (Success) to the initialization call.
+3. The bridge will open, and your ROCm 6.4.2 libraries will be able to send kernels to the GPU.
+
+---
+
+### Summary Table: Your Strategy
+
+| Task | Action | Risk Level |
+| --- | --- | --- |
+| **Syncing `drivers/gpu/drm/amd**` | **Avoid full sync.** Only patch specific files for `gfx1151`. | High (Compile Errors) |
+| **Patching `gmc_v11_0.c**` | Manually add `IP_VERSION(11, 5, 1)`. | **Low / Recommended** |
+| **ROCm Version Mismatch** | Keep ROCm 6.4.2 in WSL; it will work with Host 7.1.1. | Low (Normal) |
+| **WSL Config** | Use `kernel=C:\\...` and set `guiApplications=true`. | Low |
+
+### Next Step
+
+Since you are ready to build, I recommend starting with a **minimal patch**. Only add the `11, 5, 1` cases to the three files mentioned before: `gmc_v11_0.c`, `soc21.c`, and `amdgpu_discovery.c`.
+
+**Would you like me to provide the exact line numbers and code blocks for those three files based on the 6.6.y WSL2 source?**

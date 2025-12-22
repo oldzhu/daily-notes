@@ -1,0 +1,41 @@
+To answer your questions directly: yes, the patch is a **selective backport**. It isn't a direct "diff" of the entire `amd` folders because the version gap between 6.6 and mainline (6.13) is too large.
+
+Here is the breakdown of why this approach is the most stable path forward for your **Strix Halo** system.
+
+### 1. Is the patch a direct diff between the two repos?
+
+**Not exactly.** If you performed a direct `diff -r` between the Microsoft 6.6 branch and the Torvalds master branch for the `drivers/gpu/drm/amd` folder, you would find thousands of differences.
+
+* **The Problem:** Mainline Linux (6.12+) has redesigned how the kernel handles memory (TTM updates), how it schedules tasks, and how it communicates with the Display Core (DC).
+* **The Patch Logic:** The patch I generated is a **"Hand-picked Backport."** It identifies the specific "Hardware ID Registration" logic added in the mainline kernel for `gfx1151` and applies only those IDs to the matching locations in the WSL2 6.6 kernel. This ensures the kernel compiles successfully without needing to update the entire graphics subsystem.
+
+### 2. Why are these 3 files enough to fix the `-22` error?
+
+The `dxgkrnl` (DirectX) bridge in WSL2 performs a "handshake" with the guest kernel's `amdgpu` driver. The `-22` (Invalid Argument) error is a failure of that handshake.
+
+These three specific files handle the "Discovery and Verification" phase:
+
+| File | Role in Fixing the `-22` Error |
+| --- | --- |
+| **`amdgpu_discovery.c`** | This is the **"Hardware Scanner."** It reads the IP versions from the hardware. If it sees `11.5.1` but doesn't have a `case` for it, it aborts the scan. |
+| **`soc21.c`** | This is the **"System-on-Chip Manager."** It tells the kernel, "For this chip series (SOC21), use these specific power and communication protocols." |
+| **`gmc_v11_0.c`** | This is the **"Memory Controller."** This is the most important one. It sets up the VRAM windows and Page Tables. Without this, the GPU has no memory to work with. |
+
+**Why the other folders aren't strictly necessary for a "minimal" fix:**
+The other folders (like `display/`, `pm/`, `acp/`) handle things like HDMI output, advanced power saving, and audio. In WSL2:
+
+* **No Display:** You aren't plugging a monitor into the "Linux" side; Windows handles the display.
+* **No Audio:** WSLg handles audio through a different virtual bridge.
+* **Bridge Dependency:** The `dxgkrnl` driver primarily cares that the **GMC (Graphics Memory Controller)** and **Discovery** blocks are initialized. Once those are "Green," the bridge opens up, and your ROCm libraries can talk to the hardware.
+
+### 3. Verification Strategy
+
+By patching just these three files, you keep the "risk" low. If we patched more, we might break the `dxgkrnl` interface itself.
+
+**Your next move:**
+
+1. **Apply the patch** using the `patch -p1 < gfx1151.patch` command.
+2. **Ensure `CONFIG_DRM_AMDGPU=y**` is set (this is critical so the driver is ready at the exact millisecond the bridge starts).
+3. **Build and boot.**
+
+**Once you boot, would you like the specific `grep` command to check if the `amdgpu` driver successfully claimed the "GFX1151" ID in your startup logs?**

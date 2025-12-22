@@ -1,0 +1,54 @@
+To address your question about the other folders, we need to distinguish between the **Kernel Graphics Driver** (`amdgpu`) and the **Kernel Compute Driver** (`amdkfd`).
+
+### 1. The `amdkfd` Folder (Crucial for ROCm)
+
+The `amdkfd` (AMD Kernel Fusion Driver) is the dedicated driver for **compute** tasks. While `amdgpu` handles memory management and display, `amdkfd` handles process scheduling for the GPU, signal handling, and the queues used by AI frameworks like PyTorch and TensorFlow.
+
+* **Is it necessary for the -22 error?** No. The `-22` error is an initialization failure in the graphics/bridge layer.
+* **Is it necessary for ROCm?** **Yes.** Without patching `amdkfd`, your kernel might boot and your terminal might stop crashing, but when you run `rocm-smi` or try to use a Large Language Model (LLM), the system won't be able to create "Compute Queues" for the **GFX1151**.
+
+**The Patch Requirement:** You must add the `gfx1151` ID to the target support list in `drivers/gpu/drm/amd/amdkfd/kfd_device_config.c`. This tells the compute driver that it is allowed to talk to your chip.
+
+---
+
+### 2. The `amdxcp` Folder (Multi-GPU/Partitioning)
+
+The `amdxcp` folder stands for **AMD eXtended Compute Partitioning**. This is primarily used for high-end server GPUs (like the Instinct MI300) to split one physical GPU into multiple logical ones.
+
+* **For Strix Halo:** You do **not** need to patch this folder. The Ryzen AI Max+ uses a unified memory architecture and doesn't require the complex partitioning logic found in data center chips.
+
+---
+
+### 3. Revised Comprehensive Patch List
+
+To ensure both the "Bridge" works (fixing the terminal crash) and the "Compute" works (fixing ROCm), you should extend your patch to include these **four** files:
+
+| File Path | Purpose |
+| --- | --- |
+| `drivers/gpu/drm/amd/amdgpu/amdgpu_discovery.c` | HW Identification |
+| `drivers/gpu/drm/amd/amdgpu/soc21.c` | Chip series management |
+| `drivers/gpu/drm/amd/amdgpu/gmc_v11_0.c` | **Fixes -22 Error** (Memory) |
+| `drivers/gpu/drm/amd/amdkfd/kfd_device_config.c` | **Enables ROCm/Compute** |
+
+### 4. Code Block for `amdkfd`
+
+In your `drivers/gpu/drm/amd/amdkfd/kfd_device_config.c`, look for the `kfd_device_info` structs and ensure there is a case for `IP_VERSION(11, 5, 1)`. On your 6.6 kernel, it will look like this:
+
+```c
+// Add this to the switch/case in kfd_device_config.c
+case IP_VERSION(11, 5, 0):
+case IP_VERSION(11, 5, 1): // Your Chip
+    kfd_device_info_init_gfx11(kfd_info, "Strix Halo");
+    break;
+
+```
+
+### Summary of ROCm 6.4.2 Compatibility
+
+By patching both `amdgpu` and `amdkfd` in your custom kernel, you are creating a "Bridge" that ROCm 6.4.2 can successfully cross. The user-space ROCm libraries will see a "supported" kernel driver and proceed with the math operations on your 8060S.
+
+**Would you like me to update the full `.patch` file text for you to include the `amdkfd` changes so you can apply it all at once?**
+
+[NEW DRIVERS for AMD ROCm 6.2.3 on WINDOWS WSL2 (COOPERATIVE GROUPS + OLLAMA FIX)](https://www.youtube.com/watch?v=9qiJ3tevWwI)
+
+This video is relevant because it discusses the critical role of driver and kernel synchronization when running compute-heavy applications like Ollama on AMD hardware within WSL2.

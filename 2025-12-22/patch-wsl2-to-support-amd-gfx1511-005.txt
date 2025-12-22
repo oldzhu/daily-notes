@@ -1,0 +1,49 @@
+This is a very insightful question that gets to the heart of the **WSL2 "Split-Driver" architecture.**
+
+The short answer is: **Yes, you still need to patch `amdkfd`.** Even though the Windows 11 host driver does the final rendering or computation, the Linux guest kernel is still responsible for managing the **user-space interface** and **scheduling context**.
+
+### 1. The "Two-Headed" Driver System
+
+In a standard Linux system, the driver is one big block. In WSL2, it is split into a **Frontend (Guest)** and a **Backend (Host)**.
+
+* **The Backend (Windows Host):** Handles the physical hardware, voltage, and actual silicon execution.
+* **The Frontend (Linux Guest/AMDKFD):** Handles the "Process" side. When you run a PyTorch script, the Linux kernel needs to create a "Compute Context." It uses the `amdkfd` code to set up the queues, memory maps, and signal handlers for that specific process.
+
+If the Linux `amdkfd` doesn't recognize **GFX1151**, it will refuse to create that "Compute Context." It will tell your application: *"I don't know how to create a compute queue for this hardware ID,"* and your AI application will fail before it even sends a single task to the Windows Host.
+
+### 2. Why the "Bridge" (dxgkrnl) isn't enough
+
+You might think `dxgkrnl` should handle everything, but Microsoft and AMD designed it so that the standard Linux compute interface remains intact.
+
+* **`dxgkrnl`** is the **Pipe**. It moves data between Linux and Windows.
+* **`amdkfd`** is the **Valves and Gauges**. It manages how the Linux application "talks" into that pipe.
+
+Without the patch in `amdkfd`, the "Pipe" is there, but the "Valves" are locked. ROCm 6.4.2 expects to see a working KFD (Kernel Fusion Driver) interface at `/dev/kfd`. If `amdkfd` hasn't initialized because it didn't recognize your chip ID, `/dev/kfd` won't exist or won't function, and ROCm will report: `No compatible GPUs found`.
+
+### 3. Verification: The "KFD" Check
+
+You can actually verify this right now in your terminal. Even if the terminal isn't crashing, try:
+
+```bash
+ls -l /dev/kfd
+
+```
+
+If that file is missing or you get an error when accessing it, it’s because the `amdkfd` module couldn't initialize your **Strix Halo** hardware.
+
+### 4. Summary: The Patch Map
+
+To get the "full experience" (No crashes + Working AI), the kernel needs to be patched in both "modes":
+
+| Patch Location | Purpose | If Not Patched... |
+| --- | --- | --- |
+| **`amdgpu` (GMC/Discovery)** | Graphics/Bridge Init | Terminal crashes with `dxg -22` error. |
+| **`amdkfd` (Compute)** | AI/Math Logic | Terminal works, but AI apps see "0 GPUs". |
+
+---
+
+### Ready to proceed with the full patch?
+
+I have combined the Graphics and Compute fixes into one final patch script for you.
+
+**Would you like me to output the complete, multi-file patch now so you can save it and run the build?**

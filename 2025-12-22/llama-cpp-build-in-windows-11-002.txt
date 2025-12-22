@@ -1,0 +1,30 @@
+C:\localrepos\llama.cpp>cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=C:\localrepos\vcpkg\scripts\buildsystems\vcpkg.cmake -DCMAKE_PREFIX_PATH=%HIP_PATH% -DGPU_TARGETS=gfx1151 -DGGML_HIP=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release
+CMAKE_BUILD_TYPE=Release
+-- Warning: ccache not found - consider installing it for faster compilation or disable this warning with GGML_CCACHE=OFF
+-- CMAKE_SYSTEM_PROCESSOR: AMD64
+-- GGML_SYSTEM_ARCH: x86
+-- Including CPU backend
+-- x86 detected
+-- Adding CPU backend variant ggml-cpu: -march=native
+-- HIP and hipBLAS found
+-- Including HIP backend
+-- ggml version: 0.9.4
+-- ggml commit:  e1f15b454
+-- Could NOT find CURL (missing: CURL_LIBRARY CURL_INCLUDE_DIR)
+CMake Error at common/CMakeLists.txt:102 (message):
+  Could NOT find CURL.  Hint: to disable this feature, set -DLLAMA_CURL=OFF
+
+
+-- Configuring incomplete, errors occurred!
+=========
+rd /s/q build fixed the above cache error
+
+the complete commands to build
+
+set HIP_PATH=C:\Users\orien\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_rocm_sdk_devel
+set HIP_CLANG_PATH=C:\Users\orien\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_rocm_sdk_devel\lib\llvm\bin
+set HIP_PLATFORM=amd
+set path=%HIP_CLANG_PATH%;%HIP_PATH%\bin;%PATH%
+
+cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=C:\localrepos\vcpkg\scripts\buildsystems\vcpkg.cmake -DCMAKE_PREFIX_PATH=%HIP_PATH% -DGPU_TARGETS=gfx1151 -DGGML_HIP=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release
+CMAKE_BUILD_TYPE=Release
