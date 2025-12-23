@@ -1,0 +1,59 @@
+You are absolutely right to be cautious. The line numbers and functions in the `amdgpu` driver can shift significantly between different kernel versions (like 6.6.y and mainline 6.13).
+
+When backporting support for a new chip like **gfx1151** (Strix Halo) to an older kernel, you cannot rely on a simple `diff`. Instead, you must perform **"Semantic Backporting"**—finding the specific logical blocks where the driver "asks" if it knows the hardware ID and adding your ID there.
+
+### 1. The Discrepancy in `amdgpu_discovery.c`
+
+You correctly noted that line 1650 in the 6.6.y branch is likely in `amdgpu_discovery_set_common_ip_blocks`. This is because the Microsoft 6.6.y branch has its own commit history.
+
+* **Common IP Blocks:** This function handles shared IP (like the SOC headers).
+* **GC IP Blocks:** This function (usually named `amdgpu_discovery_set_gc_ip_blocks`) is the one that tells the kernel, *"If you see this ID, load the Graphics (GC) driver v11."*
+
+**The Rule:** You need to add `case IP_VERSION(11, 5, 1):` to **every** switch statement in `amdgpu_discovery.c` that already contains `case IP_VERSION(11, 5, 0):`. This ensures that whenever the kernel "discovers" an IP block, it treats 11.5.1 exactly like it treats the 11.5.0 (Strix Point) architecture.
+
+### 2. Why use the `IP_VERSION` macro in multiple places?
+
+You observed that `IP_VERSION` is used in many functions. Does every single one need a new line? **Yes, if that function is part of the "Hardware Initialization" path.**
+
+The `amdgpu` driver is highly modular. For a GPU to work, several "engines" must start in a specific order:
+
+1. **Discovery:** Identify the chip.
+2. **SOC:** Initialize the system-on-chip communication bus.
+3. **GMC:** Initialize the Memory Controller (the cause of your `-22` error).
+4. **KFD:** Initialize the Compute/AI interface (crucial for ROCm).
+
+If you skip one of these, the driver might load (no more `-22` error), but the GPU will be "brain dead" (it won't be able to access VRAM or run compute shaders).
+
+### 3. Comprehensive Fix Strategy (The "Search and Append" Method)
+
+Instead of a fixed patch file that might fail due to line number mismatches, I recommend using the **VS Code Search** feature to manually verify these locations in your local 6.6.y source:
+
+| File | Search for this function | Why? |
+| --- | --- | --- |
+| **`amdgpu_discovery.c`** | `amdgpu_discovery_set_gc_ip_blocks` | To register the graphics engine. |
+| **`amdgpu_discovery.c`** | `amdgpu_discovery_set_common_ip_blocks` | To register the SOC bus. |
+| **`soc21.c`** | `soc21_set_ip_blocks` | To define the chip as a "SOC21" family member. |
+| **`gmc_v11_0.c`** | `gmc_v11_0_sw_init` | **The `-22` Fix:** Defines memory page table size. |
+| **`kfd_device_config.c`** | `kfd_device_info_init` | To allow ROCm to create compute queues. |
+
+---
+
+### Revised Manual Patching Guide
+
+If you are using VS Code with Copilot, ask it to:
+
+> "Find every instance of `case IP_VERSION(11, 5, 0):` in the `amdgpu` and `amdkfd` directories and add `case IP_VERSION(11, 5, 1):` immediately after it."
+
+**Why this works:** The **gfx1151** is architecturally a twin to **gfx1150**. By duplicating every 11.5.0 entry, you are telling the 6.6.y kernel to use the stable, existing RDNA3 code paths for your new Ryzen AI Max+ chip.
+
+### Summary
+
+1. **Don't trust line numbers:** Trust the `switch` statements that handle `IP_VERSION`.
+2. **Breadth is better:** Adding the ID to more functions is safer than adding it to too few.
+3. **The Goal:** You are convincing the kernel that 11.5.1 is "just another version of 11.5.0."
+
+[AMD RADEON ADRENALINE for WSL with PyTORCH ROCm ComfyUI on WINDOWS](https://www.youtube.com/watch?v=p1jKqV9IV8I)
+
+This video shows the final configuration of a WSL2 environment for AMD GPUs, which is the state you'll reach once these kernel identifiers are correctly patched and compiled.
+
+**Would you like me to help you write a small Bash script that uses `sed` to find and insert these lines automatically across your whole source tree?**

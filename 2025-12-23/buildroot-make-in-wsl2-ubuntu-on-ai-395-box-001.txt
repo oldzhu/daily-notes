@@ -1,0 +1,29 @@
+  debug trycompile on
+  status arm64
+  status x86_64
+  status x64
+  -- The linker identification is GNU ld (GNU Binutils for Ubuntu) 2.42
+  Detected Linux x86_64
+  -- Performing Test HAVE_LTTNG_TRACEPOINT_H
+  CMake Debug Log at /home/oldzhu/buildroot/output/host/share/cmake-4.2/Modules/Internal/CheckSourceCompiles.cmake:104 (try_compile):
+    Executing try_compile (HAVE_LTTNG_TRACEPOINT_H) in:
+
+      /home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/artifacts/obj/coreclr/linux.arm64.Release/x64/CMakeFiles/CMakeScratch/TryCompile-XubYzd
+  Call Stack (most recent call first):
+    /home/oldzhu/buildroot/output/host/share/cmake-4.2/Modules/CheckCXXSourceCompiles.cmake:103 (cmake_check_source_compiles)
+    pal/src/configure.cmake:74 (check_cxx_source_compiles)
+    pal/src/CMakeLists.txt:26 (include)
+
+
+  -- Performing Test HAVE_LTTNG_TRACEPOINT_H - Failed
+  CMake Error at pal/src/configure.cmake:706 (message):
+    Cannot find liblttng-ust-dev.  Try installing liblttng-ust-dev (or the
+    appropriate packages for your platform)
+  Call Stack (most recent call first):
+    pal/src/CMakeLists.txt:26 (include)
+
+
+  -- Configuring incomplete, errors occurred!
+  Failed to generate "CoreCLR component" build project!
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/runtime.proj(116,5): error MSB3073: The command ""/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/build-runtime.sh" -cmakeargs "--debug-trycompile -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_CXX_COMPILER=/home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/bin/clang++ -DCMAKE_C_COMPILER=/home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/bin/clang -DCLR_CROSS_COMPONENTS_BUILD=1" -arm64 -release -os linux -hostarch x64 -hostos linux -targetrid linux-arm64 -cmakeargs "-DCLR_DOTNET_RID=linux-arm64" -subdir x64 -cmakeargs "-DCLR_DOTNET_HOST_PATH=/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/.dotnet/dotnet" -component alljits -cmakeargs "-DCLR_CMAKE_RUNTIME_CORECLR=1" -cmakeargs "-DCMAKE_PRODUCT_VERSION=11.0.0" -cmakeargs "-DCMAKE_CONTINUOUS_INTEGRATION_BUILD=false" -cmakeargs "-DCMAKE_NET_CORE_APP_CURRENT_VERSION=11.0" -cmakeargs "-DCMAKE_BUILD_LIBRARIES_CONFIGURATION=Release" -cmakeargs "-DCMAKE_BUILD_RUNTIME_CONFIGURATION=Release"" exited with code 1.
+

@@ -1,0 +1,153 @@
+cd /home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/artifacts/obj/coreclr/linux.arm64.Release/x64/pal/src && /home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/bin/clang++ -DCOMPILER_SUPPORTS_W_RESERVED_IDENTIFIER -DCORECLR -DCROSS_COMPILE -DDISABLE_CONTRACTS -DHOST_64BIT -DHOST_AMD64 -DHOST_UNIX -DLP64COMPATIBLE -DNDEBUG -DPIC -DTARGET_64BIT -DTARGET_ARM64 -DTARGET_LINUX -DTARGET_UNIX -DURTBLDENV_FRIENDLY=Retail -DXSTATE_SUPPORTED -D_FILE_OFFSET_BITS=64 -D_TIME_BITS=64 -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/artifacts/obj/coreclr/linux.arm64.Release/x64/pal/src -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/native -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/native/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/runtime -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/../inc -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/native/external/libunwind/include -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/native/external/libunwind/include/tdep -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/artifacts/obj/external/libunwind/include -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/artifacts/obj/external/libunwind/include/tdep -I/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include -Wno-jump-misses-init -Wno-implicit-void-ptr-cast -Wno-implicit-int-enum-cast -O3 -DNDEBUG -std=gnu++17 -fPIC -O3 -Wall -Wno-null-conversion -glldb -fno-omit-frame-pointer -fno-strict-overflow -fno-strict-aliasing -fstack-protector-strong -Werror -Wno-unused-variable -Wno-unused-value -Wno-unused-function -Wno-tautological-compare -Wno-unknown-pragmas -Wimplicit-fallthrough -Wvla -Wno-invalid-offsetof -Wno-unused-but-set-variable -ffp-contract=off -fno-rtti -Wno-unknown-warning-option -ferror-limit=4096 -Wno-unused-private-field -Wno-constant-logical-operand -Wno-pragma-pack -Wno-incompatible-ms-struct -Wno-reserved-identifier -Wno-unsafe-buffer-usage -Wno-single-bit-bitfield-constant-conversion -Wno-cast-function-type-strict -Wno-switch-default -Wno-nontrivial-memaccess -fsigned-char -fvisibility=hidden -ffunction-sections -MD -MT pal/src/CMakeFiles/coreclrpal_objects.dir/exception/signal.cpp.o -MF CMakeFiles/coreclrpal_objects.dir/exception/signal.cpp.o.d -o CMakeFiles/coreclrpal_objects.dir/exception/signal.cpp.o -c /home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/exception/signal.cpp
+==========
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/exception/signal.cpp:56:
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:511:8: error:
+      use of undeclared identifier 'asm_sigcontext'; did you mean 'sigcontext'?
+  511 | inline asm_sigcontext::_fpx_sw_bytes *FPREG_FpxSwBytes(const ucontext_t *uc)
+      |        ^~~~~~~~~~~~~~
+      |        sigcontext
+/usr/include/x86_64-linux-gnu/bits/sigcontext.h:139:8: note: 'sigcontext' declared here
+  139 | struct sigcontext
+      |        ^
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/exception/signal.cpp:56:
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:511:8: error:
+      no type named '_fpx_sw_bytes' in 'sigcontext'; did you mean simply '_fpx_sw_bytes'?
+  511 | inline asm_sigcontext::_fpx_sw_bytes *FPREG_FpxSwBytes(const ucontext_t *uc)
+      |        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |        _fpx_sw_bytes
+/usr/include/x86_64-linux-gnu/bits/sigcontext.h:31:8: note: '_fpx_sw_bytes' declared here
+   31 | struct _fpx_sw_bytes
+      |        ^
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/exception/signal.cpp:56:
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:519:29: error:
+      use of undeclared identifier 'asm_sigcontext'; did you mean 'sigcontext'?
+  519 |     return reinterpret_cast<asm_sigcontext::_fpx_sw_bytes *>(&FPREG_Fpstate(uc)->FPSTATE_RESERVED[12]);
+      |                             ^~~~~~~~~~~~~~
+      |                             sigcontext
+/usr/include/x86_64-linux-gnu/bits/sigcontext.h:139:8: note: 'sigcontext' declared here
+  139 | struct sigcontext
+      |        ^
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/exception/signal.cpp:56:
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:519:29: error:
+      no type named '_fpx_sw_bytes' in 'sigcontext'; did you mean simply '_fpx_sw_bytes'?
+  519 |     return reinterpret_cast<asm_sigcontext::_fpx_sw_bytes *>(&FPREG_Fpstate(uc)->FPSTATE_RESERVED[12]);
+      |                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                             _fpx_sw_bytes
+/usr/include/x86_64-linux-gnu/bits/sigcontext.h:31:8: note: '_fpx_sw_bytes' declared here
+   31 | struct _fpx_sw_bytes
+      |        ^
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/exception/signal.cpp:56:
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:519:62: error:
+      cannot initialize return object of type 'int *' with an rvalue of type '__uint32_t *' (aka 'unsigned int *')
+  519 |     return reinterpret_cast<asm_sigcontext::_fpx_sw_bytes *>(&FPREG_Fpstate(uc)->FPSTATE_RESERVED[12]);
+      |                                                              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:533:29: error:
+      member reference base type 'int' is not a structure or union
+  533 |     if (FPREG_FpxSwBytes(uc)->magic1 != FP_XSTATE_MAGIC1)
+      |         ~~~~~~~~~~~~~~~~~~~~^ ~~~~~~
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:539:31: error:
+      use of undeclared identifier 'asm_sigcontext'; did you mean 'sigcontext'?
+  539 |     if (extendedSize < sizeof(asm_sigcontext::_xstate))
+      |                               ^~~~~~~~~~~~~~
+      |                               sigcontext
+/usr/include/x86_64-linux-gnu/bits/sigcontext.h:139:8: note: 'sigcontext' declared here
+  139 | struct sigcontext
+      |        ^
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/exception/signal.cpp:56:
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:539:31: error:
+      no member named '_xstate' in 'sigcontext'; did you mean simply '_xstate'?
+  539 |     if (extendedSize < sizeof(asm_sigcontext::_xstate))
+      |                               ^               ~~~~~~~
+/usr/include/x86_64-linux-gnu/bits/sigcontext.h:189:8: note: '_xstate' declared here
+  189 | struct _xstate
+      |        ^
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/exception/signal.cpp:56:
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:561:13: error:
+      member reference base type 'int' is not a structure or union
+  561 |     return (FPREG_FpxSwBytes_xfeatures(uc) & XFEATURE_MASK_YMM) == XFEATURE_MASK_YMM;
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:487:60: note:
+      expanded from macro 'FPREG_FpxSwBytes_xfeatures'
+  487 | #define FPREG_FpxSwBytes_xfeatures(uc) FPREG_FpxSwBytes(uc)->xstate_bv
+      |                                        ~~~~~~~~~~~~~~~~~~~~^ ~~~~~~~~~
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:597:80: error:
+      use of undeclared identifier 'asm_sigcontext'; did you mean 'sigcontext'?
+  597 |         extendedFeature->offset = static_cast<uint32_t>(cpuidInfo[CPUID_EBX] - FPREG_Xstate_ExtendedStat...
+      |                                                                                ^
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:497:56: note:
+      expanded from macro 'FPREG_Xstate_ExtendedStateArea_Offset'
+  497 | #define FPREG_Xstate_ExtendedStateArea_Offset offsetof(asm_sigcontext::_xstate, ymmh)
+      |                                                        ^
+/usr/include/x86_64-linux-gnu/bits/sigcontext.h:139:8: note: 'sigcontext' declared here
+  139 | struct sigcontext
+      |        ^
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/exception/signal.cpp:56:
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:597:80: error:
+      no type named '_xstate' in 'sigcontext'; did you mean simply '_xstate'?
+  597 |   ...= static_cast<uint32_t>(cpuidInfo[CPUID_EBX] - FPREG_Xstate_ExtendedStateArea_Offset);
+      |                                                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:497:56: note:
+      expanded from macro 'FPREG_Xstate_ExtendedStateArea_Offset'
+  497 | #define FPREG_Xstate_ExtendedStateArea_Offset offsetof(asm_sigcontext::_xstate, ymmh)
+      |                                                        ^~~~~~~~~~~~~~~~
+/home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/__stddef_offsetof.h:16:43: note:
+      expanded from macro 'offsetof'
+   16 | #define offsetof(t, d) __builtin_offsetof(t, d)
+      |                                           ^
+/usr/include/x86_64-linux-gnu/bits/sigcontext.h:189:8: note: '_xstate' declared here
+  189 | struct _xstate
+      |        ^
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/exception/signal.cpp:56:
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:603:13: error:
+      use of undeclared identifier 'asm_sigcontext'; did you mean 'sigcontext'?
+  603 |     return (FPREG_Xstate_ExtendedStateArea(uc) + extendedFeature->offset);
+      |             ^
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:499:45: note:
+      expanded from macro 'FPREG_Xstate_ExtendedStateArea'
+  499 |                                             FPREG_Xstate_ExtendedStateArea_Offset)
+      |                                             ^
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:497:56: note:
+      expanded from macro 'FPREG_Xstate_ExtendedStateArea_Offset'
+  497 | #define FPREG_Xstate_ExtendedStateArea_Offset offsetof(asm_sigcontext::_xstate, ymmh)
+      |                                                        ^
+/usr/include/x86_64-linux-gnu/bits/sigcontext.h:139:8: note: 'sigcontext' declared here
+  139 | struct sigcontext
+      |        ^
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/exception/signal.cpp:56:
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:603:13: error:
+      no type named '_xstate' in 'sigcontext'; did you mean simply '_xstate'?
+  603 |     return (FPREG_Xstate_ExtendedStateArea(uc) + extendedFeature->offset);
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:499:45: note:
+      expanded from macro 'FPREG_Xstate_ExtendedStateArea'
+  499 |                                             FPREG_Xstate_ExtendedStateArea_Offset)
+      |                                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:497:56: note:
+      expanded from macro 'FPREG_Xstate_ExtendedStateArea_Offset'
+  497 | #define FPREG_Xstate_ExtendedStateArea_Offset offsetof(asm_sigcontext::_xstate, ymmh)
+      |                                                        ^~~~~~~~~~~~~~~~
+/home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/lib/clang/22/include/__stddef_offsetof.h:16:43: note:
+      expanded from macro 'offsetof'
+   16 | #define offsetof(t, d) __builtin_offsetof(t, d)
+      |                                           ^
+/usr/include/x86_64-linux-gnu/bits/sigcontext.h:189:8: note: '_xstate' declared here
+  189 | struct _xstate
+      |        ^
+In file included from /home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/exception/signal.cpp:56:
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:619:10: error:
+      member reference base type 'int' is not a structure or union
+  619 |     if ((FPREG_FpxSwBytes_xfeatures(uc) & XFEATURE_MASK_AVX512) != XFEATURE_MASK_AVX512)
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:487:60: note:
+      expanded from macro 'FPREG_FpxSwBytes_xfeatures'
+  487 | #define FPREG_FpxSwBytes_xfeatures(uc) FPREG_FpxSwBytes(uc)->xstate_bv
+      |                                        ~~~~~~~~~~~~~~~~~~~~^ ~~~~~~~~~
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:653:10: error:
+      member reference base type 'int' is not a structure or union
+  653 |     if ((FPREG_FpxSwBytes_xfeatures(uc) & XFEATURE_MASK_APX) != XFEATURE_MASK_APX)
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/pal/src/include/pal/context.h:487:60: note:
+      expanded from macro 'FPREG_FpxSwBytes_xfeatures'
+  487 | #define FPREG_FpxSwBytes_xfeatures(uc) FPREG_FpxSwBytes(uc)->xstate_bv
+      |                                        ~~~~~~~~~~~~~~~~~~~~^ ~~~~~~~~~
+15 errors generated
