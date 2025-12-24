@@ -1,0 +1,21 @@
+Use a sparse + shallow clone so you only download amd (fastest/least data):
+
+
+mkdir -p /home/oldzhu/upstream-linuxcd
+/home/oldzhu/upstream-linuxgit clone --depth 1 --filter=blob:none --sparse https://github.com/torvalds/linux.git .
+git sparse-checkout set drivers/gpu/drm/amd
+
+After that, the files will be at:
+
+/home/oldzhu/upstream-linux/drivers/gpu/drm/amd
+To update later (re-sync to latest master):
+
+
+cd /home/oldzhu/upstream-linux
+git fetch --depth 1 origin master
+git checkout -f origin/master
+git sparse-checkout set drivers/gpu/drm/amd
+
+If git clone is flaky on your network, tell me what tools you have available (git, curl, wget) and I can give a tarball-based fallback command too.
+
+

@@ -1,0 +1,8 @@
+We fixed the two real build breaks from the backport:
+
+Added AMDGPU_FAMILY_GC_11_5_0 in amdgpu_drm.h
+Replaced missing upstream helper amdgpu_ip_version() with adev->ip_versions[...] in mmhub_v3_3.c
+AMDGPU now compiles through .o/link, but M=... fails at modpost because Module.symvers isn’t generated unless you build the kernel (expected for partial builds).
+
+Next command to run (object-only compile, no modpost/Module.symvers needed):
+O=/home/oldzhu/wsl-build-gfx1151; make O="$O" -j"$(nproc)" drivers/gpu/drm/amd/amdgpu/gfxhub_v11_5_0.o drivers/gpu/drm/amd/amdgpu/mmhub_v3_3.o drivers/gpu/drm/amd/amdgpu/gmc_v11_0.o drivers/gpu/drm/amd/amdgpu/amdgpu_discovery.o

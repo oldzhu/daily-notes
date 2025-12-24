@@ -1,0 +1,35 @@
+What I changed (gfx1151 / GC 11.5.1 enablement plumbing)
+
+Added missing GC 11.5.x VM hub support by importing upstream files:
+drivers/gpu/drm/amd/amdgpu/gfxhub_v11_5_0.[ch]
+drivers/gpu/drm/amd/amdgpu/mmhub_v3_3.[ch]
+drivers/gpu/drm/amd/include/asic_reg/gc/gc_11_5_0_{offset,sh_mask}.h
+drivers/gpu/drm/amd/include/asic_reg/mmhub/mmhub_3_3_0_{offset,sh_mask}.h
+Wired them into the build: Makefile
+Implemented the key upstream bring-up deltas:
+gmc_v11_0.c
+Select gfxhub_v11_5_0_funcs for IP 11.5.{0,1,2,3}
+Select mmhub_v3_3_funcs for MMHUB 3.3.{0,1,2}
+Call adev->gfxhub.funcs->init(adev) (upstream does; WSL tree didn’t)
+Apply gfx1151 MALL sizing quirk: multiply adev->gmc.mall_size by 2 for IP_VERSION(11, 5, 1)
+Enable VM hub mask + VM sizing for 11.5.{0,1,2,3}
+amdgpu_discovery.c
+Allow soc21_common_ip_block and gmc_v11_0_ip_block for 11.5.{0,1,2,3}
+Map 11.5.{0,1,2,3} to AMDGPU_FAMILY_GC_11_5_0
+Mark those versions as AMD_IS_APU (matches upstream intent)
+Firmware hooks:
+gfx_v11_0.c: add gc_11_5_{0..3}_{pfp,me,mec,rlc}.bin MODULE_FIRMWARE + include 11.5.x in gfx_v11_0_gpu_early_init
+mes_v11_0.c: add gc_11_5_{0..3}_mes{_2,1}.bin MODULE_FIRMWARE
+imu_v11_0.c: add gc_11_5_{0..3}_imu.bin MODULE_FIRMWARE
+KFD:
+kfd_device.c: treat GC 11.5.x as v11 for event interrupt class selection
+SOC21 flags:
+soc21.c: added GC 11.5.{0,1,2,3} clock/power gating flag cases (kept PG flags compatible with this tree; upstream uses JPEG_DPG which doesn’t exist here)
+Sysfs gates:
+amdgpu_pm.c: allow pp_dpm_{vclk,dclk} on GC 11.5.x
+Important notes / blockers
+
+I did not add Radeon 8060S PCI IDs yet. Upstream effectively uses the generic CHIP_IP_DISCOVERY catch-all now, so specific IDs aren’t required to start probing; but if your WSL tree doesn’t have those generic entries or you want explicit IDs, we’ll need the actual PCI device ID for 8060S.
+I couldn’t run a full build sanity check because make olddefconfig fails: flex isn’t available (flex: Permission denied / not found). You’ll need flex (and typically bison) installed and executable to generate Kconfig outputs.
+If you want, tell me whether you can sudo apt-get install flex bison in this environment; if yes, I’ll finish the “Build sanity check AMDGPU” step and fix any compile fallout from the new sources.
+

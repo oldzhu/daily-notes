@@ -1,0 +1,6 @@
+download and install wireshark to troubleshoot
+=========
+1. allow connection from LAM in v2rayn
+2. set system environment HTTP_PROXY and HTTPS_PROXY to http://127.0.0.1:10808 in windows 11 host.
+3. set http_proxy and https_proxy to http http://172.20.32.1:10808 in wsl2 ubuntu .bashrc 
+172.20.32.1 is the ip of the Ethernet adapter vEthernet (WSL (Hyper-V firewall)) in windows 11 host
