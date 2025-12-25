@@ -1,0 +1,23 @@
+Skipping modpost has zero runtime impact by itself—it only affects what the build system validates and produces.
+
+What modpost does
+
+Verifies that every external symbol a module references is actually available (exported) from the rest of the kernel build, using Module.symvers.
+Generates module metadata (MODULE_INFO, versioning CRCs when CONFIG_MODVERSIONS=y, dependency info, etc.).
+Emits warnings/errors for common module problems (section mismatches, missing MODULE_LICENSE, bad exports, etc.).
+Produces Module.symvers (and per-module *.mod.c/*.mod.o) that makes module builds “clean”.
+If you build “no modpost” (compile/link only)
+
+You still get strong validation that the new GC 11.5.x code is syntactically correct, type-correct, includes resolve, and it links into amdgpu.o in the normal Kbuild context.
+You do not get validation that amdgpu.ko will be loadable against a real kernel image, because unresolved external symbols are not checked the same way.
+Practical impact / side effects
+
+No side effects to the kernel you run unless you install/load something; compiling objects doesn’t change runtime.
+The risk is false confidence: a compile-only success can still later fail at module generation/loading due to:
+missing/unexported symbols,
+modversion CRC mismatches (CONFIG_MODVERSIONS),
+missing dependency symbols that only show up when the full kernel/module set is built.
+Why you saw “undefined-symbol spam” earlier
+
+That wasn’t necessarily “your new code is wrong”; it’s commonly because Module.symvers wasn’t generated yet (partial module build), so modpost can’t resolve against the full exported-symbol set.
+So: no-modpost is great for fast backport sanity checks, but for “this driver is truly buildable/loadable in this kernel”, you eventually want a clean modpost with a full Module.symvers.

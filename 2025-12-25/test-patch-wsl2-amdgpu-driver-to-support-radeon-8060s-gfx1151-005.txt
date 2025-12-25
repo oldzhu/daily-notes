@@ -1,0 +1,34 @@
+Good news: the amdgpu.ko we installed matches your new kernel (vermagic is 6.6.114.1-microsoft-standard-WSL2+). The blocker now is runtime firmware: none of the gc_11_5_1_* blobs are present in /lib/firmware/amdgpu/, so AMDGPU won’t fully bring up gfx1151. Next I’ll try the distro firmware packages (lowest-effort), then we’ll re-check for those exact blobs.
+
+set -euo pipefail; sudo apt-get update -y; sudo apt-get install -y linux-firmware linux-firmware-amd-graphics || sudo apt-get install -y linux-firmware; echo "--- firmware presence after install ---"; ls -1 /lib/firmware/amdgpu 2>/dev/null | egrep -i 'gc_11_5_1_(pfp|me|mec|rlc|mes1|mes_2|imu)\.bin' | sort || true; echo "--- missing? ---"; for f in gc_11_5_1_pfp.bin gc_11_5_1_me.bin gc_11_5_1_mec.bin gc_11_5_1_rlc.bin gc_11_5_1_mes1.bin gc_11_5_1_mes_2.bin gc_11_5_1_imu.bin; do test -e "/lib/firmware/amdgpu/$f" || echo "MISSING $f"; done
+
+
+You’re right to pause here: whether /lib/firmware matters depends on whether the Linux kernel inside WSL is actually driving the AMD GPU as a real PCI device.
+
+WSL2 GPU model (most common)
+
+WSL2 typically does not expose the physical GPU to Linux as a PCI device.
+Instead, Linux talks to Windows’ GPU stack through the paravirtual “DirectX” bridge (dxgkrnl) and you usually see dxg.
+In that model, the in-WSL Linux kernel does not load AMD GPU firmware and the Linux amdgpu kernel driver usually does not bind to the physical Radeon 8060S at all.
+So: missing /lib/firmware is not automatically a problem in WSL2. It only becomes relevant if you are doing a setup where Linux amdgpu is actually probing a GPU device and calling request_firmware().
+
+Quick, non-invasive checks to decide which model you’re in
+Run these inside WSL:
+
+Is the GPU exposed as PCI in Linux?
+lspci -nn | egrep -i "vga|display|3d|amd|ati" || true
+Is the DirectX bridge device present? (Typical WSL GPU path)
+ls -la /dev/dxg 2>/dev/null || echo "no /dev/dxg"
+Do we have any DRM render nodes at all?
+ls -la /dev/dri 2>/dev/null || echo "no /dev/dri"
+Is amdgpu actually loading/probing?
+dmesg -T | egrep -i "amdgpu|kfd|gfx|gc_|firmware" | tail -n 200
+About /lib/firmware specifically
+
+On many modern distros, lib is merged into lib. So even if /lib/firmware doesn’t exist, you might have /usr/lib/firmware:
+ls -ld /lib /usr/lib
+ls -la /usr/lib/firmware 2>/dev/null || echo "no /usr/lib/firmware"
+If lspci shows no AMD GPU, and you do see dxg, then “detect Radeon 8060S gfx1151” via Linux amdgpu is generally not the right test—you’d instead validate the Windows-side driver + the WSL bridge path (and whatever ROCm-on-WSL user-space is supposed to use).
+
+If you paste outputs of (1)–(4), I’ll tell you which path you’re on and what the correct “gfx1151 detected” validation should look like in that environment.
+

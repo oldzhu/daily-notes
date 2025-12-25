@@ -1,0 +1,21 @@
+Yes-ish, with one important correction:
+
+modules_install installs into /lib/modules/<kernelrelease>/…
+It does not use uname -a (and not even uname -r directly). It uses the kernel release string of the kernel you just built (from the build output dir O=...).
+So you should think of it as: it installs to /lib/modules/$(make kernelrelease).
+
+To see what version/release your built kernel is (without booting it), run:
+
+O=/home/oldzhu/wsl-build-gfx1151; make -C /home/oldzhu/WSL2-Linux-Kernel O="$O" -s kernelrelease
+(Optional) O=/home/oldzhu/wsl-build-gfx1151; make -C /home/oldzhu/WSL2-Linux-Kernel O="$O" -s kernelversion
+After you boot into the new kernel, verify what you are actually running with:
+
+uname -r
+And then confirm modules match the running kernel:
+
+ls /lib/modules/$(uname -r)
+Notes:
+
+If your tree has local changes, kernelrelease often gains a suffix like + (or a -dirty depending on config/scripts). That will create a new directory under /lib/modules/… even if the base version is the same.
+If you want the release string to match exactly (e.g., 6.6.114.1-microsoft-standard-WSL2), you may need to control LOCALVERSION (e.g. build with LOCALVERSION=) so it doesn’t append extras.
+If you want, paste the output of make … -s kernelrelease and I’ll tell you exactly which /lib/modules/... directory modules_install will populate and what to point .wslconfig at.

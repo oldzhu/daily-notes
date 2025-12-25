@@ -1,0 +1,11 @@
+I’m going to rebuild AMDGPU up to the linked amdgpu.o stage (no modpost), which validates KFD/PM objects compile with the correct include paths.
+
+O=/home/oldzhu/wsl-build-gfx1151; make O="$O" -j"$(nproc)" M=drivers/gpu/drm/amd/amdgpu amdgpu.o
+AMDGPU built cleanly up through the linked amdgpu.o (so the GC 11.5.x backport code compiles in the normal Kbuild context). The earlier failures for drivers/gpu/drm/amd/pm/amdgpu_pm.o and drivers/gpu/drm/amd/amdkfd/kfd_device.o were just because compiling those .o directly doesn’t add AMDGPU’s include paths.
+
+Next command (optional, only if you want to also produce amdgpu.ko despite missing Module.symvers):
+O=/home/oldzhu/wsl-build-gfx1151; make O="$O" -j"$(nproc)" M=drivers/gpu/drm/amd/amdgpu KBUILD_MODPOST_WARN=1
+
+If you prefer “clean” modpost with no undefined-symbol spam, we’ll need to build more of the kernel/modules first to generate Module.symvers (slower).
+
+

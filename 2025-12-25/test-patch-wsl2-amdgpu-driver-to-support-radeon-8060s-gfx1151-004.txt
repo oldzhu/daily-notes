@@ -1,0 +1,8 @@
+Yes — make … -s kernelrelease is just a query, not a real build.
+
+It reads the build metadata/config in O=... (and some top-level Makefile variables) and prints the kernel release string it would build/install modules under.
+It should not compile anything substantial. At most, it may (re)generate tiny include/version files if they’re missing, but it won’t do a full kernel/modules build.
+If you want an even “safer” version that should never try to build anything, you can also do:
+
+O=/home/oldzhu/wsl-build-gfx1151; make -C /home/oldzhu/WSL2-Linux-Kernel O="$O" -s kernelrelease --no-print-directory
+

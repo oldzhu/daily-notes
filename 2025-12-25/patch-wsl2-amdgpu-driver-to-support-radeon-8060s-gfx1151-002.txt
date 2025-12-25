@@ -1,0 +1,7 @@
+Clean modpost is now working end-to-end.
+
+Installed missing build deps: libssl-dev (for certs/extract-cert) and dwarves/pahole (for BTF).
+Built vmlinux successfully in wsl-build-gfx1151 (this generated vmlinux.symvers).
+Built modules successfully (so Module.symvers is complete).
+Rebuilt AMDGPU with a clean MODPOST and produced drivers/gpu/drm/amd/amdgpu/amdgpu.ko with no undefined-symbol spam.
+If you want, next I can run the same clean build for KFD integration as well (it’s built as part of amdgpu.ko when CONFIG_HSA_AMD=y, but we can explicitly confirm by grepping the module object list / symbols).

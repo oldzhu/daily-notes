@@ -1,0 +1,45 @@
+Build + install the custom kernel (inside WSL)
+
+Ensure your build output dir is the one we used:
+O=/home/oldzhu/wsl-build-gfx1151
+Build the WSL bootable kernel image (this is what WSL loads):
+make -C /home/oldzhu/WSL2-Linux-Kernel O="$O" -j"$(nproc)" bzImage
+Build and install modules into your WSL rootfs (so amdgpu/amdkfd can load):
+sudo make -C /home/oldzhu/WSL2-Linux-Kernel O="$O" -j"$(nproc)" modules
+sudo make -C /home/oldzhu/WSL2-Linux-Kernel O="$O" modules_install
+Make sure the AMDGPU firmware blobs exist in WSL (very common failure point):
+ls /lib/firmware/amdgpu/gc_11_5_1_* /lib/firmware/amdgpu/gc_11_5_0_* 2>/dev/null
+If they’re missing, install/update firmware:
+sudo apt-get install -y linux-firmware
+If Ubuntu’s package is still missing gc_11_5_1_*, you’ll need a newer linux-firmware drop (from upstream linux-firmware) placed under /lib/firmware/amdgpu/.
+Tell Windows/WSL to boot this kernel
+5) Copy the built kernel image to Windows (WSL reads a Windows path):
+
+The file you need is: "$O/arch/x86/boot/bzImage"
+From WSL you can copy it to a Windows folder, e.g.:
+cp "$O/arch/x86/boot/bzImage" /mnt/c/Users/<WindowsUser>/wsl-kernels/bzImage-gfx1151
+Create/update %USERPROFILE%\.wslconfig on Windows (PowerShell/Notepad), example:
+[wsl2]
+kernel=C:\\Users\\<WindowsUser>\\wsl-kernels\\bzImage-gfx1151
+Restart WSL so it boots the new kernel:
+From Windows PowerShell: wsl.exe --shutdown
+Then start your distro again.
+Validate “gfx1151 / 8060S detected” (inside WSL)
+8) Confirm you’re running the new kernel:
+
+uname -a
+Check the kernel config has AMDGPU + KFD enabled (important for ROCm):
+zcat [config.gz](http://_vscodecontentref_/0) | egrep "CONFIG_DRM_AMDGPU=|CONFIG_HSA_AMD=|CONFIG_DRM_AMDGPU_CIK="
+Check driver init and firmware loads:
+dmesg -T | egrep -i "amdgpu|kfd|firmware|gc_11_5|gfx1151|mmhub|gfxhub|mes|imu"
+Check device nodes:
+ls -la /dev/dri /dev/kfd 2>/dev/null
+lsmod | egrep "amdgpu|amdkfd|kfd" || true
+If ROCm is installed in the distro, confirm it sees the GPU:
+rocminfo | egrep -i "Name:|gfx|Agent|AMD" -n
+(Optional) clinfo | egrep -i "AMD|gfx" -n
+Expected outcomes / common failure signatures
+
+If firmware is missing, you’ll see Direct firmware load failed and amdgpu: failed to load ... in dmesg, and ROCm won’t see the device.
+If the kernel/modules mismatch, you’ll see Invalid module format when loading modules; that means modules weren’t installed for the running uname -r.
+If you paste the output of steps 8–12 (especially the dmesg grep and rocminfo excerpt), I can tell you quickly whether you’re hitting firmware, module-versioning, or actual IP-discovery issues for gfx1151.

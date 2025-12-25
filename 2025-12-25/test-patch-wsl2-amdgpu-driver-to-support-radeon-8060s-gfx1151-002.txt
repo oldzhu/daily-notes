@@ -1,0 +1,31 @@
+No — the rootfs is not inside bzImage.
+
+bzImage = the Linux kernel binary WSL boots.
+The WSL “rootfs” = your distro’s filesystem (Ubuntu, etc.) stored separately (a VHDX on Windows). Kernel and rootfs are independent.
+Where rootfs lives
+
+On Windows it’s typically in a VHDX under something like:
+%LOCALAPPDATA%\Packages\<DistroPackage>\LocalState\ext4.vhdx
+or for imported distros: %LOCALAPPDATA%\Packages\… / %USERPROFILE%\AppData\Local\Packages\…
+Inside WSL you just see it mounted as / (plus standard mounts like c).
+How your new kernel + rootfs work together
+
+WSL boots your custom bzImage.
+Then it mounts the distro’s rootfs (the VHDX) as /.
+Kernel modules + firmware are read from that rootfs:
+modules: /lib/modules/$(uname [WSL2-Linux-Kernel](http://_vscodecontentref_/1).
+firmware: /lib/firmware/...
+So when we do sudo make modules_install, we’re installing modules into the rootfs (your WSL distro filesystem), not into bzImage.
+
+If ls /lib/firmware/ failed with exit code 2, that usually means either:
+
+you ran it in a minimal environment where /lib/firmware doesn’t exist yet, or
+you weren’t in the running distro root (rare), or
+permissions/path issue.
+Next check to confirm the rootfs is normal:
+
+ls -la /lib /usr /etc
+sudo mkdir -p /lib/firmware && ls -la /lib/firmware
+If you tell me which distro you’re using in WSL (Ubuntu 22.04/24.04/etc.), I can also tell you the most reliable way to get the required gc_11_5_1_* firmware into /lib/firmware/amdgpu/.
+
+

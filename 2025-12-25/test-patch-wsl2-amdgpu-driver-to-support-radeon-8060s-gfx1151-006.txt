@@ -1,0 +1,38 @@
+Based on your outputs:
+
+lspci shows only Microsoft virtual 3D devices (1414:*), not an AMD PCI GPU
+dxg exists
+/dev/dri does not exist
+That means you’re in the normal WSL2 GPU-PV / DXG model. In this mode, Linux is not binding the physical Radeon 8060S with the Linux amdgpu DRM driver at all, so:
+
+Your GC 11.5.1 / gfx1151 backport won’t affect “GPU detection” inside WSL in the way it would on bare metal Linux.
+Firmware under /lib/firmware (or /usr/lib/firmware) is typically not used for the GPU-PV path, because the Windows host driver owns the real GPU/firmware.
+What you can test in WSL2 (meaningful for your custom kernel)
+Confirm WSL booted your custom kernel:
+uname -r
+cat /proc/version
+Confirm the DXG bridge is working (this is the GPU path WSL actually uses):
+ls -la /dev/dxg
+dmesg -T | egrep -i "dxg|dxgkrnl" | tail -n 200
+Confirm user-space can see a GPU via the DX stack (WSLg / Vulkan-on-D3D12 path):
+ls -la /usr/lib/wsl/lib | egrep -i "dxcore|d3d12|vulkan" || true
+If you have WSLg and tools installed: vulkaninfo --summary (package: vulkan-tools)
+Optionally: glxinfo -B (package: mesa-utils) if you’re using WSLg GUI apps
+Confirm what GPU Windows thinks it has (from inside WSL, querying the host):
+powershell.exe -NoProfile -Command "Get-CimInstance Win32_VideoController | Select-Object Name, DriverVersion, PNPDeviceID | Format-List"
+This will show “Radeon 8060S” on the Windows side, which is the device actually driving your GPU under WSL.
+
+What you cannot validate in WSL2 (with current hardware exposure)
+You cannot validate “Linux amdgpu detects gfx1151 / GC 11.5.1” because the AMD PCI device is not exposed to Linux, and there’s no /dev/dri render node.
+
+How to truly test gfx1151 Linux AMDGPU detection
+You need an environment where the AMD GPU is exposed as a real PCI device to Linux, e.g.:
+
+Bare metal Linux boot (same kernel build)
+A VM with PCIe passthrough of the Radeon GPU
+Then the validation looks like:
+
+lspci -nn | egrep -i "amd|ati|vga|display"
+dmesg -T | egrep -i "amdgpu|gfx1151|gc_11_5|firmware"
+/dev/dri/renderD* exists, and modprobe amdgpu loads successfully.
+If you tell me whether your goal is WSL2 GPU compute via DXG (ROCm-on-WSL style) or real Linux AMDGPU driver enablement (bare metal / passthrough), I’ll give the exact next validation steps for that path.
