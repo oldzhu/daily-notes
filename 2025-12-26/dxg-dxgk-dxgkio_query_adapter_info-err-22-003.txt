@@ -1,0 +1,26 @@
+Based on what’s actually written in that WSL driver release note, 24.10.21.01 for WSL 2 does not claim support for Radeon 8060S / gfx1151.
+
+What the release notes explicitly support
+In the “Radeon Product Compatibility” section of https://www.amd.com/en/resources/support-articles/release-notes/RN-RAD-WIN-24-10-21-01-WSL-2.html it lists only these products:
+
+AMD Radeon RX 7900 XTX
+AMD Radeon RX 7900 XT
+AMD Radeon RX 7900 GRE
+AMD Radeon PRO W7900
+AMD Radeon PRO W7800
+AMD Radeon PRO W7900 Dual Slot
+There is no mention of:
+
+Radeon 8060S
+Ryzen AI MAX / AI Max 300 series
+gfx1151 / “GC 11.5.x”
+any “Ryzen APU” class hardware
+What that means for you
+
+If the host Windows driver package doesn’t support/expose your iGPU for WSL compute, then WSL ROCm will stay CPU-only (exactly what you’re seeing with rocminfo), even if you install that WSL driver.
+Also, that WSL package is from 2024 and looks targeted at a narrow set of RDNA3 dGPUs; your 8060S (gfx1151) is a newer APU class target.
+Best next step
+
+You likely need a newer WSL/ROCm-on-Windows driver package that explicitly mentions Ryzen AI Max / APU support (or at least doesn’t restrict compatibility to only RX 7900 / PRO W7x00).
+Separately (Linux-side), enabling CONFIG_DRM_ACCEL=y in your WSL kernel is still worth doing because the WSL HSA runtime probes /dev/accel/*—but that alone won’t help if the Windows driver doesn’t expose a supported WSL compute adapter.
+If you want, paste the “Radeon Product Compatibility” section from any newer AMD WSL/ROCm Windows driver release note you’re considering, and I’ll sanity-check whether it plausibly covers 8060S/gfx1151.

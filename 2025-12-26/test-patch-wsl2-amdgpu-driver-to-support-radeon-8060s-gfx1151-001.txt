@@ -1,0 +1,36 @@
+Run these commands inside WSL (one by one). They will (1) build bzImage, (2) install modules into 6.6.114.1-microsoft-standard-WSL2+, and (3) configure WSL to boot this new kernel.
+
+Set the build output dir (must match your existing kernelrelease result):
+O=/home/oldzhu/wsl-build-gfx1151
+
+Confirm the kernel release string we’re targeting:
+make -C /home/oldzhu/WSL2-Linux-Kernel O="$O" -s kernelrelease
+
+Build the WSL bootable kernel image:
+make -C /home/oldzhu/WSL2-Linux-Kernel O="$O" -j"$(nproc)" bzImage
+
+Build and install modules for that kernel release (this creates a new /lib/modules/...+ directory):
+sudo make -C /home/oldzhu/WSL2-Linux-Kernel O="$O" -j"$(nproc)" modules
+sudo make -C /home/oldzhu/WSL2-Linux-Kernel O="$O" modules_install
+
+Generate module dependency files for the built release:
+KR="$(make -C /home/oldzhu/WSL2-Linux-Kernel O="$O" -s kernelrelease)"; sudo depmod -a "$KR"
+
+Copy the new bzImage to a Windows path (WSL reads kernels from Windows filesystems):
+WINUSER="$(cmd.exe /c echo %USERNAME% 2>/dev/null | tr -d '\r')"
+mkdir -p "/mnt/c/Users/$WINUSER/wsl-kernels"
+cp "$O/arch/x86/boot/bzImage" "/mnt/c/Users/$WINUSER/wsl-kernels/bzImage-gfx1151"
+
+Point WSL2 to boot that kernel (writes Windows %USERPROFILE%\.wslconfig):
+cat > "/mnt/c/Users/$WINUSER/.wslconfig" <<EOF [wsl2] kernel=C:\\Users\\$WINUSER\\wsl-kernels\\bzImage-gfx1151 EOF
+
+Restart WSL so it boots the new kernel:
+powershell.exe -NoProfile -Command "wsl.exe --shutdown"
+
+Start your distro again, then verify you’re on the new kernel and matching modules:
+uname -r
+ls "/lib/modules/$(uname -r)"
+
+After that, go ahead with ROCm-on-WSL install/testing; if you paste uname -r and rocminfo output (and any relevant dmesg lines), I’ll help diagnose what it reports for the GPU.
+
+

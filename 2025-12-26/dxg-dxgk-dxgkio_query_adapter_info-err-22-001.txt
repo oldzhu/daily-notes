@@ -1,0 +1,20 @@
+vulkan-tools, mesa-utils
+strace
+====
+
+What I found in WSL right now
+
+Vulkan/OpenGL are software-rendering: vulkaninfo --summary and glxinfo -B both report llvmpipe, not a GPU-backed driver.
+ROCm-for-WSL is installed, but no GPU is enumerated:
+rocminfo detects “WSL environment”, but lists only a single CPU agent (no Device Type: GPU, no gfx* agent).
+clinfo shows 1 AMD platform but 0 devices.
+The “native Linux ROCm” device nodes aren’t present: no /dev/kfd, no /dev/dri.
+amd-smi fails with “amdgpu not found in modules” (it’s expecting native amdgpu, which WSL GPU-PV typically doesn’t provide).
+Implication
+
+Your gfx1151 AMDGPU kernel backport is compiled/booting, but ROCm detection in this WSL GPU-PV setup is currently blocked at the DXG/ROCm-for-WSL exposure layer (not at Linux PCI/DRM amdgpu probing).
+If you want, I can next:
+
+Pull a more targeted rocminfo/HSA debug trace (now that strace is installed) to see exactly what adapter enumeration returns, or
+Walk through the Windows-side checks that usually gate ROCm-for-WSL GPU exposure (driver/channel/version expectations), then re-test rocminfo after each change.
+

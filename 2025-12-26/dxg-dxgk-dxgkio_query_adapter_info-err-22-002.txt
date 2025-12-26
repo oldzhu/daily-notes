@@ -1,0 +1,24 @@
+1) Rocm/DXG trace result (done)
+
+rocminfo does open dxg and issues a few DXG ioctls that return 0 (success), but it still enumerates only a CPU agent.
+The ROCR4WSL runtime also probes /dev/accel/accel* and all of those opens fail with ENOENT because your running kernel has # CONFIG_DRM_ACCEL is not set.
+Separately, the kernel log (via journalctl -k) shows dxgkio_query_adapter_info / dxgkio_is_feature_enabled failing at boot with -22/-2/-1. That’s a strong hint the host<->guest DXG ABI/feature set isn’t lining up, or the Windows-side driver isn’t exposing what the guest expects.
+Your running kernel config also has # CONFIG_DRM_VIRTIO_GPU is not set, which explains no /dev/dri and why Vulkan/GL are falling back to llvmpipe.
+Net: on the Linux side, ROCm is installed and talking to DXG, but the kernel config/host exposure is currently insufficient for GPU enumeration.
+
+2) Windows-side gating checks (do these in PowerShell, one by one)
+
+Confirm WSL + GPU-PV status:
+wsl.exe --version
+wsl.exe --status
+Confirm Windows sees the AMD GPU + driver version:
+Get-CimInstance Win32_VideoController | Select-Object Name, DriverVersion, AdapterCompatibility
+Confirm “Virtual Machine Platform” is enabled (required for WSL2 GPU-PV):
+dism /online /get-features /format:table | findstr /i "VirtualMachinePlatform Microsoft-Windows-Subsystem-Linux"
+Confirm you’re using an AMD Windows driver that supports ROCm/Compute in WSL (this is the usual blocker):
+In AMD Adrenalin: check driver channel/version and that it mentions WSL/compute support.
+After any Windows driver change/update, fully restart the WSL VM:
+wsl.exe --shutdown
+Re-open the distro and re-run in WSL: rocminfo (expect a GPU agent and an ISA like gfx1151)
+If you want me to take the next concrete step on the Linux side too: I can enable CONFIG_DRM_ACCEL and CONFIG_DRM_VIRTIO_GPU in your WSL kernel config (it’s currently disabled in config-wsl), rebuild, and you can reboot WSL to see whether /dev/accel/* appears and whether rocminfo starts showing a GPU agent.
+

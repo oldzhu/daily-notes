@@ -1,0 +1,46 @@
+Actually, you won't see a folder named "9P" in the file system. In WSL2, 9P is a protocol, not a directory. It functions as a filesystem driver (like NTFS or ext4) that allows the Linux kernel to "mount" a location from the Windows host.
+
+Docker Desktop uses this protocol to mount the socket files. If the 9P driver isn't working, the mount fails, and the folders like /run/guest-services stay empty.
+
+How to verify 9P is actually being used
+If you want to prove that Docker attempts to use 9P, run this command inside your docker-desktop distro:
+
+Bash
+
+mount | grep 9p
+In a healthy Docker installation, you would typically see several lines like this: tools on /init type 9p (ro,relatime,dirsync,aname=tools;fmask=022,version=9p2000.L,msize=65536,trans=virtio)
+
+Why you don't see it now
+Since you are using a custom kernel without the modules correctly loaded, the mount command likely returns nothing. This is because the kernel doesn't know how to handle a "type 9p" mount request without the driver.
+
+The "Smoking Gun" in your Kernel
+To confirm if your custom kernel even has the capability to use the bridge Docker requires, check your active kernel features:
+
+Bash
+
+# Check if the 9p driver is loaded
+lsmod | grep 9p
+
+# If nothing shows, check if it's built-in or a missing module
+zcat /proc/config.gz | grep CONFIG_NET_9P_VIRTIO
+If it says =y: It is built-in; the modules aren't the problem, but the initialization is.
+
+If it says =m: It is a module; it must exist in /lib/modules/$(uname -r)/... for the bridge to work.
+
+If it is missing/not set: Your custom kernel cannot support Docker Desktop.
+
+The Root Cause for your "Empty" Folder
+The Windows side of Docker (the com.docker.backend.exe process) acts as the 9P Server. It waits for the Linux side (your custom kernel) to act as the 9P Client and mount the transport.
+
+Because your kernel is missing the modules (or the 9P driver), the "Handshake" fails. Windows can't "push" the sockets into Linux; Linux has to "pull" them via a mount, and your kernel currently doesn't have the "hands" to do it.
+
+Next Step
+Since you confirmed the /lib/modules/ folder for your custom kernel was empty (or incomplete due to space issues), try the Bind Mount from your Ubuntu distro:
+
+Bash
+
+# Inside docker-desktop (while Ubuntu is running)
+mount --bind /mnt/wsl/instances/Ubuntu/lib/modules/6.6.114.1-microsoft-standard-WSL2+ /lib/modules/6.6.114.1-microsoft-standard-WSL2+
+Once you do that, run lsmod again. If the bridge still doesn't start, run dmesg | tail -n 20.
+
+Does dmesg show any "9pnet_virtio" or "Unknown symbol" errors?

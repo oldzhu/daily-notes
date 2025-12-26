@@ -1,0 +1,60 @@
+The tar: write error: No space left on device error is happening because the docker-desktop distribution uses a very small, memory-backed tmpfs (RAM disk) for its root filesystem. It isn't designed to store large amounts of data like a full GPU driver kernel module tree.
+
+To fix this, you have two options: expand the memory allocation or, more efficiently, only copy the essential bridge modules.
+
+1. Why it's full
+The docker-desktop distro is meant to be a lightweight "init" distro. By default, it may only have a few hundred MBs of space in /lib. Your new kernel build with amdgpu and drm modules is likely quite large.
+
+2. The Fix: Increase WSL Memory
+Since tmpfs size is often a percentage of your assigned WSL memory, increasing the memory in .wslconfig can give you the headroom to finish the tar extraction.
+
+Edit your C:\Users\<You>\.wslconfig.
+
+Increase the memory (e.g., to 8GB or 16GB if you have it):
+
+Ini, TOML
+
+[wsl2]
+memory=16GB
+kernel=C:\\path\\to\\your\\vmlinux
+Run wsl --shutdown and try the tar extract again.
+
+3. The Better Fix: Selective Copying
+You don't actually need the amdgpu modules inside docker-desktop just to get the engine to start. You only need the 9P and Virtio modules to fix the empty /run/guest-services folder.
+
+Inside docker-desktop, delete the failed attempt first:
+
+Bash
+
+rm -rf /lib/modules/6.6.114.1-microsoft-standard-WSL2+
+Now, instead of the whole tarball, just copy the specific drivers required for the Windows-to-WSL bridge:
+
+Bash
+
+# Create the target directory
+mkdir -p /lib/modules/$(uname -r)/kernel/net/9p
+mkdir -p /lib/modules/$(uname -r)/kernel/drivers/9p
+
+# Copy just the bridge-related modules from your Ubuntu mount
+cp /mnt/c/path/to/extracted/kernel/net/9p/9pnet_virtio.ko /lib/modules/$(uname -r)/kernel/net/9p/
+cp /mnt/c/path/to/extracted/kernel/drivers/9p/9pnet_virtio.ko /lib/modules/$(uname -r)/kernel/drivers/9p/ 2>/dev/null
+4. Check the Mounts
+If you want to see exactly how much space you have, run:
+
+Bash
+
+df -h /lib
+If it shows 100% full, you cannot write anything else.
+
+5. Alternative: "Bind Mount" (Advanced)
+If you don't want to keep copying files, you can "borrow" the modules from your Ubuntu distro by mounting them directly:
+
+Bash
+
+# Inside docker-desktop
+mkdir -p /lib/modules/6.6.114.1-microsoft-standard-WSL2+
+mount --bind /mnt/wsl/instances/Ubuntu/lib/modules/6.6.114.1-microsoft-standard-WSL2+ /lib/modules/6.6.114.1-microsoft-standard-WSL2+
+(Note: This requires the Ubuntu distro to be running and its filesystem to be accessible via /mnt/wsl).
+
+Which should you do?
+I recommend Selective Copying (Step 3). Once the 9pnet_virtio.ko module is in place, the Windows Docker Backend will finally be able to see the directory and create the .sock files.

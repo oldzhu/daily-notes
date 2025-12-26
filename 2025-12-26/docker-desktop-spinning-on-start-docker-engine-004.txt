@@ -1,0 +1,55 @@
+That is an excellent observation. What you are seeing is the result of the WSL2 "Init" process and the way Docker Desktop handles its filesystem.
+
+1. Why the .vhdx looks empty in 7-Zip
+The ext4.vhdx file in the main or distro folder of Docker Desktop is often just a template or a placeholder.
+
+Docker Desktop doesn't load its entire Linux OS from that VHDX like a traditional VM. Instead, it uses a compressed ISO/initrd image (usually found in C:\Program Files\Docker\Docker\resources\wsl\) and mounts it into memory (RAM) at boot time.
+
+When you look at it with 7-Zip, you are looking at the "cold" disk. When you look at it via wsl -d, you are looking at the "live" merged filesystem.
+
+2. Where do those files come from?
+When Docker starts its WSL distribution, it performs a "Live Overlay":
+
+The Base Layer: It mounts a read-only root filesystem from a resource file inside the Docker Program Files folder.
+
+The Kernel Modules: The standard Microsoft WSL kernel modules are actually injected by the WSL host itself from the Windows side (usually from C:\Windows\System32\lxss\lib).
+
+The RAM Overlay: Any changes you make (like your mkdir or tar commands) are stored in a tmpfs (temporary filesystem in RAM).
+
+3. The "Custom Kernel" Conflict
+This explains exactly why your custom kernel is hanging.
+
+The Stock Kernel: Knows to look for modules in the location Microsoft provided.
+
+Your Custom Kernel: Is looking for a folder named 6.6.114.1-microsoft-standard-WSL2+ (note the plus sign).
+
+Since that folder isn't in the base image and isn't provided by Microsoft, the kernel finds nothing. Without modules, it cannot load the 9P protocol, which is why the /run/guest-services folder stays empty.
+
+How to make your changes "Stick"
+Because Docker Desktop's rootfs is effectively a RAM disk, any modules you cp into /lib/modules will disappear every time you restart Docker or run wsl --shutdown.
+
+To fix this for your custom kernel troubleshooting, you have two choices:
+
+Choice A: The .wslconfig "KernelCommandLine" (Recommended)
+You can try to tell your kernel where the modules are, but that is complex.
+
+Choice B: Use the Ubuntu "Bind Mount" trick (Easiest)
+Since your modules already exist in your Ubuntu distro, you can manually "map" them into Docker Desktop so you don't run out of space or lose them on reboot:
+
+Start your Ubuntu distro (where the modules are).
+
+Start Docker Desktop (even if it hangs).
+
+Open a PowerShell and run:
+
+PowerShell
+
+# This gives docker-desktop access to Ubuntu's files
+wsl -d docker-desktop -e sh -c "mkdir -p /lib/modules/$(uname -r) && mount --bind /mnt/wsl/instances/Ubuntu/lib/modules/$(uname -r) /lib/modules/$(uname -r)"
+Now, check the folder in Docker: ls /lib/modules/$(uname -r).
+
+Try to manually load the 9P driver: modprobe 9pnet_virtio.
+
+If modprobe works after the bind mount, the .sock files should appear in /run/guest-services almost immediately.
+
+Would you like me to show you how to automate this mount so you don't have to type it every time you reboot?

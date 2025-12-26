@@ -1,0 +1,24 @@
+You generally don’t “write a WSL driver” to expose an iGPU to WSL2. WSL GPU is GPU paravirtualization (GPU‑PV): the Linux guest talks to a Microsoft guest driver (dxgkrnl in Linux), and the Windows host exposes capabilities via the normal Windows graphics stack. So the gating factor is: the Windows host GPU driver (WDDM) must explicitly support the GPU‑PV / compute path that WSL uses.
+
+What’s public vs not public
+
+Public: how to build Windows GPU/compute drivers in general (WDDM / MCDM), and how to use GPU acceleration in WSL.
+Not really public (in the sense of “here is the full ABI/spec to implement for WSL GPU‑PV”): the exact host<->guest protocol details that make a vendor’s WDDM driver show up as a compute-capable adapter inside WSL. In practice, only GPU IHVs (AMD/NVIDIA/Intel) and Microsoft can implement/ship that end-to-end reliably.
+Best public documentation starting points
+
+Microsoft “GPU acceleration for ML in WSL” (end-user + high-level model):
+https://learn.microsoft.com/en-us/windows/wsl/tutorials/gpu-compute
+(This is the canonical overview and points to vendor driver requirements at a high level.)
+Microsoft driver docs hub for display/graphics/compute accelerator drivers:
+https://learn.microsoft.com/en-us/windows-hardware/drivers/display/
+It also links to MCDM (Microsoft Compute Driver Model), which is the compute subset of WDDM.
+MCDM (compute driver model) entry point:
+https://learn.microsoft.com/en-us/windows-hardware/drivers/display/mcdm
+Practical takeaway for your situation
+
+If AMD’s release notes for a given Windows driver package don’t list your hardware for WSL/ROCm (like that 24.10.21.01 WSL2 package only listing RX 7900 / PRO W7x00), then even a perfectly patched WSL kernel won’t make the host expose your 8060S as a WSL compute adapter.
+For “public + works today”, the options are:
+Install a Windows driver package that explicitly supports WSL compute for your device, or
+Use Microsoft’s DirectML route (PyTorch‑DirectML / TensorFlow‑DirectML) which is designed to work across AMD/Intel/NVIDIA via D3D12 (see the same WSL GPU page above), or
+Use native Linux (dual boot / VM with passthrough) for full AMDGPU/KFD ROCm.
+If you tell me whether your goal is ROCm in WSL specifically vs “any GPU acceleration in WSL” (DirectML is OK), I can point you to the shortest working path for the 8060S.

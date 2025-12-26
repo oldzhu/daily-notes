@@ -1,0 +1,62 @@
+I guess the cause is that I didn't update the new build modules to docker-desktop distrio, I built new kernel and modules in wsl2 ubuntu distro, and only update the modules in ubuntu distro by make install modules, I want to do a quick verification by update the modules in docker-destop distro too, but there is no make in distro and how to do without install any additional things? will cp works?
+=====
+Yes, cp will work perfectly! In fact, since both your Ubuntu and docker-desktop distributions are running on the same Windows host, you can use the /mnt/c/ (drvfs) mount to shuttle the files between them.
+
+The kernel looks for modules in /lib/modules/$(uname -r). If that folder is missing or doesn't match the kernel version, the kernel won't load the 9P or Virtio drivers needed for those sockets.
+
+How to copy the modules without make
+Step 1: Export from Ubuntu
+In your Ubuntu distro (where you built the kernel), create a tarball of the modules to preserve symlinks and permissions:
+
+Bash
+
+# Replace <kernel-version> with your actual version string (e.g., 6.6.0-msft-wsl-+)
+cd /lib/modules/
+sudo tar -czvf /mnt/c/wsl_modules.tar.gz <kernel-version>
+Step 2: Import to Docker-Desktop
+Now, enter the docker-desktop distro and extract them:
+
+PowerShell
+
+wsl -d docker-desktop
+Inside the docker-desktop shell:
+
+Bash
+
+# Create the directory if it doesn't exist
+mkdir -p /lib/modules
+cd /lib/modules
+
+# Extract the modules
+tar -xzvf /mnt/c/wsl_modules.tar.gz
+
+# Verify the path exists
+ls -l /lib/modules/$(uname -r)
+Step 3: Trigger Module Dependency
+After copying, you should ideally run depmod, but docker-desktop is a very stripped-down distro and might not have it. If depmod is missing, the kernel might still fail to auto-load modules.
+
+Check if it's there: which depmod
+
+If it is: depmod -a
+
+If it isn't: You may need to manually insmod the 9P drivers (see below).
+
+Step 4: Verification (The "Magic" Moment)
+Once the modules are in place, restart WSL (wsl --shutdown from PowerShell) and then try to manually load the 9P transport driver inside docker-desktop:
+
+Bash
+
+modprobe 9pnet_virtio
+# OR if no modprobe:
+insmod /lib/modules/$(uname -r)/kernel/net/9p/9pnet_virtio.ko
+Why this is the "Root Cause"
+WSL2 distributions share the same kernel (specified in .wslconfig), but they have separate root filesystems.
+
+When your custom kernel boots, it tries to initialize the 9P filesystem to talk to Windows.
+
+It looks in /lib/modules for the driver.
+
+Since you only installed the modules in the Ubuntu filesystem, the docker-desktop filesystem was "empty," leaving the kernel unable to speak to the Windows Docker Backend.
+
+Important Note on gfx1151 (AMD)
+Since you are doing this for amdgpu support, make sure you also copied the firmware files (usually in /lib/firmware/amdgpu) if your driver requires them to initialize the GPU. Docker doesn't need the GPU to start, but your containers won't see the hardware later if the firmware is missing from the docker-desktop distro.
