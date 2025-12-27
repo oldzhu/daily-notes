@@ -1,0 +1,63 @@
+I build ollma and run it and saw the below output
+
+C:\localrepos\ollama>go run . server
+
+go: downloading github.com/spf13/cobra v1.7.0
+
+go: downloading github.com/rivo/uniseg v0.2.0
+==========
+When you run `go run . server` for a project like Ollama, the output you're seeing is Go's module system automatically fetching the **dependencies** (libraries) required to build and run the application.
+
+### What are these downloads?
+
+These are **Go Modules**. Instead of building everything from scratch, developers use these pre-made libraries to handle specific tasks:
+
+* **`github.com/spf13/cobra`**: Handles command-line commands and flags.
+* **`github.com/gin-gonic/gin`**: A web framework used to run the server API.
+* **`google.golang.org/protobuf`**: Handles data serialization.
+* **`golang.org/x/sys`**: Provides low-level interaction with your operating system (Windows).
+
+### Where are they stored?
+
+On Windows, Go stores these in a global **Module Cache** so that if you build another Go project using the same libraries, it doesn't have to download them again. By default, they are located here:
+
+`C:\Users\<YourUsername>\go\pkg\mod`
+
+You can verify your specific path by running this command in your terminal:
+
+```powershell
+go env GOPATH
+
+```
+
+The files will be inside the `pkg\mod` subfolder of that result.
+
+---
+
+### Can they be cleaned?
+
+Yes, you can safely remove them. Since Go tracks exactly what it needs in the `go.mod` and `go.sum` files in your Ollama folder, deleting the cache won't "break" the project—it just means Go will have to download them again the next time you run or build it.
+
+To clean the module cache, run:
+
+```powershell
+go clean -modcache
+
+```
+
+> [!TIP]
+> **Warning:** These files are often marked as "read-only" by Go to prevent accidental changes. Using the command above is the best way to delete them, as manual deletion through File Explorer might sometimes trigger permission errors.
+
+### Summary Table
+
+| Feature | Description |
+| --- | --- |
+| **Why?** | To get the necessary code libraries to run Ollama. |
+| **Location** | `%USERPROFILE%\go\pkg\mod` |
+| **Safe to delete?** | Yes, but they will re-download next time you run the server. |
+| **Command** | `go clean -modcache` |
+
+Would you like me to help you set up a permanent build of Ollama so you don't have to use `go run` every time?
+
+[Go Modules workflow explanation](https://www.youtube.com/watch?v=sX-FPpbvmzU)
+This video demonstrates exactly how the module cache works on Windows and how to use the `go clean` command to reclaim disk space.

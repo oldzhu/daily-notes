@@ -1,0 +1,40 @@
+Actually, it's a bit of both—and that’s often where the confusion starts.
+
+Ollama’s build process is a "hybrid." While it's true that you need **TDM-GCC** (or a similar GCC compiler) for the Go side of things, the **C++ Engine** (specifically the part that handles your GPU) often relies on **Visual Studio's tools**.
+
+Here is how the labor is divided:
+
+### 1. The "Interface" (Go + TDM-GCC)
+
+The main program that handles the API, the CLI, and the model management is written in Go.
+
+* **The Tool:** Go uses **TDM-GCC** via a feature called `CGO`.
+* **The Job:** It bridges the gap between the high-level Go code and the low-level C++ libraries. Without TDM-GCC, Go cannot "talk" to the llama engine.
+
+### 2. The "Engine" (C++ + Visual Studio)
+
+The part of Ollama that actually "thinks" (inference) is based on `llama.cpp`.
+
+* **The Tool:** On Windows, CMake defaults to using the **MSVC (Microsoft Visual C++)** compiler from Visual Studio.
+* **The Job:** It compiles specialized code for **NVIDIA (CUDA)** or **AMD (ROCm)**. Visual Studio is much better at optimizing code for Windows hardware and is often required for the CUDA Toolkit to work.
+
+---
+
+### Why "go install ." failed earlier
+
+When you ran `go install .`, Go looked at the `llama/` folder and said: *"I see C++ code here. To include this, I need a GCC-style compiler (like TDM-GCC) to bridge it into my Go binary."* It didn't even get to the CMake part yet. It failed because the "bridge" (CGO) wasn't available.
+
+### The Correct Workflow for Windows
+
+To build it successfully from source, your machine needs to be a "multilingual" environment:
+
+1. **Install Visual Studio 2022** (with the "Desktop development with C++" workload) for the Engine.
+2. **Install TDM-GCC** for the Go/CGO "bridge."
+3. **Install CMake** to coordinate the C++ build.
+4. **Install Go** for the final assembly.
+
+### Which one is running "cmake -B build"?
+
+When you run those CMake commands, **Visual Studio** is usually doing the heavy lifting in the background. If you have both installed, CMake will automatically find your Visual Studio installation and use its `cl.exe` compiler instead of TDM-GCC's `gcc.exe`.
+
+**Would you like to check which compiler CMake is currently trying to use on your system?**

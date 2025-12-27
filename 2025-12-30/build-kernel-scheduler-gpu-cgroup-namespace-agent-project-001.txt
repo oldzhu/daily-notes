@@ -1,0 +1,8 @@
+Sounds good. When you’re back, tell me which #1 area you want to focus on first (scheduler / AMDGPU / cgroups / namespaces) and whether you want the AI agent to start as “monitor + summarize only” or also “draft patches”.
+
+In the meantime (optional, if you want a quick checklist to keep handy):
+
+Pick 1 subsystem list to subscribe to (I’d start with amd-gfx or linux-sched depending on your focus).
+Install b4 and set up git email identity (even if you only review at first).
+Keep a folder for “reproducers + logs” so you can reply to threads quickly.
+Ping me when you’re back and I’ll turn your choice into a 2‑week roadmap + a concrete agent design (data sources, filters, report format, and a safe human-approval patch pipeline).

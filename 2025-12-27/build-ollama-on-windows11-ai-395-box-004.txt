@@ -1,0 +1,68 @@
+That error happens because Ollama isn't a "pure" Go project—it relies heavily on **C++ code** (via `llama.cpp`) to talk to your CPU and GPU. When you see `build constraints exclude all Go files`, it usually means your Go environment is trying to compile the project but is missing the C/C++ compiler tools needed to include those files.
+
+On Windows, Go will "ignore" those folders if it can't find a compatible C compiler. To fix this and successfully run `go install .`, follow these steps:
+
+### 1. Install a C Compiler (TDM-GCC)
+
+Ollama's Windows build specifically requires a GCC compiler.
+
+* Download and install [TDM-GCC](https://jmeubank.github.io/tdm-gcc/download/).
+* During installation, ensure you select the **64-bit** version.
+* **Crucial:** Make sure the "Add to PATH" option is checked.
+
+### 2. Enable CGO
+
+Go needs to be told explicitly to use the C compiler. Open a new PowerShell window (to refresh your PATH) and run:
+
+```powershell
+$env:CGO_ENABLED="1"
+
+```
+
+### 3. Generate the "Llama" dependencies
+
+Ollama uses a "generate" step to prepare the native code before the final build. In your `C:\localrepos\ollama` folder, run:
+
+```powershell
+go generate ./...
+
+```
+
+*This step might take a minute as it prepares the backend code.*
+
+### 4. Now run the Install
+
+After the generation is finished, try the install command again:
+
+```powershell
+go install .
+
+```
+
+---
+
+### Troubleshooting the "Exclude" Error
+
+If you still see the error, it's because Go's internal "Build Tags" aren't matching your system. You can force it to see the files by ensuring your environment matches what the code expects:
+
+| Variable | Recommended Value | Why? |
+| --- | --- | --- |
+| **`$env:GOOS`** | `windows` | Ensures Windows-specific files are included. |
+| **`$env:GOARCH`** | `amd64` | Standard for most modern Windows PCs. |
+| **`$env:CGO_ENABLED`** | `1` | **Required** for the `llama` folder to be included. |
+
+### Summary of Commands
+
+If you want to do it all in one go (after installing TDM-GCC):
+
+```powershell
+$env:CGO_ENABLED="1"
+go generate ./...
+go install .
+
+```
+
+Would you like me to show you how to check if your GPU (NVIDIA or AMD) is being correctly detected by your new build?
+
+[How to Compile Ollama on Windows](https://www.youtube.com/watch?v=2bTHQx5qW8s)
+This video walks through common environment issues and "undefined" errors when trying to build Ollama from source on a Windows machine.

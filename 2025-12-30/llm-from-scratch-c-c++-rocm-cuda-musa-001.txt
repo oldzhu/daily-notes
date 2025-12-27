@@ -1,0 +1,10 @@
+Sounds good — take the two days.
+
+When you’re back, to pick up smoothly, reply with just these 5 items (copy/paste and fill in):
+
+Track: inference-first or training-first
+Allowed GPU layer: CUDA/HIP/MUSA runtime OK (yes/no) and OS you’ll use for ROCm (Windows or Linux)
+Target first model: params (e.g., ~20M) + context (e.g., 512) + vocab (32k/50k)
+Precision: FP32 only first, or FP32 compute + FP16/BF16 weights
+Success criterion for milestone 1: e.g., “matches Python logits within 1e-4 on 2 prompts” + “generates 50 tokens”
+If you want a no-thinking default when you return:

@@ -1,0 +1,47 @@
+Uninstalling a Go program is much simpler than a standard Windows application because `go install` doesn't create Registry entries or hidden background services. It just places a single `.exe` file in a specific folder.
+
+To "uninstall" Ollama after running `go install .`, you just need to delete that executable.
+
+### 1. Locate the file
+
+The file is stored in your Go binary folder. To find exactly where it is on your machine, run:
+
+```powershell
+go env GOBIN
+
+```
+
+* **If it returns a path:** That is exactly where the file is.
+* **If it's empty:** It defaults to `%USERPROFILE%\go\bin`. (Usually `C:\Users\YourName\go\bin`).
+
+### 2. Delete it
+
+You can delete it via the Command Prompt or File Explorer:
+
+**Via Command Prompt:**
+
+```powershell
+del "$(go env GOPATH)\bin\ollama.exe"
+
+```
+
+*(If `GOPATH` is not set, replace the variable with the manual path: `del %USERPROFILE%\go\bin\ollama.exe`)*
+
+---
+
+### Is there anything else to clean?
+
+When you build or install Go programs, Go also keeps a "Build Cache" and a "Module Cache" (the downloads you saw earlier). If you want to wipe everything related to the build process to free up disk space:
+
+| Action | Command | What it removes |
+| --- | --- | --- |
+| **Clean Build Cache** | `go clean -cache` | Temporary files created during compilation. |
+| **Clean Module Cache** | `go clean -modcache` | All those `github.com/...` folders you downloaded. |
+
+### Summary for "Uninstalling"
+
+1. Delete **`ollama.exe`** from your `go/bin` folder.
+2. (Optional) Run **`go clean -modcache`** to remove the source code dependencies.
+3. (Optional) Delete your **`C:\localrepos\ollama`** folder where you kept the source code.
+
+Once those are gone, Ollama is completely removed from your system. Would you like to know how to verify if any other Go binaries are hiding in your path?

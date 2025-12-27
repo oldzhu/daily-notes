@@ -1,0 +1,40 @@
+In Ollama's architecture, those CMake commands are responsible for building the **"Engine"** (the heavy lifting part), while Go builds the **"Dashboard"** (the interface you interact with).
+
+Since Ollama is essentially a Go wrapper around a powerful C++ project called `llama.cpp`, it uses two different build tools to handle each language properly.
+
+### The Two-Step Build Process
+
+1. **C++ Engine Build (The "Muscles"):**
+* **`cmake -B build`**: This is the **Configuration** step. It scans your PC to see what kind of "muscles" you have. It checks: *Do you have an NVIDIA GPU (CUDA)? An AMD GPU (ROCm)? Or just a CPU?* It then creates a `build` folder containing a "blueprint" for how to compile the engine for your specific hardware.
+* **`cmake --build build`**: This is the **Compilation** step. It follows that blueprint to actually compile the C++ code into specialized library files (like `.dll` on Windows).
+
+
+2. **Go Build (The "Brain"):**
+* **`go build .`**: Once the C++ engine is ready, Go takes over. It compiles the Go code and "links" it to the C++ libraries you just built. The result is the final `ollama.exe`.
+
+
+
+---
+
+### Why use CMake instead of just Go?
+
+Go is great at web servers and logic, but it isn't designed to talk directly to specialized GPU hardware like NVIDIA's CUDA.
+
+* **Go** doesn't know how to optimize math for a GPU.
+* **CMake** is the industry standard for high-performance C++ code that needs to work on different hardware.
+
+### Do you need to run these?
+
+It depends on how you are building:
+
+* **If you run `go generate ./...**`: This command often triggers scripts that run CMake for you automatically in the background.
+* **If you run them manually**: You get more control. For example, if you want to force Ollama to use a specific version of CUDA or disable your GPU, you would pass extra flags to the `cmake` command.
+
+### Which one should you use?
+
+If you are just trying to get a working build on your machine:
+
+1. Try **`go generate ./...`** first. If it finds `cmake` in your path, it will try to do the work for you.
+2. If that fails or your GPU isn't being detected, run the **CMake** commands manually to see exactly where the error is happening.
+
+**Would you like me to show you the specific flags to use with CMake if you want to force NVIDIA GPU support?**

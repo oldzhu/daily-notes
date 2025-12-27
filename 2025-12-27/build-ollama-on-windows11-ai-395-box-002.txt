@@ -1,0 +1,46 @@
+The reason you are seeing that error is that **`go run`** is designed for testing, not for installing.
+
+When you execute `go run . server`, Go compiles your code into a **temporary file**, runs it immediately, and then **deletes it** as soon as the program stops. It never actually places an `ollama.exe` in your folder or adds it to your system path.
+
+To actually "install" it so you can use the `ollama` command anywhere, you have two main options:
+
+---
+
+### Option 1: Build it manually (Best for developers)
+
+If you want the executable to stay in your current folder (`C:\localrepos\ollama`), run this command instead:
+
+```powershell
+go build -o ollama.exe .
+
+```
+
+* **What this does:** It creates a permanent file named `ollama.exe` in your current directory.
+* **How to run it:** You can now run it by typing `.\ollama.exe` (the `.\` tells Windows to look in the current folder).
+
+---
+
+### Option 2: Install it to your Go path
+
+If you want to be able to type `ollama` from **any** folder without the error, run:
+
+```powershell
+go install .
+
+```
+
+* **What this does:** It compiles the code and moves the executable to your Go binary folder (usually `C:\Users\<YourUser>\go\bin`).
+* **The Result:** Since that folder is typically already in your Windows "Path," you will be able to run `ollama` from any command prompt.
+
+---
+
+### Why the command failed just now
+
+1. **Missing Executable:** `go run` cleaned up after itself, so there is no `ollama.exe` on your disk.
+2. **Environment Path:** Even if you use `go build`, Windows doesn't look in `C:\localrepos\ollama` by default when you type a command. You have to tell it where to look.
+
+### Recommended Next Step
+
+If you just want to use Ollama like a normal user, I recommend running **`go build -o ollama.exe .`** first.
+
+Would you like me to show you how to add your `localrepos` folder to your **Windows Environment Path** so that your custom builds work globally?
