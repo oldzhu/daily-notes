@@ -1,0 +1,10 @@
+core.c.obj : error LNK2019: unresolved external symbol sdb_ns_reset referenced in function r_core_fini
+libr\core\r_core.dll : fatal error LNK1120: 1 unresolved externals
+[1032/1217] Compiling C object libr/main/r_main.dll.p/r2agent.c.obj
+ninja: build stopped: subcommand failed.
+=========
+rd /s/q subprojects/sdb
+rd /s/q b
+preconfigure
+configure
+make
