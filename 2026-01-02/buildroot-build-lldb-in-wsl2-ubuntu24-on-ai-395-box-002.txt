@@ -1,0 +1,65 @@
+This is incredibly frustrating—even with `-O 64bit,huge_file,extent` and 4k blocks, `mkfs.ext4` is still throwing the `Ext2 file too big` error.
+
+The reason is a known limitation in the **`mke2fs` "populate" feature (`-d`)**. When `mkfs` tries to copy files from your host into the virtual image, it uses a simplified internal driver. Even if the filesystem *supports* huge files, the **copying routine** often chokes on files that cross the  (2.14GB) byte boundary if certain low-level metadata isn't handled perfectly by the specific version of `e2fsprogs`.
+
+Your file is **2,213,410,232 bytes**, which is just barely over that 2.14GB limit.
+
+Here is how to get past this once and for all.
+
+---
+
+### Solution 1: The "Nuclear" Fix (Strip the Library)
+
+Unless you are planning to run `gdb` *on the ARM64 target* to debug the LLVM code itself, you do not need those 2GB of debug symbols. Stripping the library will solve the `mkfs` error instantly by bringing the file size down to ~150MB.
+
+1. **Manual Strip (Fastest test):**
+Run this command before running `make`:
+```bash
+/home/oldzhu/buildroot/output/host/bin/aarch64-linux-strip /home/oldzhu/buildroot/output/target/usr/lib/libLLVM.so.22.0git
+
+```
+
+
+2. **Permanent Fix in Buildroot:**
+* `make menuconfig` -> **Build options** -> **strip target binaries** -> Set to **YES**.
+
+
+
+---
+
+### Solution 2: Change the "Large File" Optimization
+
+Some versions of `mkfs.ext4` require the `large_file` or `huge_file` flags to be set in a specific way to trigger the 64-bit offsets during the **initial copy phase**.
+
+Modify your **additional mke2fs options** to include the explicit `largefile` optimization:
+
+```bash
+-O 64bit,huge_file,extent -T largefile
+
+```
+
+*The `-T largefile` flag changes the inode-to-data ratio and tells the formatter to expect multi-gigabyte files.*
+
+---
+
+### Solution 3: Increase the Inode Size
+
+Your log shows `-I 256`. While 256 is the standard for ext4, increasing it can sometimes resolve internal mapping issues for extremely large libraries in virtual images.
+
+Try adding this to your **additional mke2fs options**:
+
+```bash
+-I 512
+
+```
+
+---
+
+### Solution 4: Why the Error Persists (The Technical "Why")
+
+The error `__populate_fs: Ext2 file too big` is actually coming from a function in `e2fsprogs/lib/ext2fs/finalize_dg.c` (or similar). Even though the disk is 64GB, the **internal 32-bit counters** in the "populate" library are hitting a limit while trying to calculate the extent tree for a file over 2GB.
+
+**If Solutions 1 & 2 don't work, it is a hard bug in the `fakeroot` + `mke2fs` combination provided by your host or Buildroot version.** ### Recommended Next Step
+Try **Solution 1 (Manual Strip)** first. It is a 5-second command. If your build finishes successfully after stripping, you know the size was the only issue.
+
+**Would you like me to explain how to keep the debug symbols in a separate file so you can still debug later without having a 2GB binary in your rootfs?**

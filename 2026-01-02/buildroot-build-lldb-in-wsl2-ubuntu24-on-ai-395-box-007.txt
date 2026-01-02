@@ -1,0 +1,72 @@
+To resolve this automatically during the build process without manually running commands every time, you should use a **Post-Build Script**.
+
+In Buildroot, the "Post-Build Script" runs after all packages are compiled and installed into the `target` directory, but **before** the final filesystem image (`rootfs.ext4`) is created. This is the perfect "hook" to shrink your massive files.
+
+---
+
+### 1. Create the Script
+
+Create a new file in your buildroot directory (e.g., `scripts/strip-massive-libs.sh`):
+
+```bash
+#!/bin/bash
+# TARGET_DIR is provided by Buildroot when it calls this script
+
+echo "--- Custom Strip: Shrinking massive LLVM/Clang libs ---"
+
+# Define the paths to your problematic files
+LIBS=(
+    "$TARGET_DIR/usr/lib/libLLVM.so.22.0git"
+    "$TARGET_DIR/usr/lib/libclang-cpp.so.22.0git"
+)
+
+for LIB in "${LIBS[@]}"; do
+    if [ -f "$LIB" ]; then
+        echo "Stripping $LIB..."
+        # Use the cross-strip tool from the host directory
+        $HOST_DIR/bin/aarch64-linux-strip "$LIB"
+    else
+        echo "Warning: $LIB not found, skipping."
+    fi
+done
+
+echo "--- Custom Strip: Done ---"
+
+```
+
+**Important:** Make the script executable:
+
+```bash
+chmod +x scripts/strip-massive-libs.sh
+
+```
+
+---
+
+### 2. Configure Buildroot to use the Script
+
+You need to tell Buildroot where to find this script so it runs it at the end of every `make`.
+
+1. Run `make menuconfig`.
+2. Navigate to **System configuration**.
+3. Find the option **Custom scripts to run before creating filesystem images** (also known as `BR2_ROOTFS_POST_BUILD_SCRIPT`).
+4. Enter the path to your script: `scripts/strip-massive-libs.sh`.
+5. **Save and Exit.**
+
+---
+
+### 3. Why this is the best location
+
+* **Staging is preserved:** Buildroot's build process installs files to `staging` first, then copies them to `target`. Because this script only touches `$TARGET_DIR`, your **unstripped** 2GB+ versions remain safe in `output/staging` for your host-side debugging.
+* **Fixes the mkfs error:** By the time the `ext4` generator starts, these two files will be ~150MB instead of 2GB+, staying well below the internal limits of the `mkfs.ext4` populate routine.
+* **Automatic:** Every time you run `make`, even if you haven't changed your `lldb` package, Buildroot will ensure these files are stripped before trying to build the image.
+
+---
+
+### Alternative: The "Target-Finalize" logic
+
+If you checked **"strip target binaries"** in the `Build options` menu earlier, Buildroot actually performs this exact task automatically for *all* files.
+
+If it is **still failing** even with that option checked, it is because Buildroot's internal global strip happens *too late* or the specific `mkfs` command is being triggered before the global strip finishes. Using the **Post-Build Script** as shown above forces the strip to happen early enough to guarantee success.
+
+**Would you like me to help you verify the `TARGET_DIR` environment variable to ensure the script finds the files correctly during the build?**

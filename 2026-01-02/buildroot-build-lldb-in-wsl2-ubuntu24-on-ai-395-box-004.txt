@@ -1,0 +1,45 @@
+Yes, if you set the global **"strip target binaries"** option in `menuconfig`, Buildroot will apply that logic to **every package** it installs into the `/target` directory (the directory used to create your `rootfs.ext4`).
+
+Here is how that process works and how it affects your custom `lldb` package:
+
+### 1. The Global Strip Logic
+
+When the global strip is enabled, Buildroot runs a "target-finalize" script at the very end of the build.
+
+* It scans `/home/oldzhu/buildroot/output/target/` for all ELF files (binaries and `.so` libraries).
+* It runs the cross-strip tool (`aarch64-linux-strip`) on every one of them.
+* **Result:** Every package, including your custom LLDB/LLVM, will be stripped before the filesystem image is created.
+
+### 2. How to "Split" Symbols (Keep the Debug Info)
+
+If you want to strip the files to fix the `mkfs` error but **still keep the symbols** for debugging on your host PC, you should use the **Staging** directory logic.
+
+1. In your custom LLDB package's `.mk` file, ensure you have:
+`HOST_LLDB_INSTALL_STAGING = YES` (or `LLDB_INSTALL_STAGING = YES`).
+2. When Buildroot builds your package, it will install the "fat" (2GB) version into `output/staging/`.
+3. Buildroot then copies the files to `output/target/`.
+4. The **Global Strip** only touches `output/target/`.
+5. **The Result:** You get a small, 150MB library in your `rootfs.ext4` image (which fixes the error), but you still have the full 2GB library with all symbols in your `staging` folder to use with GDB on your host.
+
+### 3. Can you strip only ONE package?
+
+If you don't want to strip everything globally, you can manually strip just your LLVM library within your package's `.mk` file. Add a post-install hook to your custom package:
+
+```makefile
+define LLDB_STRIP_LLVM_LIB
+    $(TARGET_STRIP) $(TARGET_DIR)/usr/lib/libLLVM.so.22.0git
+endef
+
+LLDB_POST_INSTALL_TARGET_HOOKS += LLDB_STRIP_LLVM_LIB
+
+```
+
+*Note: `$(TARGET_STRIP)` is a Buildroot variable that points to the correct `aarch64-linux-strip` tool.*
+
+### Summary Recommendation
+
+The cleanest way is to **enable the global strip** in `menuconfig`. Most people do this for production or embedded builds because you almost never want debug symbols taking up space on the actual device's SD card or flash chip.
+
+As long as you have the symbols in your `output/build/` or `output/staging/` folders, you haven't "lost" the ability to debug; you've just made the runtime image small enough to actually work.
+
+**Would you like me to check the syntax of your custom LLDB `.mk` file to make sure the staging and target installation paths are set up correctly?**

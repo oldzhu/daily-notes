@@ -1,0 +1,85 @@
+  Generating native code
+  /usr/bin/ld.bfd: unrecognised emulation mode: aarch64linux
+  Supported emulations: elf_x86_64 elf32_x86_64 elf_i386 elf_iamcu i386pep i386pe
+clang-22 : error : linker command failed with exit code 1 (use -v to see invocation) [/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/tools/aot/ILCompiler/ILCompiler_publish.csproj]
+/home/oldzhu/.nuget/packages/microsoft.dotnet.ilcompiler/10.0.0/build/Microsoft.NETCore.Native.targets(389,5): error MSB3073: The command ""/home/oldzhu/buildroot/output/build/host-lldb-origin_main/llvm/buildroot-build/bin/clang-22" "/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/artifacts/obj/coreclr/ILCompiler_publish/linux.arm64.Release/native/ilc.o" -o "/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/artifacts/bin/ILCompiler_publish/arm64/Release/native/ilc" -Wl,--version-script="/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/artifacts/obj/coreclr/ILCompiler_publish/linux.arm64.Release/native/ilc.exports" -Wl,--export-dynamic -gz=zlib -fuse-ld=bfd /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0/runtimes/linux-arm64/native/libSystem.Native.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0/runtimes/linux-arm64/native/libSystem.IO.Compression.Native.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0/runtimes/linux-arm64/native/libSystem.Net.Security.Native.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0/runtimes/linux-arm64/native/libSystem.Security.Cryptography.Native.OpenSsl.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0/runtimes/linux-arm64/native/libbootstrapper.o /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0/runtimes/linux-arm64/native/libRuntime.ServerGC.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0/runtimes/linux-arm64/native/libeventpipe-enabled.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0/runtimes/linux-arm64/native/libstandalonegc-disabled.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0/runtimes/linux-arm64/native/libaotminipal.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0/runtimes/linux-arm64/native/libstdc++compat.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0/runtimes/linux-arm64/native/libz.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0/runtimes/linux-arm64/native/libbrotlienc.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0/runtimes/linux-arm64/native/libbrotlidec.a /home/oldzhu/.nuget/packages/microsoft.netcore.app.runtime.nativeaot.linux-arm64/10.0.0/runtimes/linux-arm64/native/libbrotlicommon.a --sysroot="/home/oldzhu/buildroot/output/host/aarch64-buildroot-linux-gnu/sysroot" --target=aarch64-linux-gnu -g -Wl,--build-id=sha1 -Wl,--as-needed -pthread -ldl -lrt -lm -pie -Wl,-pie -Wl,-z,relro -Wl,-z,now -Wl,--eh-frame-hdr -Wl,--discard-all -Wl,--gc-sections" exited with code 1. [/home/oldzhu/buildroot/output/build/dotnetruntime-origin_main/src/coreclr/tools/aot/ILCompiler/ILCompiler_publish.csproj]
+===========
+
+The error `unrecognised emulation mode: aarch64linux` reveals a classic cross-compilation mismatch.
+
+You are trying to build a **.NET NativeAOT** binary for **ARM64** (`aarch64`), but the build system is invoking your **Host's linker** (`/usr/bin/ld.bfd`), which only understands x86/x64 architectures.
+
+### The Root Cause
+
+In your command, the flag `-fuse-ld=bfd` is being passed to `clang-22`. Because you are running on x86_64 WSL2, Clang looks at the system's default BFD linker. As shown in your "Supported emulations" list, that linker only knows how to handle `elf_x86_64` and `elf_i386`. It has no idea what `aarch64` is.
+
+---
+
+### Solution 1: Use LLD (Highly Recommended)
+
+Since you are already using `clang-22` (likely from your host-lldb build), you should use the **LLD** linker. Unlike BFD, LLD is a multi-target linker; the same binary can link x86, ARM64, RISC-V, etc.
+
+You need to override the linker choice in your .NET build command or project file. Change the `-fuse-ld=bfd` flag to:
+
+```bash
+-fuse-ld=lld
+
+```
+
+If you are running this through Buildroot or a script, look for where `CppCompilerAndLinker` or `Linker` flags are defined and ensure `lld` is used instead of `bfd`.
+
+---
+
+### Solution 2: Point to the Buildroot Cross-Linker
+
+If you absolutely must use BFD, you cannot use the one in `/usr/bin/`. You must use the one Buildroot generated for the target.
+
+Your cross-linker is located at:
+`/home/oldzhu/buildroot/output/host/bin/aarch64-linux-ld`
+
+To fix this via environment variables before running your build:
+
+```bash
+export LD=/home/oldzhu/buildroot/output/host/bin/aarch64-linux-ld
+
+```
+
+However, .NET's NativeAOT often ignores the `LD` environment variable and prefers to call the linker via the compiler driver (`clang`). In this case, you need to tell Clang where the target-specific tools are:
+
+```bash
+# Add this to your clang command line
+-B/home/oldzhu/buildroot/output/host/bin/
+
+```
+
+---
+
+### Solution 3: Modify the `.csproj` or Build Script
+
+The error log shows the crash happening at `Microsoft.NETCore.Native.targets(389,5)`. .NET's ILCompiler has a property to set the linker.
+
+Try adding this property to your build command or your `ILCompiler_publish.csproj`:
+
+```xml
+<PropertyGroup>
+  <LinkerFlavor>lld</LinkerFlavor>
+</PropertyGroup>
+
+```
+
+Or via the command line:
+
+```bash
+dotnet publish -p:LinkerFlavor=lld ...
+
+```
+
+### Summary of the "Toolchain Handshake"
+
+| Component | Status | Fix |
+| --- | --- | --- |
+| **Compiler** | `clang-22` (Correct) | Supports multi-arch by default. |
+| **Linker** | `/usr/bin/ld.bfd` (**Wrong**) | Only supports Host (x86). |
+| **Target** | `arm64` | Needs `lld` or `aarch64-linux-ld`. |
+
+**Since you previously had issues with LLD support in CMake, did you successfully install the `lld` package earlier, or did we disable it?** (If it's disabled, Solution 1 will fail and we must pursue Solution 2).

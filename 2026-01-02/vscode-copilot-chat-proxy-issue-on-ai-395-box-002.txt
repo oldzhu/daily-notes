@@ -1,0 +1,52 @@
+Actually, you are correct to be suspicious. In Linux/WSL2, environment variables are **case-sensitive**, and while many tools recognize both, it is standard practice to use **UPPERCASE** for proxy variables.
+
+The reason your VS Code is ignoring your `http_proxy` setting is likely because the **VS Code Server** (which runs inside WSL) was already started *before* you exported those variables, or it's caching an old environment.
+
+Here is exactly how to fix the connection between WSL2 and your Windows host.
+
+### **1. Case Sensitivity & Permanent Export**
+
+For the most reliable results in Ubuntu, you should set both cases in your `~/.bashrc` file.
+
+1. Open your bash config: `nano ~/.bashrc`
+2. Add these lines to the bottom (replace `172.20.32.1` with your current Host IP if it changed):
+```bash
+export HostIP=172.20.32.1
+export http_proxy="http://$HostIP:10808"
+export https_proxy="http://$HostIP:10808"
+export HTTP_PROXY="http://$HostIP:10808"
+export HTTPS_PROXY="http://$HostIP:10808"
+
+```
+
+
+3. Save and exit (`Ctrl+O`, `Enter`, `Ctrl+X`).
+4. Apply changes: `source ~/.bashrc`
+
+### **2. The "Hidden" Step: Kill the VS Code Server**
+
+Even after changing your environment variables, a simple restart of the VS Code window usually **won't work**. This is because the background process (the "VS Code Server") stays alive inside WSL and keeps using its old, broken network settings.
+
+1. In VS Code, open the **Command Palette** (`Ctrl+Shift+P`).
+2. Type and select: **`Developer: Kill VS Code Server on Host...`**
+3. VS Code will disconnect. When you reconnect (or run `code .` again), it will spawn a **fresh** server process that finally "sees" your new proxy environment variables.
+
+### **3. Check "Remote" VS Code Settings**
+
+VS Code has a separate settings tab for "Remote [WSL]". These settings can override your terminal's environment variables.
+
+1. Go to **Settings** (`Ctrl+,`).
+2. Click the **Remote [WSL: Ubuntu]** tab at the top.
+3. Search for **`Proxy`**.
+4. Ensure **`Http: Proxy`** is either empty (to use your environment variables) or explicitly set to `http://172.20.32.1:10808`.
+5. Set **`Http: Proxy Support`** to **`on`** or **`override`**.
+
+---
+
+### **Why it felt "weird"**
+
+The reason your existing session worked while the new one failed is likely because the old session was using an older version of the VS Code Server that hadn't crashed its connection yet, whereas the new session tried to initialize a fresh "Model Context Protocol" (MCP) handshake. This handshake is very sensitive to network timeouts; if it can't find the proxy at `127.0.0.1` immediately, it "spins" forever on the activation step.
+
+[Fixing WSL2 Proxy Issues for Developers](https://www.youtube.com/watch?v=cq4TYmogon0)
+
+This video provides a visual guide on properly routing WSL2 traffic through a Windows-based proxy, which is exactly what you're doing to get Copilot Chat working.

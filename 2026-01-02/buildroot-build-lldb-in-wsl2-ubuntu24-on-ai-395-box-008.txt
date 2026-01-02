@@ -1,0 +1,61 @@
+In the context of VS Code networking, the setting **`http: Proxy Support`** set to **`override`** is actually the most aggressive (and usually best) mode for handling proxies.
+
+Here is what it means and why it might be contributing to your current "spinning" loop:
+
+### **1. What "Override" actually does**
+
+* **The Default Behavior:** Standard tools in VS Code use the built-in Node.js "fetch" or "http" modules.
+* **The Override Behavior:** When set to `override`, VS Code **forcibly replaces** the low-level networking logic for **all extensions** (including Copilot). It tells them: *"Do not look at your own settings. Use the proxy I have defined in the VS Code settings, and I will handle the connection for you."*
+
+### **2. Why this is failing for you in WSL2**
+
+You mentioned your Windows host proxy is `127.0.0.1:10808`.
+
+If your VS Code **User** settings (which are shared between Windows and WSL) have `http.proxy` set to `127.0.0.1:10808`, and `proxySupport` is set to `override`:
+
+1. Copilot starts up inside WSL2.
+2. VS Code "overrides" Copilot's network and forces it to use `127.0.0.1:10808`.
+3. **Result:** Copilot tries to find the proxy inside the Linux VM's localhost. It fails because the proxy is on the Windows localhost.
+
+### **How to fix this specific conflict**
+
+#### **Step A: Separate the "Remote" setting**
+
+You need to make sure the WSL version of VS Code uses the **Host IP** while the Windows version (if you use it) keeps using `127.0.0.1`.
+
+1. Open **Settings** (`Ctrl+,`).
+2. Select the **Remote [WSL: Ubuntu]** tab (do not stay on the "User" tab).
+3. Set `Http: Proxy` to **`http://172.20.32.1:10808`** (your Windows Host IP).
+4. Leave `Http: Proxy Support` as **`override`**.
+5. **Important:** Go to the **User** tab and ensure the proxy setting there is **empty** or correct for Windows.
+
+#### **Step B: Try setting Proxy Support to "on" instead of "override"**
+
+If `override` is causing issues with how the Model Context Protocol (MCP) handles its local tool connections (which sometimes need to bypass the proxy), try changing it:
+
+* Set **`Http: Proxy Support`** to **`on`**.
+* This enables proxy support but is less "forceful" than override, allowing extensions to use their own fallback logic if they need to reach local addresses.
+
+#### **Step C: The "No Proxy" setting**
+
+Since Copilot is spinning on "Activating MCP extensions," it might be trying to connect to a local MCP server *inside* WSL and getting accidentally routed through your Windows proxy.
+
+1. In your WSL terminal, add this to your `~/.bashrc`:
+```bash
+export no_proxy="localhost,127.0.0.1,::1"
+export NO_PROXY="localhost,127.0.0.1,::1"
+
+```
+
+
+2. Restart the VS Code server (Command Palette: `Developer: Kill VS Code Server on Host...`).
+
+### **Summary**
+
+`Override` is good because it forces extensions to follow the rules, but it's currently forcing Copilot in WSL to follow **Windows rules** (`127.0.0.1`), which don't work inside Linux.
+
+**Next Step:**
+Would you like me to show you how to check if your proxy software is blocking the connection from the "LAN" (WSL side) even if you have the IP right?
+
+===========
+solution - uncheck Http: Use Local Proxy Configuration

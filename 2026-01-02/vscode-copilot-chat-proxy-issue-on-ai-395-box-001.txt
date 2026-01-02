@@ -1,0 +1,92 @@
+This is the critical piece of the puzzle: **Yes, because you launched VS Code from the WSL2 terminal (`code .`), the Copilot extension is running INSIDE the Linux (WSL2) environment, not on Windows.**
+
+In the world of WSL2 networking, **`127.0.0.1` (localhost) inside WSL is NOT the same as `127.0.0.1` on Windows.**
+
+* **Your Proxy:** Is running on Windows `127.0.0.1:10808`.
+* **Copilot (in WSL):** Is trying to hit `127.0.0.1:10808` *inside* the Linux VM. Nothing is listening there, so you get `connect ECONNREFUSED`.
+
+Here is how to fix the bridge between WSL2 and your Windows proxy.
+
+---
+
+### **Method 1: The "Mirrored Mode" Fix (Recommended for Windows 11)**
+
+Since you are on Windows 11, the easiest fix is to enable "Mirrored Networking." This makes `127.0.0.1` in WSL actually talk to Windows `127.0.0.1`, fixing your issue instantly without changing IPs.
+
+1. **Close WSL** completely (run `wsl --shutdown` in PowerShell).
+2. Open your Windows User folder (`C:\Users\<YourUser>\`) in File Explorer.
+3. Create or edit a file named **`.wslconfig`** (make sure it's not `.wslconfig.txt`).
+4. Paste this inside:
+```ini
+[wsl2]
+networkingMode=mirrored
+
+```
+
+
+5. **Restart WSL** and try VS Code Copilot again.
+* *Note: This requires a relatively recent version of Windows 11 (22H2 or later).*
+
+
+
+---
+
+### **Method 2: The "Host IP" Fix (Standard Fix)**
+
+If you cannot use mirrored mode, you must tell Copilot to talk to the **Windows Host IP**, not localhost, and you must tell your proxy software to accept connections from outside.
+
+#### **Step 1: Configure your Proxy Software (Crucial)**
+
+By default, proxies only listen on `127.0.0.1` (loopback). WSL2 connects from a different virtual network adapter, so the proxy will block it unless you change a setting.
+
+1. Open your proxy software (e.g., v2rayN, Clash, etc.).
+2. Look for a setting called **"Allow LAN"**, **"Allow connections from the local network"**, or **"Listen on 0.0.0.0"**.
+3. **Enable it.** (This is required for WSL to "see" the proxy).
+
+#### **Step 2: Find the Windows Host IP**
+
+Inside your WSL2 terminal, finding the Windows IP is tricky because it changes every reboot.
+
+1. Run this command to see the IP address of your host (Windows):
+```bash
+cat /etc/resolv.conf
+
+```
+
+
+2. Copy the IP address next to `nameserver` (e.g., `172.x.x.x`).
+
+#### **Step 3: Update VS Code / Environment Variables**
+
+You need to set the proxy to that IP address instead of `127.0.0.1`.
+
+**Option A: Temporary Test (in WSL terminal)**
+Run this before opening code:
+
+```bash
+# Replace 172.x.x.x with the nameserver IP you found above
+export HTTP_PROXY="http://172.x.x.x:10808"
+export HTTPS_PROXY="http://172.x.x.x:10808"
+code .
+
+```
+
+**Option B: The "Automatic" Script (Permanent)**
+Add this to your `~/.bashrc` or `~/.zshrc` in WSL so it always calculates the correct Windows IP:
+
+```bash
+# Get the Windows Host IP dynamically
+export WINDOWS_HOST_IP=$(grep nameserver /etc/resolv.conf | awk '{print $2}')
+
+# Set Proxy to use that IP
+export HTTP_PROXY="http://$WINDOWS_HOST_IP:10808"
+export HTTPS_PROXY="http://$WINDOWS_HOST_IP:10808"
+
+```
+
+Then run `source ~/.bashrc` and restart VS Code.
+
+### **Summary of the Error**
+
+* **The Log:** `connect ECONNREFUSED 127.0.0.1:10808`
+* **The Reality:** Copilot knocked on the door of `127.0.0.1` (the Linux VM's house) looking for a proxy. The house was empty. The proxy lives in the house next door (Windows) and you need the correct address (Host IP) to reach it.

@@ -1,0 +1,44 @@
+The setting **`Http: Use Local Proxy Configuration`** tells VS Code to prioritize and use the proxy settings defined on your **local machine (Windows)** even when you are working in a **remote environment (WSL2)**.
+
+Since you are running VS Code from a WSL2 terminal, checking this box likely causes the following loop:
+
+1. **Copilot (inside Linux/WSL)** looks for proxy settings.
+2. Because **`Use Local Proxy Configuration`** is checked, it ignores your WSL environment variables (`172.20.32.1`) and grabs the **Windows Host** settings instead.
+3. It finds `127.0.0.1:10808` from your Windows config.
+4. **The Failure:** Inside WSL, `127.0.0.1` refers to the Linux VM itself. It tries to find a proxy at `127.0.0.1:10808` in Linux, finds nothing, and stays stuck in the "spinning" state while waiting for a timeout.
+
+---
+
+### **How to fix this specific setting conflict**
+
+#### **1. Uncheck "Use Local Proxy Configuration"**
+
+This is the most direct fix. By unchecking this, you tell VS Code to stop "borrowing" the Windows `127.0.0.1` address and instead rely on the environment variables you set in your WSL Ubuntu terminal.
+
+* Go to **Settings** (`Ctrl+,`).
+* Search for `Use Local Proxy Configuration`.
+* **Uncheck** it.
+
+#### **2. Align the "Remote" Tab Settings**
+
+VS Code has separate settings for the "User" (Windows) and "Remote" (WSL). You want the WSL side to have the correct "translation" of your proxy address.
+
+1. Open **Settings**.
+2. Click the **Remote [WSL: Ubuntu]** tab.
+3. Search for `Proxy`.
+4. Set **`Http: Proxy`** explicitly to `http://172.20.32.1:10808`.
+5. Set **`Http: Proxy Support`** to `on`.
+
+#### **3. Restart the VS Code Server**
+
+Whenever you change these deep networking settings, the "VS Code Server" running inside Ubuntu needs to be refreshed to pick them up.
+
+* Press `Ctrl+Shift+P`.
+* Run: **`Developer: Kill VS Code Server on Host...`**
+* Restart VS Code by typing `code .` in your WSL terminal.
+
+### **Summary of the "Spinning" Fix**
+
+The "Activating MCP extensions" spin happens because Copilot is trying to reach a network endpoint (the proxy) that it can't find. By unchecking **`Use Local Proxy Configuration`**, you prevent VS Code from feeding the "bad" `127.0.0.1` address to the Linux-based Copilot extension.
+
+**Would you like me to show you how to check if your Windows proxy is "allowing LAN" connections so that the 172.20.32.1 address actually works?**

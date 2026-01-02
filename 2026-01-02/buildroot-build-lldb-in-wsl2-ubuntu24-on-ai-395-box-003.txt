@@ -1,0 +1,44 @@
+Since you agreed to stripping the library, we will resolve the build error by removing the massive amount of debug information that is causing the filesystem generator to crash.
+
+### Step 1: Manual Strip (The "Get It Built Now" Fix)
+
+Run this command in your WSL terminal. This uses the cross-compilation tool Buildroot already built to remove the symbols from the file that is currently blocking the process:
+
+```bash
+/home/oldzhu/buildroot/output/host/bin/aarch64-linux-strip /home/oldzhu/buildroot/output/target/usr/lib/libLLVM.so.22.0git
+
+```
+
+**After running this, run `make` again.** The build should now complete the "Copying files into the device" phase instantly because the file will likely shrink from **2.2GB** to under **200MB**.
+
+---
+
+### Step 2: Permanent Buildroot Configuration
+
+To prevent this from happening again every time you do a clean build, you should configure Buildroot to handle stripping automatically.
+
+1. Run `make menuconfig`.
+2. Go to **Build options**.
+3. Set **`strip target binaries`** to **`YES`**.
+4. (Optional but recommended) Set **`gcc optimization level`** to **`optimize for size`** if you are worried about the final image footprint on your ARM64 device.
+
+---
+
+### Step 3: If you still need to debug later
+
+If the reason that file was 2GB is that you actually *need* to debug LLVM on the ARM64 board, you don't have to keep the symbols inside the binary. You can use **"Split Debug Symbols."**
+
+In `make menuconfig` -> **Build options**:
+
+* Change **`build packages with debugging symbols`** to **`YES`**.
+* Set **`install debug symbols in the target`** to **`NO`**.
+
+This tells Buildroot to compile with debug info but save the symbols into a separate directory on your host (`output/staging/usr/lib/debug`) instead of packing them into the `rootfs.ext4`. You can then point `gdb` to that folder on your PC while debugging the small binary on the board.
+
+---
+
+### Summary of why this works
+
+By stripping the file, you are staying well below the **2.14GB (2³¹ byte)** limit that the `mke2fs -d` populate command struggles with. Even though `ext4` as a format supports massive files, the specific tool Buildroot uses to "inject" files into the image has a historical 32-bit offset limitation that your LLVM library was just barely triggering.
+
+**Would you like me to show you how to check the final size of your `rootfs.ext2` image once the build finishes?**

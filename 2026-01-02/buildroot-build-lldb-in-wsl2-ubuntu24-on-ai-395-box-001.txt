@@ -1,0 +1,61 @@
+Allocating group tables: done
+Writing inode tables: done
+Creating journal (65536 blocks): done
+Copying files into the device: __populate_fs: Ext2 file too big while writing file "libLLVM.so.22.0git"
+mkfs.ext4: Ext2 file too big while populating file system
+*** Maybe you need to increase the filesystem size (BR2_TARGET_ROOTFS_EXT2_SIZE)
+make: *** [fs/ext2/ext2.mk:65: /home/oldzhu/buildroot/output/images/rootfs.ext2] Error 1
+=====
+You are absolutely right about the block size—your output shows **4k blocks**, which is  bytes. However, you are seeing "Ext2 file too big" because of a **feature limitation**, not a size limitation.
+
+Here is why your build is failing and how to fix those specific messages:
+
+### 1. Why it says "ext2" when you set "ext4"
+
+In Buildroot, the filesystem generation for ext2, ext3, and ext4 is all handled by the same internal script (`fs/ext2/ext2.mk`).
+
+* The file name `rootfs.ext2` is a **legacy default** in Buildroot. It creates the image using `mke2fs`, which was originally for ext2.
+* Even if you select "ext4" in `menuconfig`, Buildroot often keeps the `.ext2` extension for the output file unless you've manually changed the output name.
+* **The Error Message:** `Ext2 file too big` is a generic error from the `e2fsprogs` library. It actually means: *"I am trying to write a file larger than 2GB, but the **huge_file** or **extent** features are not enabled/supported in the current configuration."*
+
+### 2. The "2GB Barrier" (The Real Culprit)
+
+Your `libLLVM.so` is **2.06 GB**. In the world of ext2/3 and "legacy" ext4, there is a hard limit at exactly  bytes (2GB) for a single file unless specific features are turned on.
+
+Even with 4k blocks, the filesystem needs two specific flags to handle a file that large:
+
+1. **`huge_file`**: Allows files larger than 2TB (but also helps with the 2GB addressing limit).
+2. **`64bit`**: Allows the filesystem to use 64-bit identifiers for blocks, which is required for modern large-scale ext4 features.
+
+Your log specifically says: **`64-bit filesystem support is not enabled. ... Pass -O 64bit to rectify.`**
+
+---
+
+### How to Fix It
+
+You need to manually force these features in your Buildroot configuration.
+
+1. Open **`make menuconfig`**.
+2. Go to **`Filesystem images`** —> **`ext2/3/4 root filesystem`**.
+3. Look for the option **`additional mke2fs options`**.
+4. It probably currently says `-O ^64bit` (the `^` means "disable"). **Change it to exactly this:**
+```bash
+-O 64bit,huge_file,extent
+
+```
+
+
+5. **Save and Exit.**
+6. **Run `make` again.**
+
+### Why did Buildroot disable this by default?
+
+Buildroot defaults to `-O ^64bit` because many older bootloaders (like very old versions of U-Boot) cannot read 64-bit ext4 partitions. Since you are likely using a modern system for your Ryzen/ARM64 work, you **must** enable it to support that 2GB LLVM library.
+
+### Summary of your check:
+
+* **Is 10485760 4k blocks correct?** Yes, that confirms a  total size with  block size.
+* **Is the block size the problem?** No, the  block size is perfect.
+* **What is the problem?** The filesystem "features" (64bit/huge_file) are missing, preventing any single file from crossing the 2GB mark.
+
+**Would you like me to show you how to rename the output file to `rootfs.ext4` so it matches your settings and avoids future confusion?**

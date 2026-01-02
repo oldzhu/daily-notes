@@ -1,0 +1,43 @@
+In VS Code, settings have a specific **hierarchy**, and whether they are global or project-specific depends on which **tab** you were in when you changed them.
+
+Because you are using **WSL2**, there is an extra "Remote" layer that acts as a middle ground. Here is the breakdown:
+
+### **1. The Three Scopes of Settings**
+
+When you open your Settings (`Ctrl+,`), you will see three tabs at the top. This is how they rank (highest priority first):
+
+| Scope | Location | Behavior |
+| --- | --- | --- |
+| **Workspace** | `.vscode/settings.json` (inside your project) | **Project Specific.** These settings only apply to the folder you have open. If you have two different projects open, they can have two different proxies. |
+| **Remote [WSL]** | Stored inside the Linux VM | **Remote Global.** These settings apply to *any* project you open specifically within that WSL distribution. They override "User" settings but are overridden by "Workspace" settings. |
+| **User** | `%APPDATA%\Code\User\settings.json` | **Global.** These apply to every VS Code window you open, whether on Windows or WSL, unless overridden by the tabs above. |
+
+---
+
+### **2. Which one should you use?**
+
+Since your proxy `172.20.32.1` is tied to the **connection between WSL and Windows**, you should set it in the **Remote [WSL]** tab.
+
+* **Why?** This ensures that any project you launch from your Ubuntu terminal will use the correct "Host IP" bridge, but your normal Windows projects (outside WSL) won't accidentally try to use that IP.
+* **The "Spinning" Fix:** If you set the proxy in the **User** tab to `127.0.0.1`, it will try to apply that to your WSL projects too, which is exactly why Copilot gets stuck in a loop.
+
+### **3. How to check your current "Project Scope"**
+
+If you want to see if a specific project has its own "secret" proxy setting:
+
+1. In the File Explorer (left side), look for a folder named **`.vscode`**.
+2. Open **`settings.json`** inside that folder.
+3. If you see `"http.proxy"` listed there, it is **overriding** everything else for that project only.
+
+---
+
+### **Summary of the Hierarchy**
+
+If a setting exists in all three places, VS Code chooses the value in this order:
+`Workspace (Project)` **>** `Remote (WSL Global)` **>** `User (Windows Global)`
+
+**Next Step:**
+Would you like me to show you how to quickly copy your proxy settings from one "Workspace" to another using the Command Palette?
+
+... [VS Code: Remote Development with WSL](https://www.youtube.com/watch?v=XkLjxr9iQ-8) ...
+This video explains how the "Remote" and "Workspace" settings tabs function differently when you are connected via SSH or WSL, which is key to understanding why your proxy behaves differently across projects.

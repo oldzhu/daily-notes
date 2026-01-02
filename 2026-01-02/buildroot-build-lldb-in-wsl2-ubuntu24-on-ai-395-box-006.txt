@@ -1,0 +1,72 @@
+Yes, you are exactly right. You keep the "heavy" unstripped files on your development PC and run the "light" stripped files on the target device. Buildroot is designed to support this workflow by maintaining the **Staging** directory as a complete, unstripped sysroot.
+
+---
+
+### 1. How to use Staging files with GDB/LLDB
+
+When you debug a remote target, you don't just point to one file; you tell the debugger to use the entire **Staging** folder as its "lookup" table for symbols.
+
+#### For GDB:
+
+Inside GDB (running on your host), use the `sysroot` command:
+
+```bash
+(gdb) set sysroot /home/oldzhu/buildroot/output/staging
+(gdb) target remote <target-ip>:1234
+
+```
+
+* **Why this works:** When the target device says "I'm running `libLLVM.so`," GDB looks in the `sysroot` path on your PC, finds the unstripped version in `staging/usr/lib/`, and maps the addresses to your source code.
+
+#### For LLDB:
+
+LLDB uses "target modules":
+
+```bash
+(lldb) settings set target.sdk-path /home/oldzhu/buildroot/output/staging
+(lldb) target create /home/oldzhu/buildroot/output/staging/usr/bin/lldb-server
+(lldb) gdb-remote <target-ip>:1234
+
+```
+
+---
+
+### 2. Can Buildroot "split" symbols into separate files?
+
+Yes, Buildroot can do exactly what major distros (like Ubuntu or Fedora) do. This is called **MiniDebugInfo** or **Separate Debug Files**.
+
+While your current `menuconfig` might not show a single "Split" checkbox, Buildroot achieves this through the `BR2_STRIP_none` or `BR2_STRIP_strip` logic combined with a specialized script.
+
+#### How to enable Split Symbols in Buildroot:
+
+1. **Enable the internal toolchain wrapper:** This is usually on by default.
+2. **Check for `BR2_PACKAGE_GDB`:** If you enable the full GDB package in Buildroot, it often provides more granular control.
+3. **The "Manual" Buildroot way:**
+Many developers use a `post-build script` (configured in `System configuration` -> `Custom scripts to run before creating filesystem images`). You can add these commands to your script to automate the "splitting":
+
+```bash
+# Example logic for a post-build script
+# 1. Extract symbols to a .debug file
+# 2. Add a link in the original binary to the .debug file
+# 3. Strip the original binary
+aarch64-linux-objcopy --only-keep-debug $TARGET_DIR/usr/lib/libLLVM.so.22.0git $TARGET_DIR/usr/lib/libLLVM.so.debug
+aarch64-linux-strip --strip-debug $TARGET_DIR/usr/lib/libLLVM.so.22.0git
+aarch64-linux-objcopy --add-gnu-debuglink=$TARGET_DIR/usr/lib/libLLVM.so.debug $TARGET_DIR/usr/lib/libLLVM.so.22.0git
+
+```
+
+---
+
+### 3. Which method should you use?
+
+| Method | Best For... | Buildroot Effort |
+| --- | --- | --- |
+| **Staging Method** | Standard development. PC has symbols, Device is light. | **Zero** (Default behavior). |
+| **Split File Method** | Shipping debug files separately (e.g., via `apt-get install-dbgsym`). | **High** (Requires custom scripts). |
+| **Full Strip** | Production/Final Release where no debugging is needed. | **Low** (Just check "Strip target binaries"). |
+
+### Summary Recommendation
+
+Stick with the **Staging Method**. It is the "native" way Buildroot works. By checking "Strip target binaries," you fix your `mkfs` error immediately. Since `output/staging` remains unstripped, you lose nothing for debugging purposes.
+
+**Would you like me to help you write a simple `gdbinit` file so that GDB automatically loads the Buildroot staging path every time you start it?**

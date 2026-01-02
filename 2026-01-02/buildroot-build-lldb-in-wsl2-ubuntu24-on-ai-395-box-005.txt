@@ -1,0 +1,48 @@
+Based on your second image, the option you are looking for is actually there, but it is worded slightly differently in your version of Buildroot.
+
+### Where to find it
+
+In your **image_99d9cb.jpg**, look at the section inside **Build options**:
+
+* **`[*] build packages with debugging symbols`**: This is currently **checked**, which is why your `libLLVM.so` is 2.2GB.
+* **`[ ] strip target binaries`**: This is currently **unchecked**.
+
+When you check **`strip target binaries`**, a new sub-option often appears underneath it in newer Buildroot versions. However, in your specific version, the "Install debug symbols" behavior is tied to how you handle the stripping process.
+
+---
+
+### How to achieve "Split Symbols" with your current settings
+
+Since you want to fix the `mkfs` error but keep the symbols for yourself, follow this configuration:
+
+1. **Keep `[*] build packages with debugging symbols` checked.** This ensures the compiler generates the information in the first place.
+2. **Check `[*] strip target binaries`.** * This will trigger the automatic stripping of the 2.2GB file in `output/target/`.
+* **Crucially**, Buildroot does **not** strip the files in `output/staging/`.
+
+
+3. **The Result:** * The file in your **rootfs image** will be small (~150MB), allowing the build to finish.
+* The "fat" version with all symbols will remain in `output/staging/usr/lib/` or your package's build directory. You can point your debugger to those files later.
+
+
+
+---
+
+### Why the option might be "missing"
+
+In some older or specific branch versions of Buildroot, the option **"install debug symbols in the target"** only appears if you have specific toolchain configurations enabled (like an internal toolchain vs. external).
+
+**If you don't see it even after checking "strip target binaries":**
+Don't worry. As long as you have the symbols being built, they are always preserved in the **Staging** directory (`output/host/<tuple>/sysroot` or `output/staging`). The "Target" directory is essentially a "throwaway" copy meant only for the final hardware, while "Staging" is your development library.
+
+### One final check for your custom `.mk` file
+
+To ensure your 2.2GB of symbols are actually saved for your host to use, make sure your custom package includes this line:
+
+```makefile
+LLDB_INSTALL_STAGING = YES
+
+```
+
+Without this, Buildroot might delete the build directory after the build, and you'll lose the unstripped version of the library.
+
+**Would you like me to show you the GDB command to load those "staging" symbols when you eventually start debugging your ARM64 target?**
