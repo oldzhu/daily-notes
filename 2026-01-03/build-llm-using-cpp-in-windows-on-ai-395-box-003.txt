@@ -1,0 +1,23 @@
+B is done: checkpoint save/load works (weights + config JSON, and it can also include AdamW optimizer state so training truly resumes).
+
+What you can do now
+
+Save after training (creates PREFIX.json + PREFIX.bin):
+.[train_gpt.exe](http://_vscodecontentref_/1) --data [the-verdict.txt](http://_vscodecontentref_/2) --steps 1000 --batch 4 --seq 64 --dmodel 64 --layers 1 --save .\data\ckpt_tiny
+Load + generate (no training):
+.[train_gpt.exe](http://_vscodecontentref_/3) --load .\data\ckpt_tiny --steps 0 --prompt "Hello: " --gen 200 --temp 1.0 --topk 40
+Resume training from a checkpoint (adds more steps, and re-saves):
+.[train_gpt.exe](http://_vscodecontentref_/4) --load .\data\ckpt_tiny --data [the-verdict.txt](http://_vscodecontentref_/5) --steps 500 --batch 4 --save .\data\ckpt_tiny --save-opt 1
+Implementation notes
+
+Checkpoint files:
+PREFIX.json: model config + optimizer hyperparams + saved step + whether optimizer state is present
+PREFIX.bin: weights, and optionally AdamW m/v + t
+Resume robustness: when loading, training sequence length is clamped to the checkpoint model’s seq_len, so you don’t have to remember --seq.
+Where
+
+Checkpoint implementation: checkpoint.h, checkpoint.cpp
+CLI wiring: main.cpp
+AdamW state import/export: optim.h, optim.cpp
+Docs: README.md
+Next logical step: do you want C (multi-head attention) next, or D (grad-check + regression test) to harden correctness before scaling up?

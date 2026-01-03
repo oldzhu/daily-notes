@@ -1,0 +1,24 @@
+What This Project Is
+
+gdbsos is a GDB Python extension that lets GDB drive .NET SOS diagnostics (commands like clrstack, dumpheap, bpmd) by hosting/loading libsos.so and implementing the “debugger services” interfaces SOS expects. See README.md and AGENTS.md.
+How It Works (High Level)
+
+Python plugin: sos.py loads libsos.so via ctypes, registers lots of SOS-like GDB commands, and wires help + dispatch behavior (including generated help from tools).
+Service layer: services.py implements the SOS/LLDB service ABI in Python (memory read/write, modules, threads, symbols, output, stop hooks).
+Native bridge: gdbbridge.cpp builds libsosgdbbridge.so (CMake in CMakeLists.txt) and provides:
+InitGdbExtensions (init Extensions singleton)
+InitManagedHosting, GetHostForSos, UpdateManagedTarget, DispatchManagedCommand
+Reliability policy: plugin enforces “bridge co-located with libsos.so” by staging/copying the bridge next to libsos.so when needed (to avoid hosting failures).
+Build + packaging: root build.sh builds the diagnostics submodule, then builds/installs the bridge + Python plugin into artifacts/bin/linux.<arch>.<Config>/ and can create tarballs.
+Tests: GDB-driven scenario tests under gdb launch dotnet, source the plugin, set bpmd, and run scenario scripts.
+Suggestions (Most Valuable First)
+
+Add CI that runs .[build.sh](http://_vscodecontentref_/16) -c Release and test.sh at least on Linux x64 (arm64 optional later). Right now tests exist, but there’s no obvious automated gate.
+Reduce “hosting init” duplication: InitManagedHosting + UpdateManagedTarget are invoked from multiple places (lazy-load, pre-dispatch, new-objfile hook, runtime-loaded breakpoint). Consolidating into one helper would reduce drift and “argtypes/restype” inconsistencies.
+Clean a few small maintainability nits:
+GdbServices.__init__ assigns _bridge_update_fn twice (harmless, but confusing).
+The GDB test harness uses shell=True and string commands; switching to argv lists would improve robustness with paths containing spaces and make timeouts/termination cleaner.
+Documentation polish: the repo is already strong on troubleshooting (faq.md); consider adding a short “common env vars” section to README.md (e.g., SOS_ROOT, SOS_GDB_USE_HOST, SOS_PY_TRACE*, SOS_GDB_TOPLEVEL_ALIASES).
+If you want, I can turn the top 1–2 items into concrete PR-ready changes (e.g., CI workflow + a small refactor to centralize hosting init).
+
+

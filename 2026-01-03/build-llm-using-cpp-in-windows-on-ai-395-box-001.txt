@@ -1,0 +1,10 @@
+I’ve got a working “training-first, CPU FP32” baseline compiling and running: it trains a tiny byte-level GPT (1-head attention, GELU MLP) on the-verdict.txt and the loss goes down in a short smoke run.
+
+Continue to iterate? Pick one next step (A/B/C/D):
+
+A) Add inference (sampling) + a simple --prompt mode so you can “chat” with the tiny model.
+B) Add checkpoint save/load (.bin weights + JSON config) so training can resume and you can move between machines.
+C) Improve model fidelity: multi-head attention + better block structure (still CPU FP32).
+D) Add correctness tests (finite-diff gradient check for 1–2 ops, plus a tiny deterministic training regression).
+Tell me which option you want first, and whether you want to keep the model tiny (fast iteration) or bump d_model/layers/seq a bit.
+

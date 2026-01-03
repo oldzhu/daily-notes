@@ -1,0 +1,6 @@
+Done — origin now points to your repo and the local commit is pushed.
+
+Remote updated to https://github.com/oldzhu/llm-cpp.git
+Pushed branch main to origin/main
+Set upstream tracking (main now tracks origin/main)
+If you want, I can also verify by fetching and showing the remote commit hash matches local (git rev-parse HEAD; git ls-remote origin main).

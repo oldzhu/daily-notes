@@ -1,0 +1,22 @@
+That output is expected with the current setup — it’s not “broken”, it’s a consequence of byte-level tokenization + tiny/undertrained model + printing raw bytes to the console.
+
+Why it looks like garbage
+
+The model’s vocabulary is 256 tokens = raw bytes 0–255 (see how we encode the prompt and print generated tokens as char).
+After only 5 training steps, the model is basically still near-random. So sampling produces “random bytes”.
+Many byte values don’t correspond to printable ASCII. When you print them on Windows, the terminal interprets those bytes using the current console code page (CP437/CP65001/etc.), so you see characters like ╥τ╨ò... rather than readable English.
+So what you’re seeing is essentially: “random byte stream rendered as whatever glyphs your terminal assigns to those byte values”.
+
+How to make it readable (without changing the model yet)
+
+Train longer: try --steps 5000 (or more) and a slightly bigger model (--dmodel 128, --layers 2) if you can.
+Reduce randomness in sampling:
+Lower temperature: --temp 0.7 or 0.5
+Use --topk 20 or even --topk 5
+(We don’t have greedy yet, but we can add --greedy easily.)
+How to make the console output always “clean”
+We can add one of these modes:
+
+Escape non-printable bytes: print \xNN for bytes outside ASCII 32–126. This guarantees readable output and is the most honest for a byte model.
+Force ASCII-only generation: during sampling, mask logits for bytes outside a whitelist (e.g., \n, \r, \t, space, and !–~). Output becomes readable, but it constrains the model.
+If you want, I can implement --ascii-only 1 and/or --escape-bytes 1 so the generation output is readable even early in training.

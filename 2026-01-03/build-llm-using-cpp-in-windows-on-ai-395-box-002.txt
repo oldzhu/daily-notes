@@ -1,0 +1,25 @@
+A is implemented: the executable now supports inference/sampling via --prompt (byte-level “chat”), and it runs inference under a no-grad mode so it won’t build autograd graphs.
+
+What changed
+
+Added global grad-mode switch (nn::GradMode) so inference can run without autograd graph construction: tensor.h, tensor.cpp, ops.cpp
+Added sampling + --prompt mode with --gen, --temp, --topk; supports “train first then generate” in one run: main.cpp
+Updated docs for Windows + Linux builds and prompt generation: README.md
+Added data folder + gitignore (from earlier step): .gitignore, README.md
+How to use (Windows, Debug)
+
+Train + generate in one command:
+.[train_gpt.exe](http://_vscodecontentref_/9) --data [the-verdict.txt](http://_vscodecontentref_/10) --steps 400 --batch 4 --seq 64 --dmodel 64 --layers 1 --lr 0.0003 --prompt "Hello, tiny GPT: " --gen 200 --temp 1.0 --topk 40
+Generate only (no training): set --steps 0 (and omit --data):
+.[train_gpt.exe](http://_vscodecontentref_/11) --steps 0 --seq 64 --dmodel 64 --layers 1 --prompt "Hi: " --gen 200 --temp 1.0 --topk 40
+(Your sample output will look noisy until you train longer / scale the model a bit.)
+
+Cross-platform build goal
+
+“Same sources build on Windows and Linux” ✅ already true (standard C++/CMake; no OS-specific code).
+“Build Linux binary on Windows / Windows binary on Linux” (cross-compiling) is possible but usually needs toolchains + sysroots (and is a separate project). For now we’re doing the sane baseline: build Windows on Windows, Linux on Linux.
+About “Enable Claude Haiku 4.5 for all clients”
+I can’t enable that from here (no access to your org feature flags). If you tell me what platform/gateway you’re using, I can point you to where that setting typically lives.
+
+If you want the next most useful step after A: I’d do B (checkpoint save/load) so you can train once and “chat” later without retraining every run.
+

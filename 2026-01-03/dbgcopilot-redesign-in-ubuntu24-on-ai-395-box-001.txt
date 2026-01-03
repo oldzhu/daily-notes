@@ -1,0 +1,18 @@
+What This Project Does
+
+dbgcopilot is an interactive “copilot>” REPL that talks to an LLM, proposes a single debugger command inside <cmd>…</cmd>, then runs it only after confirmation (or auto-approve rounds). Core flow is in orchestrator.py.
+Multiple debugger backends are supported (GDB/LLDB/Delve/radare2/jdb/pdb) via wrappers under src/dbgcopilot/backends/…; dbgagent reuses those backends to run fully autonomous loops and write a Markdown report (runner.py).
+dbgweb is a FastAPI app serving a small SPA + APIs/WS for controlling sessions (main.py).
+Top Improvement Suggestions (Highest ROI)
+
+Hard safety gate for <cmd> execution (important): right now <cmd> contents get executed without enforcing “single command / no chaining”. Because several backends split on ;/newlines, the model can accidentally (or maliciously) run multiple commands. Add a validator in CopilotOrchestrator and dbgagent to reject/ask-confirm if the command contains ;, newlines, or risky debugger commands (shell, python, source, etc.). This is the biggest practical safety win.
+Fix prompt context sizing: prompts.json sets max_context_chars to 16000000, which effectively disables truncation/summarization and can balloon request size/cost/latency. Consider dropping to something like 16k–200k chars and/or adding token estimation + automatic “summarize and continue” behavior.
+Config location & writes: the provider registry auto-creates llm_providers.json if missing. In an installed package, writing into CWD (or anywhere unexpected) is surprising. Prefer ~/.config/dbgcopilot/… (XDG) via platformdirs, and use packaged defaults via importlib.resources (read-only).
+Dependency/extras cleanup: root pyproject.toml pulls in fastapi, uvicorn, r2pipe for everyone. If you want pip install dbgcopilot to be lightweight, split optional dependencies into extras like dbgcopilot[web], dbgcopilot[radare2], dbgcopilot[delve].
+Unify HTTP provider code paths: openrouter.py and openai_compat.py duplicate logic (timeouts, retries, error shaping, param overrides). Refactor to share a single request/response layer so behavior is consistent across providers.
+Quick Project-Health Fix I Made
+
+Converted the “script-style” radare2 test (which ran at import-time and broke pytest collection) into real pytest tests that skip cleanly when radare2 isn’t installed: test_radare2_fixes.py. After that, pytest passes in this environment.
+If you want, I can implement the safety gate for <cmd> execution (validator + denylist + “safe_mode” wiring) next; it’s a contained change and improves both dbgcopilot and dbgagent immediately.
+
+
