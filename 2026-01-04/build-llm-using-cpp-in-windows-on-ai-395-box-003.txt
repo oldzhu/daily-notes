@@ -1,0 +1,18 @@
+Yes — I added the missing parts as a new teaching doc, and I also baked in the “docs contract” so future features always get paper/formula→code explanations.
+
+What I Added
+
+docs/autograd_and_memory_layout.md
+Row-major memory layout + indexing formulas (with worked examples)
+How this repo’s autograd graph is built and executed (Tensor, Node, topo order, GradMode)
+Examples mapping core derivatives to code loops (add, matmul2d, softmax JVP, cross-entropy gradient)
+Attention tensor shapes and what indices are contiguous (important later for performance/GPU)
+A concrete checklist for future features so docs stay aligned with code/papers
+Docs Index Updated
+
+docs/README.md now links the new doc and explicitly states the rule:
+when we add MHA / KV-cache / RLHF / etc., we also add/update docs so learners can map concept → formula → code.
+Verification
+
+Re-ran ctest (Debug): all tests passed.
+If you want, before we implement multi-head attention, I can also add a lightweight “doc template” file (headings + required sections) so each new feature doc is consistent and easy to write.

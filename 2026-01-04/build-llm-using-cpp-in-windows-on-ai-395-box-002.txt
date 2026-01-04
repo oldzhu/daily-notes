@@ -1,0 +1,21 @@
+Mostly yes, but not all of it is currently “verbatim” in the repo.
+
+Included as docs (already in the project):
+
+docs/transformer_math_to_code.md covers the core paper-style mapping:
+embeddings, pre-norm block structure, causal self-attention equations, cross-entropy, AdamW update
+plus “where in code” pointers (functions/files)
+docs/training_and_inference_walkthrough.md covers the runtime flow:
+train loop, generation loop, checkpoint overview
+Included as code comments (already in the project):
+
+Softmax / LayerNorm / Attention / Cross-Entropy comments are in src/ops.cpp
+Block structure + embedding/head comments are in src/model.cpp
+AdamW equation comment is in src/optim.cpp
+Not fully included yet (I explained it here, but we haven’t written it down in-repo in full detail):
+
+The deeper “autograd engine walk-through” (how the topo order is built, how each op attaches a backward lambda, how gradients accumulate) is not yet documented as a dedicated section.
+A concrete “shape + memory layout” worked example (e.g., B=2,T=4,C=8 indexing into flat arrays) is also not yet a doc.
+If you want, I can add one more doc file like docs/autograd_and_memory_layout.md that captures the missing parts (autograd flow + buffer indexing examples) in the same teaching style, then re-run ctest again.
+
+

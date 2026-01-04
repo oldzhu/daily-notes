@@ -1,0 +1,1030 @@
+before we move to C (multi-head attention + better block fidelity) and KV cache for faster generation, i want to clarify this is self-learning project to learn and understand how is modern LLM gpt traning and inference working from bottom to upper layer, that's why we choose to use c/c++ as language to implement. It is for self-learning and also can be shared to other people to learn. so I want to have detailed document, explinantion or comments of the c/c++ code implementation. e.g which code or which lines are corresponding to the formula or algotithm in related research paper. So teaching users including me through document or picture or animation to understand and practice how llm training/inference works is very importanant goal of the project, let us plan and design and implement on that part 1st before move to multi-head attention, kv vache and others...
+========
+Big Picture (What You Have Now)
+
+This repo is a “training-first” tiny GPT (decoder-only Transformer) written in C++20: it can train, save/load checkpoints, and generate from a prompt.
+It’s intentionally simplified to be learnable:
+Byte-level tokens: 
+𝑉
+=
+256
+V=256 (each byte 0–255 is a token)
+Pre-norm blocks (LayerNorm before attention/MLP)
+Single-head causal self-attention (so the math is clear)
+CPU FP32, no external ML libraries
+The two “learning documents” you asked for are:
+
+transformer_math_to_code.md
+training_and_inference_walkthrough.md
+They’re paired with targeted comments added to:
+
+ops.cpp (LayerNorm, Softmax, Attention, Cross Entropy, etc.)
+model.cpp (block structure + where formulas apply)
+optim.cpp (AdamW update equation)
+How To Read It Like a Paper → Code Walkthrough
+
+1) Dataset & tokenization (byte-level)
+In many modern LLMs there’s BPE/SentencePiece tokenization; here we simplify to bytes:
+
+Token id is literally the byte value in 
+[
+0
+,
+255
+]
+[0,255].
+Dataset sampling algorithm
+
+Pick random start indices, then produce input/target pairs shifted by one.
+For each batch element:
+𝑥
+[
+𝑡
+]
+=
+bytes
+[
+𝑠
+𝑡
+𝑎
+𝑟
+𝑡
++
+𝑡
+]
+x[t]=bytes[start+t]
+𝑦
+[
+𝑡
+]
+=
+bytes
+[
+𝑠
+𝑡
+𝑎
+𝑟
+𝑡
++
+𝑡
++
+1
+]
+y[t]=bytes[start+t+1]
+Code:
+
+data::ByteDataset::sample_batch in data.cpp
+This corresponds to the standard “next-token prediction” training objective used in GPT-style models (e.g., GPT-2).
+
+2) Model structure (GPT / decoder-only Transformer)
+At a high level (GPT-2 style, decoder-only), the model computes:
+
+Token + positional embeddings
+Repeat N transformer blocks
+Final LayerNorm
+Linear LM head to logits over vocab
+Code:
+
+model::TinyGPT in model.cpp
+2.1 Embeddings
+Math:
+
+Token embedding table: 
+𝑊
+𝑡
+𝑒
+∈
+𝑅
+𝑉
+×
+𝐶
+W 
+te
+​
+ ∈R 
+V×C
+ 
+Position embedding table: 
+𝑊
+𝑝
+𝑒
+∈
+𝑅
+𝑇
+max
+⁡
+×
+𝐶
+W 
+pe
+​
+ ∈R 
+T 
+max
+​
+ ×C
+ 
+For token ids 
+𝑡
+𝑏
+,
+𝑖
+t 
+b,i
+​
+ :
+𝐸
+𝑏
+,
+𝑖
+,
+:
+=
+𝑊
+𝑡
+𝑒
+[
+𝑡
+𝑏
+,
+𝑖
+,
+:
+]
+E 
+b,i,:
+​
+ =W 
+te
+​
+ [t 
+b,i
+​
+ ,:]
+
+𝑋
+𝑏
+,
+𝑖
+,
+:
+=
+𝐸
+𝑏
+,
+𝑖
+,
+:
++
+𝑊
+𝑝
+𝑒
+[
+𝑖
+,
+:
+]
+X 
+b,i,:
+​
+ =E 
+b,i,:
+​
+ +W 
+pe
+​
+ [i,:]
+
+Code mapping:
+
+Embedding lookup: nn::embedding in ops.cpp
+Add positional embeddings: model::TinyGPT::add_positional in model.cpp
+This matches the classic GPT-2 learned positional embedding approach (as opposed to sinusoidal positions from “Attention Is All You Need”).
+
+3) Transformer block (pre-norm)
+Your implementation is pre-norm:
+
+Attention sublayer
+𝐻
+=
+𝐿
+𝑁
+(
+𝑋
+)
+H=LN(X)
+
+𝐴
+=
+𝐶
+𝑎
+𝑢
+𝑠
+𝑎
+𝑙
+𝑆
+𝑒
+𝑙
+𝑓
+𝐴
+𝑡
+𝑡
+𝑛
+(
+𝐻
+)
+A=CausalSelfAttn(H)
+
+𝑋
+←
+𝑋
++
+𝐴
+X←X+A
+
+MLP sublayer
+𝑀
+=
+𝐿
+𝑁
+(
+𝑋
+)
+M=LN(X)
+
+𝐹
+=
+𝐺
+𝐸
+𝐿
+𝑈
+(
+𝑀
+𝑊
+𝑓
+𝑐
++
+𝑏
+𝑓
+𝑐
+)
+F=GELU(MW 
+fc
+​
+ +b 
+fc
+​
+ )
+
+𝑂
+=
+𝐹
+𝑊
+𝑜
+𝑢
+𝑡
++
+𝑏
+𝑜
+𝑢
+𝑡
+O=FW 
+out
+​
+ +b 
+out
+​
+ 
+
+𝑋
+←
+𝑋
++
+𝑂
+X←X+O
+
+Code mapping:
+
+Block wiring: model::TinyGPT::forward_logits in model.cpp
+LN: nn::layernorm_lastdim in ops.cpp
+Residual add: nn::add in ops.cpp
+MLP linear layers: nn::linear_lastdim in ops.cpp
+GELU: nn::gelu in ops.cpp
+Why this matters for learning:
+
+You can see the exact “paper block” structure with almost 1-to-1 code.
+Pre-norm is common in modern training stability.
+4) Causal self-attention (single head)
+This is the core “Attention Is All You Need” mechanism, specialized to:
+
+decoder-only
+causal mask (no looking ahead)
+one head (for simplicity)
+Given hidden states 
+𝐻
+∈
+𝑅
+𝐵
+×
+𝑇
+×
+𝐶
+H∈R 
+B×T×C
+ :
+
+Projection:
+
+𝑊
+𝑞
+𝑘
+𝑣
+∈
+𝑅
+𝐶
+×
+3
+𝐶
+W 
+qkv
+​
+ ∈R 
+C×3C
+ , 
+𝑏
+𝑞
+𝑘
+𝑣
+∈
+𝑅
+3
+𝐶
+b 
+qkv
+​
+ ∈R 
+3C
+ 
+𝑊
+𝑝
+𝑟
+𝑜
+𝑗
+∈
+𝑅
+𝐶
+×
+𝐶
+W 
+proj
+​
+ ∈R 
+C×C
+ , 
+𝑏
+𝑝
+𝑟
+𝑜
+𝑗
+∈
+𝑅
+𝐶
+b 
+proj
+​
+ ∈R 
+C
+ 
+Compute:
+[
+𝑄
+,
+𝐾
+,
+𝑉
+]
+=
+𝐻
+𝑊
+𝑞
+𝑘
+𝑣
++
+𝑏
+𝑞
+𝑘
+𝑣
+[Q,K,V]=HW 
+qkv
+​
+ +b 
+qkv
+​
+ 
+
+Scaled dot-product scores:
+𝑆
+𝑏
+,
+𝑖
+,
+𝑗
+=
+𝑄
+𝑏
+,
+𝑖
+,
+:
+⋅
+𝐾
+𝑏
+,
+𝑗
+,
+:
+𝐶
+S 
+b,i,j
+​
+ = 
+C
+​
+ 
+Q 
+b,i,:
+​
+ ⋅K 
+b,j,:
+​
+ 
+​
+ 
+
+Causal mask (decoder-only):
+𝑆
+𝑏
+,
+𝑖
+,
+𝑗
+←
+−
+∞
+if 
+𝑗
+>
+𝑖
+S 
+b,i,j
+​
+ ←−∞if j>i
+
+Softmax over keys:
+𝑃
+𝑏
+,
+𝑖
+,
+:
+=
+𝑠
+𝑜
+𝑓
+𝑡
+𝑚
+𝑎
+𝑥
+(
+𝑆
+𝑏
+,
+𝑖
+,
+:
+)
+P 
+b,i,:
+​
+ =softmax(S 
+b,i,:
+​
+ )
+
+Weighted sum:
+𝑌
+𝑏
+,
+𝑖
+,
+:
+=
+∑
+𝑗
+=
+0
+𝑇
+−
+1
+𝑃
+𝑏
+,
+𝑖
+,
+𝑗
+𝑉
+𝑏
+,
+𝑗
+,
+:
+Y 
+b,i,:
+​
+ = 
+j=0
+∑
+T−1
+​
+ P 
+b,i,j
+​
+ V 
+b,j,:
+​
+ 
+
+Output projection:
+𝐴
+=
+𝑌
+𝑊
+𝑝
+𝑟
+𝑜
+𝑗
++
+𝑏
+𝑝
+𝑟
+𝑜
+𝑗
+A=YW 
+proj
+​
+ +b 
+proj
+​
+ 
+
+Code mapping:
+
+nn::self_attention_1h in ops.cpp
+Causal mask is implemented by writing a large negative value (e.g. -1e9) when j > i
+Softmax is nn::softmax_lastdim in ops.cpp
+This is exactly the algorithm from “Attention Is All You Need”, with the decoder causal mask behavior used in GPT.
+
+5) LayerNorm (no affine)
+LayerNorm (over last dimension) is:
+
+For each row vector 
+𝑥
+∈
+𝑅
+𝐷
+x∈R 
+D
+ :
+𝜇
+=
+1
+𝐷
+∑
+𝑖
+𝑥
+𝑖
+,
+𝜎
+2
+=
+1
+𝐷
+∑
+𝑖
+(
+𝑥
+𝑖
+−
+𝜇
+)
+2
+μ= 
+D
+1
+​
+  
+i
+∑
+​
+ x 
+i
+​
+ ,σ 
+2
+ = 
+D
+1
+​
+  
+i
+∑
+​
+ (x 
+i
+​
+ −μ) 
+2
+ 
+
+𝑦
+𝑖
+=
+𝑥
+𝑖
+−
+𝜇
+𝜎
+2
++
+𝜖
+y 
+i
+​
+ = 
+σ 
+2
+ +ϵ
+​
+ 
+x 
+i
+​
+ −μ
+​
+ 
+
+Code mapping:
+
+nn::layernorm_lastdim in ops.cpp
+Note: This variant has no learnable scale/shift (
+𝛾
+,
+𝛽
+γ,β). Many production Transformers include them; you can add them later once you’re confident in the base.
+
+6) Logits + cross-entropy loss (next-token prediction)
+After the final block:
+𝑍
+=
+𝑋
+𝑛
+𝑊
+𝑙
+𝑚
++
+𝑏
+𝑙
+𝑚
+Z=X 
+n
+​
+ W 
+lm
+​
+ +b 
+lm
+​
+ 
+
+where 
+𝑍
+Z are logits of shape 
+[
+𝐵
+,
+𝑇
+,
+𝑉
+]
+[B,T,V].
+
+Training objective:
+
+Flatten to 
+𝑁
+=
+𝐵
+⋅
+𝑇
+N=B⋅T rows.
+For each row 
+𝑛
+n with target 
+𝑦
+𝑛
+y 
+n
+​
+ :
+𝑝
+𝑛
+,
+:
+=
+𝑠
+𝑜
+𝑓
+𝑡
+𝑚
+𝑎
+𝑥
+(
+𝑧
+𝑛
+,
+:
+)
+,
+ℓ
+𝑛
+=
+−
+log
+⁡
+𝑝
+𝑛
+,
+𝑦
+𝑛
+p 
+n,:
+​
+ =softmax(z 
+n,:
+​
+ ),ℓ 
+n
+​
+ =−logp 
+n,y 
+n
+​
+ 
+​
+ 
+Mean loss:
+𝐿
+=
+1
+𝑁
+∑
+𝑛
+ℓ
+𝑛
+L= 
+N
+1
+​
+  
+n
+∑
+​
+ ℓ 
+n
+​
+ 
+Code mapping:
+
+model::TinyGPT::loss in model.cpp (reshape then CE)
+nn::cross_entropy in ops.cpp
+This is the standard GPT training objective.
+
+7) Autograd engine (how backward happens)
+The project has a tiny “micrograd-style” reverse-mode autograd:
+
+Every nn::Tensor may point to a Node containing:
+parent tensors
+a backward lambda that accumulates gradients into parents
+When you call:
+
+loss.backward()
+It:
+
+builds a reverse topological order of the graph
+runs each stored backward lambda
+Code mapping:
+
+nn::Tensor::backward in tensor.cpp
+Each op in ops.cpp conditionally attaches backward functions if grad mode is enabled.
+This is key for learning because you can literally inspect how each derivative is implemented.
+
+8) AdamW optimizer (decoupled weight decay)
+AdamW update:
+
+𝑚
+𝑡
+=
+𝛽
+1
+𝑚
+𝑡
+−
+1
++
+(
+1
+−
+𝛽
+1
+)
+𝑔
+𝑡
+m 
+t
+​
+ =β 
+1
+​
+ m 
+t−1
+​
+ +(1−β 
+1
+​
+ )g 
+t
+​
+ 
+
+𝑣
+𝑡
+=
+𝛽
+2
+𝑣
+𝑡
+−
+1
++
+(
+1
+−
+𝛽
+2
+)
+𝑔
+𝑡
+2
+v 
+t
+​
+ =β 
+2
+​
+ v 
+t−1
+​
+ +(1−β 
+2
+​
+ )g 
+t
+2
+​
+ 
+
+Bias correction:
+𝑚
+^
+𝑡
+=
+𝑚
+𝑡
+1
+−
+𝛽
+1
+𝑡
+,
+𝑣
+^
+𝑡
+=
+𝑣
+𝑡
+1
+−
+𝛽
+2
+𝑡
+m
+^
+  
+t
+​
+ = 
+1−β 
+1
+t
+​
+ 
+m 
+t
+​
+ 
+​
+ , 
+v
+^
+  
+t
+​
+ = 
+1−β 
+2
+t
+​
+ 
+v 
+t
+​
+ 
+​
+ 
+
+Update (with decoupled weight decay 
+𝜆
+λ):
+𝜃
+←
+𝜃
+−
+𝛼
+(
+𝑚
+^
+𝑡
+𝑣
+^
+𝑡
++
+𝜖
++
+𝜆
+𝜃
+)
+θ←θ−α( 
+v
+^
+  
+t
+​
+ 
+​
+ +ϵ
+m
+^
+  
+t
+​
+ 
+​
+ +λθ)
+
+Code mapping:
+
+optim::AdamW::step in optim.cpp
+9) Training loop & generation
+Training loop:
+
+Sample batch → forward → backward → AdamW step
+Code mapping:
+
+main training loop in main.cpp
+Generation (sampling):
+
+Encode prompt to bytes
+Repeatedly:
+forward logits on last context window
+sample next token with temperature / top-k
+print byte (optionally escaped)
+Code mapping:
+
+generate(...) and sampling helpers in main.cpp
+How The New Docs + Comments Fit Your Learning Goal
+
+transformer_math_to_code.md is the “equation index”: it tells you “this formula lives in that function”.
+training_and_inference_walkthrough.md is the “program trace”: it tells you what happens during train/save/load/generate.
+The new comments in ops.cpp / model.cpp / optim.cpp are meant to let you read the code “like a paper”.
+If you want, next I can do a “guided tour” of one full forward pass with concrete shapes (example: B=2, T=4, C=8, V=256) and show exactly how tensors are laid out and where each loop indexes into the flat buffers—this is usually the step that makes attention click in C/C++.
+

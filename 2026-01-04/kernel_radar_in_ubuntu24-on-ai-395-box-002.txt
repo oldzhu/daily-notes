@@ -1,0 +1,15 @@
+Done
+
+Wrapper script is already in place at mylinux/kernel_radar/run.sh and writes a UTC date-stamped report into mylinux/kernel_radar/reports.
+Kept systemd user units as repo files only (no install automation):
+mylinux/kernel_radar/systemd-user/kernel-radar.service
+mylinux/kernel_radar/systemd-user/kernel-radar.timer
+Added an optional cron snippet file (repo-contained): mylinux/kernel_radar/cron/crontab.example
+Updated setup + opt-in install instructions in mylinux/kernel_radar/README.md
+How you use it
+
+Generate a report now: cd /home/oldzhu/mylinux/kernel_radar && [run.sh](http://_vscodecontentref_/0) --since-hours 24
+If you later want systemd-user scheduling, follow the manual copy/enable steps in mylinux/kernel_radar/README.md (and edit the paths in the .service if your repo isn’t in ~/mylinux/kernel_radar).
+Want the timer to run at a specific time (e.g., 08:00 daily) instead of “daily”?
+
+

@@ -1,0 +1,16 @@
+Moved and working under mylinux/ now.
+
+What I did
+
+Moved the folder to mylinux/kernel_radar.
+Fixed the Python install issue (PEP 668) by installing python3-venv and using a local venv.
+Created a runnable config at mylinux/kernel_radar/config.yaml.
+Fixed the scheduler feed: linux-sched doesn’t exist on lore (404), so I switched it to linux-kernel in both mylinux/kernel_radar/config.example.yaml and mylinux/kernel_radar/config.yaml.
+Successfully generated a digest at kernel-digest.md (and verified AMDGPU items show up with --include-seen).
+How to run it (from now on)
+
+Install deps once: cd /home/oldzhu/mylinux/kernel_radar && ./.venv/bin/pip install -r requirements.txt
+Daily digest (deduped): ./.venv/bin/python [kernel_radar.py](http://_vscodecontentref_/1) --config config.yaml --since-hours 24 --out /tmp/kernel-digest.md
+Re-generate including already-seen items: ./.venv/bin/python [kernel_radar.py](http://_vscodecontentref_/2) --config config.yaml --since-hours 48 --include-seen --out /tmp/kernel-digest.md
+If you want, next I can add a tiny wrapper script (so you can run ./run.sh --since-hours 24) and/or a cron/systemd-user timer that drops a dated report into mylinux/kernel_radar/reports/.
+

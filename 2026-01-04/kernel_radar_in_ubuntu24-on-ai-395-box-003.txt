@@ -1,0 +1,7 @@
+Done
+
+Initialized a new git repo at mylinux/kernel_radar (not at ~/mylinux and not in WSL2-Linux-Kernel).
+Committed the current project files as: bbf039c kernel_radar: add wrapper + opt-in scheduling.
+Confirmed .venv/, reports/, and config.yaml were not committed (they’re ignored).
+Removed the mistaken empty ~/mylinux/kernel_dara directory.
+If you want, I can also add a short note in the README about keeping config.yaml local-only (already ignored) and using config.example.yaml as the shareable template.
