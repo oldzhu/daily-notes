@@ -1,0 +1,18 @@
+Result
+
+Container image build is now working with Ubuntu 24.04, and Buildroot defconfig works inside the container.
+What happened in testing
+
+.[run.sh](http://_vscodecontentref_/0) --build initially failed due to flaky/blocked network access to Ubuntu apt repos during Docker build.
+Using host networking fixed it: BUILD_NETWORK=host [run.sh](http://_vscodecontentref_/1) --build succeeded.
+Buildroot external tree config parses fine in-container:
+.[run.sh](http://_vscodecontentref_/2) -- make BR2_EXTERNAL=/work/4dotnet defconfig BR2_DEFCONFIG=/work/4dotnet/savedconfigs/arm64/br2.defconfig wrote /work/buildroot/.config successfully.
+What I changed to make this reliable
+
+Added BUILD_NETWORK support in the wrapper so you can do BUILD_NETWORK=host ... --build when Docker build networking is restricted.
+Added support for passing proxy env vars and optional apt mirror overrides (APT_MIRROR, APT_SECURITY_MIRROR) during image build.
+Updated docs with these troubleshooting knobs: build-container.md.
+Next
+
+If you want, I can run a short “first few minutes” build smoke test inside the container (e.g., start make and stop after toolchain download begins) to confirm the workflow beyond defconfig—without committing to a full multi-hour build.
+

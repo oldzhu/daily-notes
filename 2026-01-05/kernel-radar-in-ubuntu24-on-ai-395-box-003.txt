@@ -1,0 +1,14 @@
+Added container dev env (Ubuntu 24) to the repo and pushed
+
+New folder: dev/README.md, dev/Dockerfile, dev/run-container.sh
+Updated docs: README.md now links to the container setup
+Committed + pushed to GitHub: dec9f7d dev: add ubuntu24 container tooling
+How you use it (POC)
+
+Build + enter container: ./dev/run-container.sh --build
+Inside container, go to your upstream linux checkout (example ~/linux) and run:
+.[checkpatch.pl](http://_vscodecontentref_/1) -g HEAD
+.[get_maintainer.pl](http://_vscodecontentref_/2) -f path/to/file.c
+git format-patch -1
+Then send email from host (as you requested): git send-email 0001-*.patch --to ... --cc ...
+If you tell me where your upstream kernel clone lives (e.g. ~/linux or another path), I’ll tailor the exact “first patch” checklist commands (checkpatch/get_maintainer/format-patch/send-email) for that tree and your first tiny change.

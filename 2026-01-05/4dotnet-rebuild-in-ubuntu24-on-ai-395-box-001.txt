@@ -1,0 +1,28 @@
+Podman (what it is)
+
+Podman is a container engine like Docker, but daemonless (no always-running background service) and commonly rootless (can run containers as a normal user).
+It’s OCI-compatible and largely Docker-CLI compatible (podman run ... looks like docker run ...), so the same workflow/scripts usually work with either engine.
+Practical takeaway: if you can run Docker, you already understand Podman; it’s just a different runtime with a similar CLI.
+What I changed (containerized “build from source” first)
+
+Added a container build environment that works with Docker or Podman:
+Dockerfile
+run.sh
+Added docs:
+build-container.md
+Linked it from README.md and build.md
+How to use it (arm64 example)
+
+Build the container image once:
+.[run.sh](http://_vscodecontentref_/5) --build
+Configure + build using your existing defconfig:
+.[run.sh](http://_vscodecontentref_/6) -- make distclean
+.[run.sh](http://_vscodecontentref_/7) -- make BR2_EXTERNAL=/work/4dotnet defconfig BR2_DEFCONFIG=/work/4dotnet/savedconfigs/arm64/br2.defconfig
+.[run.sh](http://_vscodecontentref_/8) -- make
+Important detail (why this matches your current scripts)
+
+The wrapper sets HOME=/work inside the container, so scripts that reference $HOME/buildroot will resolve to /work/buildroot (the mounted Buildroot folder).
+Next step
+
+I haven’t actually executed a Buildroot command in the container yet. If you want, I can run a quick sanity check here (e.g., make BR2_EXTERNAL=/work/4dotnet defconfig ...) to confirm the container deps are sufficient and iterate if any package is missing.
+

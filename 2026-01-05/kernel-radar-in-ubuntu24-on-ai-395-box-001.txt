@@ -1,0 +1,69 @@
+let us temporarily hold on set up the daily run, and keep the manual run for POC 1st, I just would like the next thing of the project is to pick up top 3 issues can choose to start working on, the select rule would be:
+
+simple and direct
+no special hardware requirement
+has a repro so that it would be easy to verfiy the fix
+try to review the relatead code and modify the code to fix.
+expain why the fix would work and wait for my review to approve.
+once the fix proved to work,follow the proess to submit the change to kernel.
+let me know what is ur plan and suggesttions
+
+I just want to quickly to start to submit my 1st kernal patch and verify the workflow to contribute to kernel work, before continue to run script to proceed, I would like to know what the workflow will be and any other tools are required to install to patch the kernel through the standard workflow.
+==========
+Goal: get your first kernel patch sent via the standard email workflow, with the right metadata and a sane local test, so you can verify the “submit → review → v2 → accepted” loop.
+
+Workflow (minimal, standard)
+1) Pick a tiny change
+Best first patch: docs typo / warning fix / small selftest fix.
+Keep it “obviously correct”, easy to review, no special hardware.
+2) Create a clean branch
+git checkout -b my-first-patch
+3) Make the change + build/test something relevant
+At least make W=1 for the affected area (or make help target + quick build).
+If it’s selftests: run that selftest.
+4) Format + validate
+Run style checks (at least checkpatch.pl).
+Ensure commit message follows kernel conventions (Fixes:, Cc: stable@vger.kernel.org only if appropriate).
+5) Find the right recipients
+Use get_maintainer.pl on the touched files to get maintainers + mailing lists.
+6) Generate the patch
+git format-patch -1 --subject-prefix="PATCH" --cover-letter (cover letter optional for 1 patch).
+7) Send via email
+Prefer b4 send (uses git send-email under the hood) or directly git send-email.
+8) Respond to review
+Make fixes, send v2, keep the same subject thread (“Re: [PATCH v2] …”).
+9) Track
+Follow the thread on lore.kernel.org; keep notes of feedback + what changed.
+Tools you should install (recommended)
+These make the workflow much smoother:
+
+git + build tools
+git, gcc/clang, make, bc, bison, flex, libssl-dev, libelf-dev, pahole (for BTF), etc. (depends on your config).
+email + patch sending
+git-email (package name varies; on Ubuntu it’s usually git-email)
+msmtp (simple SMTP sender) or configure SMTP inside git directly
+b4 (highly recommended)
+Pulls patch series from lore, prepares replies, and can send patches.
+Great for kernel-email workflow in 2025/2026.
+patch tooling
+patchutils (optional)
+ripgrep (rg) for searching, cscope/ctags optional
+Commands you’ll actually use on day 1
+Inside your kernel tree (or any kernel repo you’ll submit against):
+
+Recipients:
+.[get_maintainer.pl](http://_vscodecontentref_/3) -f path/to/file.c
+Style:
+.[checkpatch.pl](http://_vscodecontentref_/4) -g HEAD
+Patch file:
+git format-patch -1
+Send (two common ways):
+git send-email 0001-*.patch --to ... --cc ...
+b4 send -o /tmp/outgoing --to ... --cc ... (or b4 send directly if configured)
+Practical suggestions for your very first patch
+Start with a doc or trivial warning fix in the upstream kernel tree you’re targeting.
+Don’t start with AMDGPU behavior changes as patch #1 unless it’s purely obvious (comment/doc/build warning), because review cycles can be longer and hardware questions come up.
+Two quick questions so I can tailor the exact “first patch” recipe
+Are you planning to send your first patch to upstream mainline (kernel.org) or to the WSL2 kernel tree first?
+Do you already have an SMTP method working (Gmail app password / Outlook SMTP / msmtp), or do you want the simplest setup?
+If you answer those, I’ll give you a precise checklist with the exact packages + config steps for your distro, and we can pick a “starter patch” candidate that fits your criteria (simple + no special hardware + easy verification).
