@@ -1,0 +1,40 @@
+et::SMTP::_SSL=GLOB(0x65398800e678)<<< 250-ENHANCEDSTATUSCODES
+Net::SMTP::_SSL=GLOB(0x65398800e678)<<< 250-PIPELINING
+Net::SMTP::_SSL=GLOB(0x65398800e678)<<< 250-CHUNKING
+Net::SMTP::_SSL=GLOB(0x65398800e678)<<< 250 SMTPUTF8
+11:32:20.739565 git.c:463               trace: built-in: git credential fill
+11:32:20.739727 run-command.c:659       trace: run_command: /home/oldzhu/.vscode-server/bin/994fd12f8d3a5aa16f17d42c041e5809167e845a/extensions/git/dist/askpass.sh 'Password for '\''smtp://oldrunner999%40gmail.com@smtp.gmail.com:587'\'': '
+xxxxxxxxxx
+after typed 16 api apssword(using xxxx to replace as the above) and press enter. It still hang as above
+======
+What you’re seeing is the key clue:
+
+
+run_command: .../vscode .../extensions/git/dist/askpass.sh 'Password for ...'
+So git send-email is not reading the password from your terminal — it’s delegating to VS Code’s askpass.sh helper. When that helper doesn’t complete cleanly, it looks like a “hang”.
+
+Fix: force a real terminal password prompt (bypass VS Code askpass)
+Abort the stuck run: press Ctrl+C.
+
+Re-run the send command with askpass disabled:
+
+
+cd ~/mylinux/linuxenv -u GIT_ASKPASS -u SSH_ASKPASS GIT_TERMINAL_PROMPT=1 \git send-email outgoing/0001-scripts-atomic-fix-kerneldoc-spelling-in-try_cmpxchg.patch \  --to will@kernel.org \  --cc peterz@infradead.org \  --cc boqun.feng@gmail.com \  --cc mark.rutland@arm.com \  --cc gary@garyguo.net \  --cc linux-kernel@vger.kernel.org \  --confirm=always
+Now it should prompt in the terminal for password; paste the 16‑char Gmail App Password.
+
+If you want more visibility while you test, add --smtp-debug=1 to that command.
+
+If it still “hangs”
+Run this to see whether your environment is still injecting askpass:
+
+
+env | grep -E 'GIT_ASKPASS|SSH_ASKPASS|GIT_TERMINAL_PROMPT' || true
+Optional (but recommended): don’t CC yourself automatically
+Right now git is auto-adding you as CC due to From: and Signed-off-by:. That’s harmless, but if you prefer not to, set:
+
+
+git config --global sendemail.suppresscc all
+Then resend.
+
+Once it succeeds, you should see a final “OK” and a Message-ID. Paste that Message-ID here and I’ll tell you the fastest way to confirm it landed on lore.kernel.org and how to handle v2 replies.
+

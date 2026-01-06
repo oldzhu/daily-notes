@@ -1,0 +1,26 @@
+Checked try_cmpxchg: no other typos to bundle. The file is now clean, so we should keep this as a single, minimal patch.
+
+Gmail From setup is ready (host-based)
+
+Updated the commit so From: is oldrunner999@gmail.com
+Cleaned up the footer so there’s only one Signed-off-by: (Gmail)
+checkpatch.pl is clean (0 errors, 0 warnings)
+Installed git-send-email (git-email package)
+Configured host git send-email for Gmail SMTP:
+smtp.gmail.com:587 with TLS
+From: oldzhu <oldrunner999@gmail.com>
+Important answer to your SMTP question
+
+If your From is oldrunner999@gmail.com, you should use Gmail SMTP (that’s what we did).
+Using Gmail SMTP to send as a Hotmail From: generally causes deliverability/auth issues (DMARC/SPF alignment), so your earlier instinct was right to switch the From to Gmail.
+Dry-run succeeded (no email sent yet)
+
+git send-email --dry-run ... succeeded and showed correct recipients + headers.
+Next step: actually send (you will be prompted for password)
+Before sending, make sure your Google account has 2-Step Verification enabled and you’ve created an App Password for “Mail” (Google requires this for SMTP in most cases). Then run:
+
+cd ~/mylinux/linux
+git send-email outgoing/0001-scripts-atomic-fix-kerneldoc-spelling-in-try_cmpxchg.patch --to will@kernel.org --cc peterz@infradead.org --cc boqun.feng@gmail.com --cc mark.rutland@arm.com --cc gary@garyguo.net --cc linux-kernel@vger.kernel.org
+When it prompts for the SMTP password, paste the Gmail App Password (not your normal login password).
+
+If you want, I can also tweak the send-email config to avoid CC’ing yourself automatically (it currently adds your From/SOB as CC).

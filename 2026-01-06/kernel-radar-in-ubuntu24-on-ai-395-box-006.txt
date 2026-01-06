@@ -1,0 +1,11 @@
+Added a new reference doc + saved the scripts we used, and pushed them to your kernel_radar repo.
+
+New doc: docs/how-we-picked-top-3-syzbot-issues.md
+
+Explains the constraints, data sources (syzkaller JSON + bug HTML), why lore wasn’t sufficient, and records the final 3 chosen issues with links.
+Includes the exact ad-hoc scripts/commands we ran as commented code blocks.
+New runnable script: tools/syzbot_pick_top3.py
+
+Recreates the shortlist process (fetch upstream JSON → scrape bug page for ReproC/ReproSyz + KernelConfig → heuristic hardware-title exclusion → print candidates).
+Example: ./tools/syzbot_pick_top3.py --scan-limit 800 --count 3
+If you’re ready, next step is driving issue #1 end-to-end in ~/mylinux/linux (repro + isolate + patch + checkpatch.pl + get_maintainer.pl + prep/send email).

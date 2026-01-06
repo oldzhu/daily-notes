@@ -1,0 +1,30 @@
+Nope — that file is clean now. It’s very short, and the grep for common misspellings found nothing after the occurred fix. So we should not expand the commit further.
+
+About SMTP: can you use Gmail SMTP with a Hotmail From address?
+
+In practice: not reliably. Kernel submission expects the From: address to be a real, reply-able address, and modern mail systems enforce SPF/DKIM/DMARC.
+If you authenticate to Gmail SMTP but send with From: wp_xdzhu@hotmail.com, Gmail will typically either:
+rewrite the From/sender, or
+add “via gmail.com”, or
+get the message rejected/quarantined by recipients due to DMARC alignment.
+So the “simplest / least trouble” path is: use the SMTP provider that matches your From address.
+Given your From is wp_xdzhu@hotmail.com, simplest options are:
+
+Use Outlook/Hotmail SMTP (recommended)
+Works best when From == authenticated account.
+Caveat: Microsoft sometimes requires app-password / “SMTP AUTH” enabled; if basic password auth is blocked, it gets a bit annoying.
+Use a Gmail account as your kernel From (alternative)
+Create/use yourname@gmail.com only for kernel work.
+Then using Gmail SMTP is straightforward (app password) and deliverability is usually good.
+But the visible From would be the Gmail address, not your Hotmail.
+Next step: set up host-side git send-email
+Before I give you the exact minimal commands/config, one detail decides everything:
+
+Do you want to send as wp_xdzhu@hotmail.com (then we target Outlook SMTP), or are you OK sending as a Gmail address (easier)?
+Reply with one of:
+
+“Use Hotmail From”
+“Use Gmail From”
+and I’ll give you the exact git config + SMTP settings + a dry-run send (--dry-run) for your prepared patch in ~/mylinux/linux/outgoing/.
+
+

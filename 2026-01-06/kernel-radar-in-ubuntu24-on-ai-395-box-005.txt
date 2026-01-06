@@ -1,0 +1,26 @@
+Perfect — that means it really sent.
+
+What to record
+
+Message-ID: <20260106040158.31461-1-oldrunner999@gmail.com>
+Subject: [PATCH] scripts/atomic: fix kerneldoc spelling in try_cmpxchg
+Next (confirm it landed + be ready to reply)
+
+Wait ~5–15 minutes (sometimes faster).
+Check on lore (LKML mirror). Easiest searches:
+https://lore.kernel.org/lkml/?q=20260106040158.31461-1-oldrunner999%40gmail.com
+or by subject: https://lore.kernel.org/lkml/?q=scripts%2Fatomic%3A+fix+kerneldoc+spelling+in+try_cmpxchg
+If you see it there, you’re officially “in the system”.
+
+What happens now
+
+You’ll likely get either: no reply (still OK), a quick “applied, thanks”, or a small review nit.
+If someone asks for changes, you’ll send v2:
+edit + amend commit
+git format-patch -1 -v2 --output-directory outgoing HEAD
+git send-email --in-reply-to <Message-ID> outgoing/0001-...v2...patch ... (keeps it threaded)
+One small improvement (optional)
+Right now you CC yourself automatically. That’s harmless, but if you want to stop it:
+
+git config --global sendemail.suppresscc all
+If you paste the lore link once it appears, I’ll tell you exactly what to watch for (maintainer feedback patterns, when to resend, and how to track if/when it gets applied).
