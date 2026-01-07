@@ -1,0 +1,38 @@
+There are two practical signals to check: what syzbot thinks (status/threads), and what’s already landed in git.
+
+1) Check the syzbot bug page status (fastest)
+
+Open the bug page (for #1): https://syzkaller.appspot.com/bug?extid=3e68572cf2286ce5ebe9
+Look at the Status: line:
+If it says things like “fixed” / “invalid” / “dup” and shows a fixing commit, it’s already resolved (or superseded).
+If it still says “reported …” (like it does now), it’s typically not known fixed yet.
+Also check whether the page shows a Fix commit / Patched section (some bugs have “Fix commit:” links once identified).
+2) Follow the “Status” link to see if anyone is actively working on it
+
+The status line links to a thread on syzkaller-bugs@googlegroups.com (or sometimes lore mirrors).
+In that thread, you can tell if someone is working on it by:
+[PATCH] / RFC replies proposing a fix
+Maintainer replies like “applied”, “queued”, “will send to net-next”, etc.
+syzbot follow-ups like “tested: …” / “still crashes” (often after a patch is posted)
+This is usually the best way to know “is someone else working on it?” because kernel work is coordinated via public email threads.
+
+3) Search lore for patches/discussion (broader than the syzbot thread)
+For net issues, fixes may be discussed on other lists too.
+
+Search across lore for the exact title/function:
+https://lore.kernel.org/all/?q=WARNING+in+skb_attempt_defer_free
+https://lore.kernel.org/all/?q=skb_attempt_defer_free
+If you see a patch thread referencing the same crash, that’s a strong hint it’s being handled.
+4) Check whether mainline already contains a likely fix (git-side verification)
+From your ~/mylinux/linux tree:
+
+See recent activity in the file:
+git log --oneline --max-count=50 -- net/core/skbuff.c
+Search for commits touching that function/area:
+git log -p -S 'skb_attempt_defer_free' -- net/core/skbuff.c
+If you find a commit message that clearly matches the warning/root cause, it may already be fixed even if syzbot hasn’t marked it yet (syzbot can lag until it retests a kernel with the fix + the right config).
+5) Definitive check: run the reproducer on current master
+Even if you see “reported” on syzbot, if you can’t reproduce on current mainline, it’s very likely fixed (or at least not reproducible with current configs). In that case, the next step is usually: identify the fixing commit (often by bisection between known-bad and known-good) and report back on the thread.
+
+If you want, I can do a quick “status + thread scan” for issue #1 (syzbot page + linked thread + lore search queries) and summarize whether it looks already in progress by someone else before we start reproducing locally.
+

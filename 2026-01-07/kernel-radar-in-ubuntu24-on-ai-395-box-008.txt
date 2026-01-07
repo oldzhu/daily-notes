@@ -1,0 +1,7 @@
+All set.
+
+Added outbox/ to be ignored in .gitignore so generated .eml replies won’t show up in git.
+Removed the old wrapper send_lore_reply_smtp.py from the working tree.
+Committed the new tool tools/send_lore_reply_git_send_email.py (tools: add lore reply helper via git send-email).
+Repo is clean now (git status shows no changes).
+If you want, I can also push this commit to your GitHub kernel_radar repo.

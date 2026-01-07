@@ -1,0 +1,37 @@
+yes. currently I am in amd ai 395 box _AMD_RYZEN_AI_MAX+_395_w/_Radeon_8060S and my host is windos 11 and currently our llvm project is opened from WSL2 ubuntu24 distrio. And based on the below github issue, https://github.com/ROCm/ROCm/issues/4952 [Feature]: WSL2 Support for AMD RYZEN AI MAX+ 395 #4952 , seems like WSL2 still not support AMD RYZEN AI MAX+ 395
+===========
+Given WSL2 likely won’t expose your Radeon 8060S to ROCm yet, I’ll adjust the learning plan so you can still contribute immediately (LLVM/MLIR/Triton codegen + tests) and only require native Linux/remote AMD ROCm for the profiling/perf milestones.
+
+Added 1 todo
+
+Your read of ROCm/ROCm#4952 is consistent with what typically blocks people here: even if LLVM builds fine in WSL2, ROCm needs real GPU access (driver + kernel interfaces) and WSL2 only supports GPU compute when the vendor provides the right GPU-PV/WSL stack. If AMD hasn’t enabled that for the Radeon 8060S/395 yet, you won’t be able to run Triton HIP kernels or ROCm profilers inside WSL2.
+
+Good news: you can still make high-value progress toward that Triton/LLVM AMD role without ROCm-in-WSL2 by leaning into compiler/codegen correctness work first, then doing perf work on native Linux or a remote ROCm machine.
+
+What you can do today in WSL2 (no GPU required)
+
+LLVM AMDGPU backend contributions
+Build LLVM/Clang in WSL2 and work on llvm/lib/Target/AMDGPU/**.
+Add/regress tests under llvm/test/CodeGen/AMDGPU/**.
+Use compiler-only validation: llc -march=amdgcn -mcpu=<gfx…>, opt, MIR tests, FileCheck. This doesn’t require a GPU.
+MLIR GPU/ROCDL lowering contributions
+Work in mlir/** and add FileCheck tests in mlir/test/**.
+You can validate IR/pipeline output without executing on hardware.
+Triton contributions (compiler-side)
+Many fixes are in the lowering/codegen path and can be tested via “expected IR/asm” style tests (depending on how Triton’s tests are structured).
+Execution/perf tests will still need a real ROCm runtime.
+Where WSL2 blocks you (usually)
+
+Running HIP kernels, rocminfo, rocprof/omniperf, kernel execution profiling
+Debugging runtime issues that require an actual GPU launch (hangs, incorrect results, perf counters)
+Workarounds (pick one)
+
+A) Native Ubuntu 24 on the same box (recommended for perf/kernel work)
+Dual-boot or install Ubuntu and ROCm there. This is the most direct way to do Triton AMD kernel profiling/tuning.
+B) Remote ROCm machine (good if you can get one)
+Do all dev in WSL2, then push branches and run execution/perf validation on a separate Linux ROCm host (SSH + CI scripts). This is extremely realistic for compiler teams.
+C) Stay WSL2-only for now
+Focus on LLVM/MLIR/Triton codegen correctness + tests, and defer perf work until ROCm-on-WSL2 lands for your device.
+I updated the plan to explicitly account for this constraint (added a “Plan around WSL2 GPU limits” step and clarified which milestones require native/remote ROCm).
+
+One quick clarifier so I can steer you to the best workaround: do you have the option to install native Ubuntu on this machine (dual-boot), or do you have access to a separate Linux ROCm box for remote runs?

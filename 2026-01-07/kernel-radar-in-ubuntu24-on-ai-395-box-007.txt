@@ -1,0 +1,10 @@
+Sent.
+
+Generated the reply file: outbox/reply-20260106094433.GW3707891@noisy.programming.kicks-ass.net.eml
+Ran git send-email with VS Code askpass disabled (env -u GIT_ASKPASS ... GIT_TERMINAL_PROMPT=1 ...)
+You confirmed the prompt (Send this email? ...: y)
+SMTP accepted it: Result: 250 (success) with Message-ID <20260107101033.45302-1-oldrunner999@gmail.com>
+If you want to avoid the interactive “Send this email?” prompt next time, set:
+
+git config --global sendemail.confirm auto
+And if you want to avoid being asked for the SMTP password each time, we can set up a safer credential mechanism (without putting the password in command line or VS Code askpass).

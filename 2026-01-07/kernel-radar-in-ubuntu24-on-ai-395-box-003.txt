@@ -1,0 +1,35 @@
+Status + thread scan result for issue #1: it’s already being actively fixed by the net maintainer side.
+
+syzbot status (still “reported”)
+
+Bug: https://syzkaller.appspot.com/bug?extid=3e68572cf2286ce5ebe9
+Status currently shows: “upstream: reported C repro on 2026/01/05 09:26”
+That status alone doesn’t guarantee nobody is working on it; it just means syzbot hasn’t confirmed a fix yet.
+But there is already a patch posted (strong “someone is working on it” signal)
+
+Lore thread (single-message thread): https://lore.kernel.org/all/20260105093630.1976085-1-edumazet@google.com/T/
+Patch subject: [PATCH net] udp: call skb_orphan() before skb_attempt_defer_free()
+Author: Eric Dumazet (core net maintainer)
+It CCs netdev and the main net maintainers, and it CCs syzbot for this exact extid.
+The patch includes:
+Fixes: 6471658dc66c ("udp: use skb_attempt_defer_free()")
+Reported-by: syzbot+3e68572cf2286ce5ebe9@...
+Closes: https://lore.kernel.org/netdev/... (the syzbot report thread)
+Diff summary: it changes udp.c to call skb_orphan(skb) before skb_attempt_defer_free(skb).
+Conclusion
+
+Yes: someone is already working on it, and it’s a maintainer-quality fix already sent to netdev (very likely to get applied soon).
+If we want to contribute on this exact issue, the best value would be testing the patch (does it stop the warning with the syzbot repro?) and replying to the patch thread with results.
+If you want, I can pivot our “end-to-end” work to: reproduce the warning on current master, apply Eric’s patch on top, retest, then send a short “tested-by” style reply to that lore thread.
+
+Created and pushed a new “how to check if an issue is already being worked” reference, including the exact scripts/commands we used.
+
+New doc: docs/how-to-check-if-an-issue-is-already-being-worked.md
+
+Covers the full workflow: syzbot status → follow lore threads → fetch raw mbox and confirm Reported-by/Closes/Fixes → optional git-side checks.
+Includes the ad-hoc Python snippets we ran, with comments.
+New helper script: tools/syzbot_check_in_progress.py
+
+Usage: ./tools/syzbot_check_in_progress.py <extid>
+Prints title/status/status-link plus lore links and “patch-like” thread links.
+Whenever you’re ready tomorrow, we can pick a different candidate (and run this checker first to avoid duplicating someone else’s work).

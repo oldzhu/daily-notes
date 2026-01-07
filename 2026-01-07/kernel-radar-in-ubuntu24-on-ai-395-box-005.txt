@@ -1,0 +1,20 @@
+Yes — there are follow-ups, and they’re good news.
+
+What I can see programmatically (bypassing the blocked lore search page)
+
+Your patch thread Atom feed t.atom shows 3 entries (your patch + 2 replies).
+The thread mbox t.mbox.gz confirms 2 replies from Peter Zijlstra.
+Follow-up summary
+
+Peter replied that he picked up your patch.
+He noted it needs to include the generated-file updates from running ./scripts/atomics/gen-atomics.sh, and he showed what the resulting combined patch looks like.
+Second reply: he noticed and fixed a “spurious” generated change (gen-atomic-fallback.sh vs gen-atomic-fallback.sh).
+Where to view
+
+Thread Atom (shows all messages): https://lore.kernel.org/lkml/20260106040158.31461-1-oldrunner999@gmail.com/t.atom
+Thread mbox (downloadable): https://lore.kernel.org/lkml/20260106040158.31461-1-oldrunner999@gmail.com/t.mbox.gz
+What you should do next
+
+No v2 needed from you right now. The maintainer already took it and is adjusting the generated outputs on his side.
+Optional (nice): send a short reply like “Thanks, noted about generated files; I’ll include them next time.”
+

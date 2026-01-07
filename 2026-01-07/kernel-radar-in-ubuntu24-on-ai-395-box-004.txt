@@ -1,0 +1,18 @@
+Yes — besides updating tools/syzbot_check_in_progress.py, I also created a new script (and doc) to preserve the “list and filter 3 unclaimed issues” logic that previously only existed as ad‑hoc terminal snippets.
+
+What’s new
+
+New script: tools/syzbot_pick_unclaimed.py
+
+Implements the exact filtering we used:
+Must have ReproC or ReproSyz
+Heuristic exclude hardware-ish titles
+“Unclaimed” == syzbot page does not link to any lore /T/ thread whose subject contains [PATCH
+Run: ./tools/syzbot_pick_unclaimed.py --count 3 --scan-limit 2000
+New doc: docs/how-we-picked-unclaimed-syzbot-issues.md
+
+Explains the heuristic, limitations, data sources, and how this script relates to the other tools.
+Also updated
+
+Refined syzbot_check_in_progress.py (already pushed earlier) so it only flags “in progress” if a linked lore thread subject actually contains [PATCH] (instead of treating every /T/ as patch-like).
+All of the above is committed and pushed to your GitHub repo, so tomorrow when you pick which issue to start, we can rerun syzbot_pick_unclaimed.py and then confirm with syzbot_check_in_progress.py before doing any reproduction work.

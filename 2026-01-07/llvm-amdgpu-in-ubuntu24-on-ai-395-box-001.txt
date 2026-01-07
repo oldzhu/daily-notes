@@ -1,0 +1,87 @@
+Triton is seeking talented compiler developers. The ideal candidate should be proficient in compilers, GPU architectures, parallel programming, and high-performance kernels, capable of conducting quantitative workload analysis and driving improvements across compiler layers. Strong cross-domain learning and collaboration skills are essential.Key Responsibilities:
+
+Develop and maintain the AMD backend for the Triton compiler
+
+Enhance compilation patterns and passes in Triton
+
+Research and implement high-performance matrix multiplication and attention kernels
+
+Profile and optimize AMD GPU kernel performance bottlenecks
+
+Debug and fix issues in the AMDGPU backend of LLVM
+
+Preferred Qualifications:
+
+Familiarity or prior experience with Triton is a major plus
+
+Knowledge of compiler frameworks like MLIR, LLVM, and IREE
+
+Deep understanding of GPU architectures and programming models
+
+Experience in writing and tuning high-performance GPU kernels
+
+Ability to debug cross-stack issues and translate them into actionable solutions
+
+Commitment to open-source development principles
+```
+so my goal is combine with llvm project to learn and pratice in the areas mendtioned in the above job descritpion . Could u prepare the plan for me to practice and learn in these areas through contribute to the related code base by monitoring the issues reported and contribute code patching to fix the reported issues.
+=============
+
+
+’ll turn that job description into a concrete, contribution-driven learning plan: what to learn (LLVM/MLIR/Triton/AMDGPU), how to monitor/triage issues, and a staged sequence of “first patches → performance work → cross-stack debugging” with measurable milestones.
+
+Created 10 todos
+
+High-level path (contribution-driven, generic, CMake/Ninja focus)
+You’ll learn fastest by repeatedly doing: pick issue → reproduce → localize to a layer → add minimal test → implement fix → run targeted checks → upstream patch. The plan below maps directly to the Triton AMD backend + LLVM AMDGPU responsibilities.
+
+What to build competence in (mapped to the job)
+
+LLVM AMDGPU backend debugging/fixing: instruction selection, legalization, scheduling, MIR, asm output; write AMDGPU tests.
+MLIR/GPU lowering: pattern rewrites + pass pipelines; write test FileCheck tests; understand gpu, vector, LLVM dialect lowering and ROCm/ROCDL paths.
+Triton AMD backend: Triton IR → MLIR/LLVM lowering points; debug generated IR at each layer.
+Performance engineering: create repeatable benchmarks; profile with ROCm tooling; make changes with quantified improvements (time, TFLOPs, occupancy, registers, LDS, memory transactions).
+Cross-stack problem solving: trace issues from Python/Triton kernel → generated IR → LLVM AMDGPU → runtime symptoms.
+Concrete plan (phased milestones + contribution loop)
+
+Phase 0 (1–3 days): environment + fast mental model
+Maintain two local build dirs: one for llvm-project (AMDGPU + MLIR), one for Triton.
+Practice the “single test / single target” muscle memory:
+LLVM: ninja -C build check-llvm and llvm-lit …/llvm/test/CodeGen/AMDGPU
+MLIR: ninja -C build check-mlir and llvm-lit …/mlir/test/...
+Phase 1 (week 1–2): first patches (tests first, then small fixes)
+Goal: 2–4 merged patches that are “small, obvious, well-tested.”
+Start with:
+Missing/incorrect test coverage for a known AMDGPU behavior
+Small correctness fixes (crash, miscompile with a minimal reproducer)
+Phase 2 (week 3–6): become dangerous in one layer at a time
+Alternate:
+LLVM AMDGPU fix (with lit regression test)
+MLIR pass/pattern tweak (with FileCheck test)
+Triton AMD fix (with Python repro + test)
+Keep each patch scoped to one layer unless you’re explicitly doing a cross-stack drill.
+Phase 3 (ongoing): performance kernels + quantitative wins
+Choose one: matmul or attention (don’t split early).
+Build a microbenchmark harness and track:
+Kernel time, achieved TFLOPs/GB/s, occupancy, vgpr/sgpr usage, LDS usage
+Only claim perf improvements when you have stable before/after numbers.
+Issue monitoring workflow (so you’re always working on the right things)
+
+Set up saved GitHub searches and watch labels:
+llvm/llvm-project: “AMDGPU”, “CodeGen”, “MLIR”, “regression”, “crash”, “miscompile”
+triton-lang/triton: “AMD”, “ROCm”, “codegen”, “performance”
+Triage rubric (fast):
+Reproducible? Minimizable? Affects correctness vs perf? Recent regression?
+Can you add a test that fails before your fix?
+Patch workflow checklist (use every time)
+
+Minimal reproducer (IR or C/C++/Python)
+Identify layer (Triton vs MLIR vs LLVM AMDGPU)
+Add test in the right tree (llvm/test/..., mlir/test/..., Triton tests)
+Implement smallest correct fix
+Run the smallest relevant check target (check-llvm, check-mlir, check-clangd, etc.)
+Post PR with clear “root cause → fix → tests” narrative
+Next question (so I can tailor this to your reality)
+
+Do you have access to an AMD GPU + ROCm environment for profiling, or are you starting CPU-only/CI-first? This determines whether we bias early toward correctness issues (CI-repro) or performance work (local profiling).
+

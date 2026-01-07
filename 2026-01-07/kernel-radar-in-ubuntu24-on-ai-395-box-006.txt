@@ -1,0 +1,14 @@
+Done — mylinux/kernel_radar/tools/send_lore_reply_smtp.py now uses git send-email instead of smtplib.
+
+Fetches the replied-to message from lore /raw
+Generates an .eml reply file under outbox/
+Builds and (optionally) runs git send-email --in-reply-to=... --to=... --cc=... <file>
+When running git send-email, it clears GIT_ASKPASS/SSH_ASKPASS/ASKPASS and sets GIT_TERMINAL_PROMPT=1 so you won’t get the VS Code askpass extension prompt
+Verified via --dry-run that headers match your desired pattern:
+
+To: Peter
+Cc: includes linux-kernel@vger.kernel.org + the other CCs (and your own address, matching your snippet)
+To actually send:
+
+python3 [send_lore_reply_smtp.py](http://_vscodecontentref_/6) --lore-list lkml --reply-to-mid 20260106094433.GW3707891@noisy.programming.kicks-ass.net --from-name 'oldzhu' --from-email oldrunner999@gmail.com --body "Thanks, noted about generated files; I’ll include them next time." --send
+If you want, I can also rename the script to something like send_lore_reply_git_send_email.py for clarity (keeping a tiny wrapper for backwards compatibility).

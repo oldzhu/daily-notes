@@ -1,0 +1,32 @@
+Here are 3 real, upstream-reported syzbot issues that (a) don’t need special hardware, and (b) come with reproducers/configs so you can reproduce in a VM and then craft a proper fix + email patch.
+
+net: skb_attempt_defer_free() warning (localized core-net code)
+Bug: https://syzkaller.appspot.com/bug?extid=3e68572cf2286ce5ebe9
+Status: upstream: reported C repro on 2026/01/05 09:26
+Subsystem: net
+Crash site: net/core/skbuff.c:7243 (RIP in skb_attempt_defer_free)
+Reproducers:
+Kernel config: https://syzkaller.appspot.com/text?tag=KernelConfig&x=a11e0f726bfb6765
+C repro: https://syzkaller.appspot.com/text?tag=ReproC&x=16e6089a580000
+syz repro: https://syzkaller.appspot.com/text?tag=ReproSyz&x=1545c89a580000
+Why it’s a good “next patch”: clear crash location in one file, C repro available, and net/core fixes are usually reviewable.
+bpf: KASAN OOB read in strnchr() (likely bad length/termination feeding into string helper)
+Bug: https://syzkaller.appspot.com/bug?extid=2c29addf92581b410079
+Status: upstream: reported C repro on 2026/01/05 14:11
+Subsystem: bpf
+Crash site: lib/string.c:405 (BUG: KASAN: slab-out-of-bounds in strnchr)
+Reproducers:
+Kernel config: https://syzkaller.appspot.com/text?tag=KernelConfig&x=a94030c847137a18
+C repro: https://syzkaller.appspot.com/text?tag=ReproC&x=16de569a580000
+syz repro: https://syzkaller.appspot.com/text?tag=ReproSyz&x=10c82e22580000
+Why it’s reasonable: C repro available; often ends up as a bounded-access fix or length clamp near the caller (though bpf can be a bit more subtle than net).
+vhost/workqueue: hung task involving vhost_worker_killed() (likely more concurrency-heavy)
+Bug: https://syzkaller.appspot.com/bug?extid=a9528028ab4ca83e8bac
+Status: upstream: reported syz repro on 2026/01/05 08:42
+Crash site: kernel/workqueue.c:7654 (RIP in wq_watchdog_touch)
+Reproducers:
+Kernel config: https://syzkaller.appspot.com/text?tag=KernelConfig&x=a94030c847137a18
+syz repro: https://syzkaller.appspot.com/text?tag=ReproSyz&x=13a67222580000
+Why it’s “maybe”: no C repro and hangs tend to be trickier to make a minimal, confident fix.
+If you want the fastest path to a real code patch, I’d pick #1 (skb_attempt_defer_free) first. Want me to take #1 and drive it end-to-end in your ~/mylinux/linux tree (repro in QEMU using syzbot’s KernelConfig, identify root cause, draft patch, run checkpatch.pl, and prep the email with get_maintainer.pl)?
+
