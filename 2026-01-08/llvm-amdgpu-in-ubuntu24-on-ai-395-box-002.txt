@@ -1,0 +1,43 @@
+Those numbers are great for dual-boot: you have ~1.75 TB free on C: and ~1.79 TB free on D:.
+
+For reference, your output is in bytes:
+
+C: free ≈ 1.59 TiB, used ≈ 229 GiB
+D: free ≈ 1.63 TiB, used ≈ 193 GiB
+Recommended disk layout (best for LLVM/Triton + ROCm)
+Goal: keep Windows intact, keep a shared NTFS drive, and give Ubuntu fast native ext4 space for builds (LLVM builds are disk-hungry and NTFS-in-Linux is slower).
+
+Keep
+C: Windows (NTFS) unchanged.
+D: keep most of it as NTFS for shared data and Windows access.
+Add (on D: ideally)
+Create one new Linux partition by shrinking D::
+
+Ubuntu root (/) on ext4: 250–400 GB (minimum I’d do is ~200 GB; comfortable is 300+ GB)
+LLVM + MLIR + Clang builds can easily consume tens to >100 GB depending on build type, multiple build dirs, ccache, etc.
+Optional but nice:
+Separate home ext4: 200–500 GB (if you want cleaner separation)
+Swap: you can skip a swap partition and use a swapfile later (simpler). If you want a partition: 16–32 GB is typical, more only if you expect hibernation.
+This avoids formatting an entire disk: you only shrink D: and carve out ext4 space.
+
+Can both Windows and Linux access both disks?
+Linux can read/write NTFS (C: and D:), so Ubuntu can access your Windows files.
+Windows cannot natively read ext4, so don’t put “shared” files only on ext4 if you need Windows access.
+Best practice for performance:
+Put LLVM/Triton source + build directories on ext4 (fast, correct permissions/symlinks).
+Keep datasets, installers, documents, and “shared” stuff on NTFS (D:).
+What about reusing the WSL2 distro rootfs / .vhdx?
+You generally can’t practically “install Ubuntu using the WSL2 rootfs” as your native dual-boot OS.
+The realistic path is:
+Install Ubuntu normally (it will create a real ext4 filesystem + bootloader).
+Then copy/migrate your repos and configs from WSL2 into native Ubuntu.
+Dual-boot gotchas (worth checking now)
+If BitLocker is on (especially for C: or D:), have recovery keys ready.
+Disable Windows Fast Startup (prevents NTFS “hibernated volume” mount issues in Linux).
+Secure Boot may complicate ROCm/kernel driver pieces depending on what’s needed; often easiest is disabling Secure Boot if you hit driver/module signing issues.
+Next step
+Tell me:
+
+Is BitLocker enabled on C: or D:?
+Roughly how much space do you want to allocate to Ubuntu (e.g. 300 GB vs 600 GB)?
+Then I’ll propose an exact partition recipe (single ext4 vs split / + home) optimized for LLVM/Triton builds and ROCm.

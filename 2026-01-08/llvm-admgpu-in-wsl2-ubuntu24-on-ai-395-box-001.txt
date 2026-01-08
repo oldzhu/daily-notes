@@ -1,0 +1,79 @@
+You can get a meaningful “partial full‑stack” experience in WSL2 right now by treating “the stack” as: Triton/MLIR/LLVM → AMDGPU codegen artifacts (IR/MIR/asm) → tests, and delaying only the parts that require a real ROCm runtime (kernel launch + profiling).
+
+Here’s a concrete plan you can start today in WSL2 while you prep the USB.
+
+1) Build a compiler toolchain that can target AMDGPU (WSL2-friendly)
+Goal: generate and inspect AMDGPU codegen without running on GPU.
+
+Configure an out-of-tree build (Ninja) for LLVM + Clang (and optionally MLIR):
+cmake -S llvm -B ~/build/llvm -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DLLVM_ENABLE_PROJECTS="clang;mlir" -DLLVM_TARGETS_TO_BUILD="AMDGPU;X86" -DLLVM_ENABLE_ASSERTIONS=ON
+ninja -C ~/build/llvm clang llc opt llvm-lit
+This lets you run:
+
+llc -march=amdgcn -mcpu=gfx... (codegen)
+opt / mlir-opt (IR/passes)
+llvm-lit + FileCheck tests
+2) Practice “cross-stack debugging” using artifacts (no GPU required)
+You can debug 80% of real compiler issues by comparing expected vs actual at each layer.
+
+A) LLVM IR → AMDGPU asm (backend-level)
+Write small .ll IR snippets and compile:
+~/build/llvm/bin/llc -march=amdgcn -mcpu=gfx1100 -O3 test.ll -o -
+Learn to inspect:
+instruction selection
+SGPR/VGPR usage hints
+memory ops patterns
+B) MIR-level debugging (AMDGPU backend internals)
+MIR is huge for backend fixes.
+
+Generate MIR:
+llc -stop-after=finalize-isel -march=amdgcn -mcpu=gfx1100 test.ll -o -
+or -print-after-all / -print-machineinstrs (noisy but very educational)
+This is how many AMDGPU bugs get minimized and fixed upstream.
+C) MLIR pipeline debugging (mid-end / lowering)
+If you build MLIR:
+
+Use mlir-opt to run passes and dump IR:
+mlir-opt --pass-pipeline='...' input.mlir
+Add FileCheck-based tests under mlir/test/... (still no GPU execution).
+3) Contribute now: test-driven AMDGPU work
+This is real upstream value and doesn’t require ROCm runtime.
+
+What you can do in WSL2
+Reproduce issues that are “codegen wrong” using:
+IR/MIR tests under AMDGPU
+Add tests for:
+missed combines
+incorrect legalization
+wrong instruction selection
+register/stack frame issues (often caught by FileCheck patterns)
+Key skill: reduce a bug report to a 10–30 line .ll file + a FileCheck expectation.
+
+4) Start issue monitoring + triage with a “minimizer mindset”
+Even before native Linux/ROCm is ready, you can take an issue and turn it into:
+
+minimal reproducer (IR)
+failing test in LLVM
+potential fix area (backend pass / instruction selector / legalizer)
+That’s essentially “full stack debugging” from a compiler engineer’s POV.
+
+5) Lightweight Triton practice in WSL2 (compile-only)
+You can still learn Triton’s compiler structure by:
+
+Installing Triton in a Python venv (even if you can’t run AMD kernels)
+Using any available “compile to IR” / “dump IR” switches (varies by Triton version)
+Your goal in WSL2: understand which stage corresponds to MLIR/LLVM artifacts you’ll later validate on native ROCm.
+If Triton’s AMD backend build or runtime insists on ROCm, you can still read/modify code and run unit tests that don’t require GPU (where available).
+
+6) A 1-week “WSL2-only” sprint plan (so you don’t wait)
+Day 1–2: build LLVM toolchain + run one check-llvm subset
+Day 2–3: learn AMDGPU test patterns by reading 5 tests in AMDGPU
+Day 3–5: pick one small AMDGPU issue (or even a cleanup) and add/adjust a regression test
+Day 5–7: attempt a small functional fix + rerun targeted tests
+What you’ll still postpone until native Ubuntu + ROCm
+Actually running Triton-generated kernels on Radeon 8060S
+Profiling (rocprof/omniperf), occupancy counters, etc.
+Debugging “runtime-only” failures
+One question (so I can tailor the next steps precisely)
+Do you already have a working LLVM build directory in WSL2, or should I give you the exact cmake flags for an AMDGPU-focused dev build (fast-ish build, minimal projects) and a “first lit test” exercise?
+

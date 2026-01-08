@@ -1,0 +1,56 @@
+Yes — it’s totally fine to put “almost all of D” into / (single big ext4 root), and many people do exactly that. The split / + home layout is just a convention for separation, not a requirement.
+
+Why your WSL df -h looks different
+WSL2 is special: your Linux root is inside a virtual disk (ext4.vhdx) and Windows drives are mounted under c, d. Native Ubuntu won’t look like that: / will be a real ext4 partition on the NVMe.
+
+Two layouts you’re deciding between
+Layout A — “Single big root” (recommended for simplicity)
+EFI: ~1GB FAT32 mounted at /boot/efi
+Root: the rest of disk ext4 mounted at /
+No separate home partition (it’s just a directory inside /)
+Pros
+
+Simplest install and simplest to manage.
+No guessing “how big should / be?” later.
+No risk of “/ is full but /home has tons of space” (a common annoyance when building LLVM).
+Easier when you want lots of large build dirs, caches, Docker images, etc.
+Cons
+
+If you ever need to reinstall Ubuntu, it’s harder to preserve home separately (you can still back it up, but it’s not partition-isolated).
+Less isolation between OS files and your data (not usually a problem for personal dev machines).
+Layout B — “Split / and /home” (good if you reinstall often)
+EFI: ~1GB FAT32 /boot/efi
+Root: 300–400GB ext4 /
+Home: rest ext4 home
+Pros
+
+Easier reinstall: you can reformat / and keep home intact (carefully).
+Clear separation: OS vs user data.
+Cons (real ones for compiler work)
+
+You must size / correctly. LLVM + ROCm + build deps + multiple builds can grow; if / fills up, things break in annoying ways.
+Space is not shared dynamically; you can end up with free space in home while / is full.
+What I recommend for your specific use case (LLVM/Triton/ROCm)
+If you want the least friction and you’re not constantly reinstalling: Layout A (single big /).
+
+A practical “LLVM dev” partition plan on D:
+
+EFI: 1GB FAT32 /boot/efi
+Root: ~1.8TB ext4 /
+Swap: skip partition; use swapfile later if needed
+If you do want the reinstall convenience of split home but avoid the “/ full” trap, then bump / bigger than the usual desktop advice:
+
+/: 500–800GB
+home: rest
+That’s a good compromise for heavy builds.
+
+Answer to your direct question
+“Is it fine to mount all D partition except the one for efi to /?”
+
+Yes. That’s the simplest and usually best for a dev box doing large builds.
+
+One small correction from earlier
+If you do split partitions, the home mount point is home (with a leading /), not home.
+
+If you tell me whether you value “easy reinstall” vs “never worry about partition sizing”, I’ll give you the exact partition sizes to enter in the Ubuntu installer screen.
+

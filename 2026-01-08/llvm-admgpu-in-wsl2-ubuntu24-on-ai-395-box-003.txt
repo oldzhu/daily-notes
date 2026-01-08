@@ -1,0 +1,12 @@
+Rebuild restarted successfully.
+
+Build dir: llvm-amdgpu-wsl2
+Command running: ninja -C /home/oldzhu/build/llvm-amdgpu-wsl2 -j 8 llc opt FileCheck mlir-opt
+It’s actively compiling now (e.g. AMDGPUISelLowering.cpp.o).
+There’s plenty of space (~778G free) and RAM; -j 8 should keep WSL stable.
+If you want to watch progress from my side, tell me and I’ll keep polling the build output; otherwise you can just let it run until it finishes.
+
+
+
+Next step after the build finishes: I’ll give you a first “AMDGPU test drill” using llc + FileCheck + llvm-lit with the tools you just built.
+

@@ -1,0 +1,11 @@
+Patched: I added a short “rule of thumb” block to README.md explaining that llvm-lit “note: Did not find …” lines are fine if the test still ends in PASS, and what to do when it’s a fatal/missing-tool failure.
+
+On “where is Triton compiler in LLVM?”:
+
+Triton is not an in-tree component of llvm-project. The Triton compiler lives in its own repository (commonly upstream at https://github.com/triton-lang/triton, plus various vendor forks).
+Triton uses LLVM/MLIR: it lowers Triton IR through MLIR/LLVM and then targets backends like NVIDIA (PTX) or AMD (AMDGPU) depending on the implementation/fork.
+In this workspace, the only “Triton” I found inside llvm-project is a test artifact: triton-tut-softmax-kernel.ll, which is explicitly “an excerpt from the tutorial of the Triton language … converted into LLVM IR”. It’s not the Triton compiler itself.
+If you want, next I can:
+
+point you to the exact MLIR/LLVM directories that Triton typically interacts with (GPU dialects, LLVM translation, AMDGPU backend), and
+propose a first small AMDGPU/MLIR issue to tackle that’s “Triton-adjacent” even without ROCm runtime.

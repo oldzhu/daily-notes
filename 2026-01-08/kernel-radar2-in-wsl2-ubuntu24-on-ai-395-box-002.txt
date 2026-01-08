@@ -1,0 +1,22 @@
+I’ll add a short doc in the kernel_radar repo recording exactly how we reviewed the issue #3 lore thread today (commands + what to look for), and then I’ll answer your repro question with the practical options (syzbot QEMU assets vs building your own kernel to test a fix).
+Yes — for issue #3 you typically need a VM (QEMU) to run the syz repro, but you don’t necessarily need to build your own kernel just to reproduce.
+
+Repro: Do you need to build a kernel + run QEMU?
+
+For a baseline repro: usually QEMU/VM is required, but you can often avoid building because syzbot provides ready-to-boot assets:
+bzImage / kernel image
+vmlinux
+disk image (disk-*.raw.xz)
+repro program (repro.syz)
+For validating a fix: you almost always do need to build your own kernel with your patch, then boot that kernel in QEMU (you can still reuse syzbot’s disk image + repro).
+WSL note: if KVM isn’t available, QEMU still works with TCG emulation but is slower; many syz reproductions still work, just takes longer.
+
+Today’s work: scripts + docs
+
+No existing scripts needed changes today.
+I added and committed a new “record of work” doc so we can refer back later:
+docs/review-syzbot-issue3-vhost-worker-killed-thread.md
+It includes the exact command we used (t[lore_thread_followups.py](http://_vscodecontentref_/1) ... --show-bodies 5), a message-by-message summary, and concrete contribution ideas.
+If you want, next I can extract the exact syzbot “Downloadable assets” URLs for extid a9528028ab4ca83e8bac and draft a minimal QEMU command line for your environment (KVM vs TCG).
+
+

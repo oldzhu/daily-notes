@@ -1,0 +1,102 @@
+Below is a practical, safe “cookbook” for installing native Ubuntu 24.04 onto your D disk (Windows stays on C). I’ll keep it concrete and biased toward avoiding “wipe the wrong disk”.
+
+A) Prepare the boot USB (Windows 11)
+1) Download Ubuntu 24.04 LTS ISO
+Get “Ubuntu 24.04 LTS Desktop” ISO from ubuntu.com.
+2) Create the USB with Rufus (recommended)
+Download Rufus (portable is fine).
+Insert a USB drive (≥ 8GB).
+In Rufus:
+Device: your USB stick
+Boot selection: select the Ubuntu ISO
+Partition scheme: GPT
+Target system: UEFI (non CSM)
+File system: FAT32 (Rufus usually chooses correctly)
+Click Start.
+If asked ISO mode vs DD mode: choose ISO mode (default).
+B) Pre-install safety checks (Windows)
+3) Confirm which disk is Windows vs target disk
+From your data:
+
+Disk 0 (serial ends …4998) contains C: → DO NOT TOUCH
+Disk 1 (serial ends …A451) contains D: → TARGET for Ubuntu
+(Optional but safer)
+
+4) Make D “Unallocated” (so it’s obvious in the installer)
+In Disk Management:
+
+Right-click the D: volume → Delete Volume
+You should see Disk 1 become “Unallocated”
+This makes it much harder to accidentally pick the wrong disk later.
+C) Boot into the Ubuntu USB (UEFI)
+5) Boot menu
+Reboot and enter boot menu (often F12, Esc, F9, etc.)
+Select the USB entry that explicitly says UEFI: <USB name>
+Choose Try or Install Ubuntu
+D) Identify the correct NVMe disk in the live environment (most important step)
+6) In “Try Ubuntu”, open Terminal and map disks by serial
+Run:
+
+sudo nvme list
+You should see two devices (both CT2000P310SSD8). Pick the one whose serial ends with:
+
+A451 → this is your D disk (install here)
+4998 → this is your C disk (Windows; do not touch)
+(Backup command if needed)
+
+lsblk -o NAME,SIZE,MODEL,SERIAL,TYPE,MOUNTPOINTS
+E) Install Ubuntu onto D (manual partitioning = safest)
+7) Start installer
+Double-click Install Ubuntu.
+
+8) Choose “Installation type” → Something else
+This gives you explicit control and avoids wiping C.
+
+9) Partition Disk D (the one matching serial …A451)
+On the correct disk device (e.g. /dev/nvme1n1, but confirm by serial):
+
+Delete any existing partitions on that disk (if any).
+Create these partitions:
+EFI System Partition
+
+Size: 1024 MB
+Type: FAT32
+Mount point: /boot/efi
+Flags: esp (some UIs call it “EFI System Partition”)
+Root partition
+
+Size: 300–400 GB
+Type: ext4
+Mount point: /
+Home partition
+
+Size: “rest of the disk”
+Type: ext4
+Mount point: home
+Notes:
+
+You can skip a swap partition; Ubuntu can use a swapfile later.
+300–400GB for / is comfortable for LLVM/Triton builds + multiple build dirs + ccache.
+10) Bootloader location
+Set “Device for boot loader installation” to the same disk you’re installing Ubuntu onto (the disk with serial …A451), e.g. /dev/nvme1n1 (not a partition like /dev/nvme1n1p1).
+
+11) Install
+Proceed with timezone/user settings and install.
+
+F) First boot and boot order
+12) After install, reboot
+Remove USB when prompted.
+If it boots to Windows directly:
+Enter BIOS and set ubuntu as first boot option, or use the one-time boot menu to select ubuntu.
+Ubuntu’s GRUB menu should also let you boot Windows.
+G) Post-install quick checks (before ROCm)
+After first boot into Ubuntu:
+
+sudo apt update && sudo apt upgrade -y
+lspci | grep -i -E "vga|display|amd"
+uname -a
+When you reach this point, send me:
+
+sudo nvme list output
+lspci | grep -i -E "vga|display|amd" output
+…and I’ll guide the ROCm setup and validation (rocminfo, basic HIP sample, then Triton/LLVM practice workflow).

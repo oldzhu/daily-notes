@@ -1,0 +1,22 @@
+Status
+
+llvm-lit now runs in your WSL2 build for gfx1151 tests (we had to build a couple missing “lit substitution” tools).
+Baseline passes: directive-amdgcn-target.ll, elf-header-flags-mach.ll
+What we fixed in the environment
+
+llvm-lit was aborting because it couldn’t find count, not, and llvm-config in your build bin (and elf-header-flags-mach.ll needs llvm-readobj).
+Built: count, not, llvm-config, llvm-readobj in ~/build/llvm-amdgpu-wsl2/bin.
+Debug loop you can reuse (gfx1151)
+
+Run one test: ~/build/llvm-amdgpu-wsl2/bin/llvm-lit -v ~/llvm-project/llvm/test/CodeGen/AMDGPU/directive-amdgcn-target.ll
+Repro with llc asm: ~/build/llvm-amdgpu-wsl2/bin/llc -mtriple=amdgcn-amd-amdhsa -mcpu=gfx1151 -O3 < test.ll | head
+MIR checkpoint: ~/build/llvm-amdgpu-wsl2/bin/llc -mtriple=amdgcn-amd-amdhsa -mcpu=gfx1151 -O3 -stop-after=finalize-isel -verify-machineinstrs < test.ll | head
+Doc updated
+
+I updated your local tutorial to bake in the above “lit tools” requirement: tutorial/README.md
+Next practice tasks (good first contributions)
+
+Test-only practice (safe): pick an AMDGPU CodeGen test that only has gfx1100 coverage and add a gfx1151 RUN line if output should match (then update checks with update_llc_test_checks.py).
+Small backend exercise: pick a short GlobalISel GFX11 test (e.g. one of the llvm.amdgcn.* intrinsic tests) and learn to bisect where an instruction form changes using -stop-after/-stop-before and the machine verifier.
+Investigation starter: elf-header-flags-mach.ll has a FIXME about inaccurate eflags for xnack/sramecc; that’s a real-world “paper cut” area to explore once you’re comfortable.
+If you tell me whether you want to focus next on “AMDGPU backend” or “MLIR GPU lowering”, I’ll pick a concrete small target (1 test + 1 file to edit) and drive it to a clean patch.

@@ -1,0 +1,42 @@
+I have no other linux rocm box we have tow options:
+
+as u recommened, install native ubuntu on this windows 11 host (dual-boot).
+using AMDGPU rocm in windows 11 + LLVM
+for the 1st, I have 2 disks in windows 11 (one is C: with windows system and d: with data currently contain the wsl2 distrio .vhdx files) - is it possible to install native ubuntu and use the rootfs of the wsl2 ubuntu distrio? is it possible keep all data at c: and d: and let both windows and native linux access both disks? Or I have to format one disk for the native linux?
+for the 2nd, as far as I know amdgpu for windows are not open sourced, so we may still can't not full use it to practice and learn the full stack experiences from llvm triton compiler to amdgpu kernel in source code level, am I right?
+======
+Option 1 (dual-boot) is the only path that realistically gets you “full stack” (Triton → MLIR → LLVM AMDGPU → ROCm runtime → kernel profiling) on your own machine.
+
+1) Dual-boot Ubuntu: can you “reuse” the WSL2 rootfs?
+
+Booting directly from the WSL2 rootfs (.vhdx) as your native Ubuntu install is not practical/recommended. WSL2’s ext4 lives inside a ext4.vhdx file; a normal dual-boot install expects a real disk partition (ext4) with a bootloader, initramfs, etc.
+What is practical: install native Ubuntu normally, then migrate data from WSL2:
+Easiest: copy your home/projects out of WSL2 (\\wsl$\<distro>\home\... from Windows, or tar from inside WSL2) into the new native Ubuntu.
+Advanced (possible but fiddly): mount the ext4.vhdx from native Linux (using tools like qemu-nbd / libguestfs) and copy data over. This is doable, but it’s extra complexity vs just exporting/copying.
+2) Can Windows and native Linux both access C: and D:? Do you have to format a whole disk?
+
+You do not need to format an entire disk.
+Typical setup that works well:
+Keep Windows on C: (NTFS) as-is.
+Keep shared data on D: (NTFS) so both Windows and Ubuntu can read/write it easily.
+Create one new ext4 partition (on either disk) for Ubuntu’s root filesystem (/). You usually do this by shrinking a Windows partition in Disk Management, then installing Ubuntu into the freed space.
+Important nuance:
+Linux can read/write NTFS well (use it for shared projects/data).
+Windows cannot natively read ext4 (so keep “shared” stuff on NTFS, not ext4).
+Practical warnings (worth doing to avoid pain):
+If BitLocker is enabled, plan for recovery keys and understand it can complicate dual-boot access.
+Disable Windows Fast Startup so NTFS volumes aren’t left in a hibernated state that Linux refuses to mount read/write.
+3) Option 2: ROCm/AMDGPU on Windows 11 + LLVM/Triton — are you blocked by closed drivers?
+
+You’re basically right: Windows AMD GPU drivers are not open-source, so you can’t do the same “debug into the driver/runtime source” experience you can on Linux.
+More importantly for your goal: Triton-on-AMD is effectively a ROCm/Linux-first story today. Even if you can compile LLVM/MLIR/Triton on Windows, the end-to-end kernel execution + profiling stack you want is much less reliable/available than on native Linux ROCm.
+Net: Windows can still be useful for editor/dev/CPU-side work, but for kernel execution, profiling, and real AMD backend validation, native Linux ROCm is the realistic route.
+What I’d do in your situation
+
+Choose dual-boot Ubuntu 24.04.
+Keep D: as NTFS shared “work” drive (repos, datasets, benchmarks).
+Give Ubuntu a dedicated ext4 partition for / (and optionally a separate ext4 for home if you like clean separation).
+Treat WSL2 as disposable: copy out what you need, don’t try to “boot it.”
+If you tell me how big your free space is on C: and D:, and whether BitLocker is on, I can suggest a concrete partitioning layout (how many GB for Ubuntu root, swap, shared work, etc.) optimized for LLVM/Triton builds.
+
+

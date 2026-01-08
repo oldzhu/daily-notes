@@ -1,0 +1,70 @@
+Here’s the safest, built-in way to move a WSL2 distro from D: to C: using export → unregister → import (this moves the ext4.vhdx contents). Do this per distro you care about.
+
+0) Identify what you have
+In PowerShell (Admin not required):
+
+wsl -l -v
+You’ll see names like Ubuntu-24.04, maybe also docker-desktop / docker-desktop-data (if you use Docker Desktop). Only move what you actually need.
+
+1) Shut down WSL (important)
+
+wsl --shutdown
+Wait ~5 seconds.
+
+2) Export the distro to a tar on C:
+Pick a temp folder with lots of space, e.g. C:\wsl-backup:
+
+mkdir C:\wsl-backup
+Export (replace Ubuntu-24.04 with your distro name):
+
+wsl --export Ubuntu-24.04 C:\wsl-backup\Ubuntu-24.04.tar
+This can take a while.
+
+3) Unregister the old distro (this removes the old VHDX on D:)
+Double-check the .tar exists and is large (not 0 bytes), then:
+
+wsl --unregister Ubuntu-24.04
+This is the destructive step (it deletes the registered instance), so only do it after export succeeds.
+
+4) Import it to C:
+Choose a new install directory on C:, e.g. C:\WSL\Ubuntu-24.04:
+
+mkdir C:\WSL\Ubuntu-24.04
+wsl --import Ubuntu-24.04 C:\WSL\Ubuntu-24.04 C:\wsl-backup\Ubuntu-24.04.tar --version 2
+5) Start it and verify your data
+
+wsl -d Ubuntu-24.04
+Check your home directory files are present.
+
+6) Restore default user (common gotcha after import)
+After --import, the default user is often root. Fix it inside WSL:
+
+wsl -d Ubuntu-24.04 -u root
+ls /home (see your username, e.g. oldzhu)
+Edit wsl.conf (create if missing) to set default user:
+sudo nano /etc/wsl.conf
+Add:
+
+[user]default=YOUR_USERNAME
+Exit WSL, then:
+wsl --shutdown
+wsl -d Ubuntu-24.04
+7) Repeat for other distros (if needed)
+Run the same export/unregister/import for each distro you want to move.
+
+Notes / pitfalls
+
+If you use Docker Desktop: moving docker-desktop* distros is usually unnecessary and can break Docker; tell me if those appear in wsl -l -v and whether you use Docker.
+Keep the .tar until you’ve booted the imported distro and confirmed everything is there. Then you can delete C:\wsl-backup\*.tar.
+When you’re done, paste the output of wsl -l -v and confirm D: is now empty (or at least no longer hosting the WSL VHDX). Then I’ll give you the exact Ubuntu partitioning/install steps to use the full D: for native Linux + ROCm.- Exit WSL, then:
+
+wsl --shutdown
+wsl -d Ubuntu-24.04
+7) Repeat for other distros (if needed)
+Run the same export/unregister/import for each distro you want to move.
+
+Notes / pitfalls
+
+If you use Docker Desktop: moving docker-desktop* distros is usually unnecessary and can break Docker; tell me if those appear in wsl -l -v and whether you use Docker.
+Keep the .tar until you’ve booted the imported distro and confirmed everything is there. Then you can delete C:\wsl-backup\*.tar.
+When you’re done, paste the output of wsl -l -v and confirm D: is now empty (or at least no longer hosting the WSL VHDX). Then I’ll give you the exact Ubuntu partitioning/install steps to use the full D: for native Linux + ROCm.

@@ -1,0 +1,35 @@
+Go with the single big root layout (no separate home). That’s the “never worry about partition sizing” choice.
+
+Partition plan for D (simple + best for LLVM/Triton builds)
+On the D disk (serial ends A451):
+
+EFI System Partition
+Size: 1024 MB
+Type: FAT32
+Mount point: /boot/efi
+Flags: esp
+Root partition
+Size: rest of disk (all remaining space)
+Type: ext4
+Mount point: /
+That’s it.
+
+Notes:
+
+You don’t need a home partition; home will just be a directory inside /.
+Skip swap partition; Ubuntu will typically use a swapfile (or you can add one later).
+Installer clicks (summary)
+Boot Ubuntu USB in UEFI mode.
+“Installation type” → Something else
+Select the disk that matches serial …A451.
+Delete partitions on that disk.
+Create the two partitions above.
+“Device for boot loader installation” → choose the same disk (e.g. /dev/nvme1n1, whatever corresponds to …A451).
+After Ubuntu boots (first 3 commands)
+Run:
+
+df -h
+lsblk -f
+lspci | grep -i -E "vga|display|amd"
+Paste the output and I’ll guide the next step: ROCm install/validation for your Ryzen AI MAX+ 395 / Radeon 8060S, then we’ll switch back to the LLVM/Triton contribution workflow with real kernel execution available.
+

@@ -1,0 +1,18 @@
+Yes — for your current workflow it’s fine to ignore those note: Did not find ... lines as long as the test you’re running still passes.
+
+What’s happening:
+
+llvm-lit precomputes a big set of “tool substitutions” (paths to many LLVM utilities) so tests can refer to them.
+If a tool isn’t in your build bin, lit prints a note and leaves that substitution unavailable.
+That only becomes a problem if a particular test’s RUN: lines actually use one of those missing tools (then you’ll get a failure like “Could not run …” or “Did not find …” fatal).
+Rules of thumb:
+
+Safe to ignore: subst.py:126: note: Did not find ... and the test passes.
+Not safe to ignore: you see fatal: / Could not run process ... / not found and the test fails (or lit aborts). Then build the missing tool (e.g. ninja -C ~/build/llvm-amdgpu-wsl2 <tool>).
+If you want to reduce that noise, we can either:
+
+Build a small set of commonly-needed tools (beyond not/count/llvm-config/llvm-readobj) as you encounter them, or
+Run a more targeted set of tests so fewer substitutions matter.
+Want me to add one more short note in the tutorial explaining exactly this “notes are OK unless a test needs it” behavior (and how to react when it’s not OK)?
+
+

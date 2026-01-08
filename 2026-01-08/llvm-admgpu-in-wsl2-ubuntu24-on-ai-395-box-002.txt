@@ -1,0 +1,66 @@
+You don’t need to wait for native Ubuntu to start “full-stack” learning — you can do a very real Triton/MLIR/LLVM→AMDGPU codegen artifact workflow in WSL2 (the only missing piece is executing/profiling kernels).
+
+What I did in your WSL2 already
+
+Confirmed your checkout has no existing out-of-tree LLVM build dir (only .ci/buildbot exists in-tree).
+Installed build prereqs (cmake, ninja-build, build-essential, and common LLVM deps).
+Configured a new out-of-tree build at $BUILD=/home/oldzhu/build/llvm-amdgpu-wsl2 with:
+LLVM_ENABLE_PROJECTS=clang;mlir
+LLVM_TARGETS_TO_BUILD=AMDGPU;X86
+RelWithDebInfo + assertions
+Started building the key tools in the background:
+ninja -C $BUILD llc opt FileCheck mlir-opt
+Note: llvm-lit is already generated as a script at $BUILD/bin/llvm-lit (it is not a Ninja target).
+Partial “full-stack debugging” plan you can do now (WSL2)
+1) Layer 0: run and trust your toolchain
+Once the build finishes, verify:
+
+"$BUILD/bin/llc" --version
+"$BUILD/bin/opt" --version
+"$BUILD/bin/FileCheck" --version
+"$BUILD/bin/mlir-opt" --version
+"$BUILD/bin/llvm-lit" --version
+If any binary is missing, just re-run:
+
+ninja -C "$BUILD" llc opt FileCheck mlir-opt
+2) Layer 1: AMDGPU codegen debugging (LLVM IR → MIR → asm)
+This is “backend debugging” without needing a GPU.
+
+Pick an existing AMDGPU test to start from:
+ls llvm/test/CodeGen/AMDGPU | head
+Run it through llc for your architecture (likely gfx1151 for your machine):
+"$BUILD/bin/llc" -march=amdgcn -mcpu=gfx1151 -O3 llvm/test/CodeGen/AMDGPU/<some-test>.ll -o - | head -n 80
+MIR drill (super important for real AMDGPU fixes):
+
+Dump MIR around isel/legalization:
+"$BUILD/bin/llc" -march=amdgcn -mcpu=gfx1151 -O3 -stop-after=finalize-isel llvm/test/CodeGen/AMDGPU/<some-test>.ll -o - | head -n 80
+3) Layer 2: Lit + FileCheck workflow (how LLVM actually regression-tests)
+Run a single test file:
+
+"$BUILD/bin/llvm-lit" -v llvm/test/CodeGen/AMDGPU/<some-test>.ll
+Run the whole directory subset (slower):
+
+"$BUILD/bin/llvm-lit" -v llvm/test/CodeGen/AMDGPU
+4) Layer 3: “Minimize like a compiler engineer”
+Your goal is to take an issue description and turn it into a tiny .ll test + FileCheck expectations.
+
+Use LLVM’s helper to generate/update CHECK: lines:
+
+Script: update_llc_test_checks.py
+Typical flow:
+edit/minimize .ll
+run update script to refresh checks
+run llvm-lit on that one test
+5) Layer 4: MLIR pass pipeline debugging (compile-time only)
+Even without ROCm, you can learn MLIR lowering by checking IR transformations.
+
+Start from an MLIR test or your own small .mlir, then:
+"$BUILD/bin/mlir-opt" --help | head
+"$BUILD/bin/mlir-opt" <flags> input.mlir | "$BUILD/bin/FileCheck" input.mlir
+This builds the muscle you’ll use later when Triton lowers into MLIR and you need to localize where patterns/passes go wrong.
+
+What you can’t do in WSL2 (and should defer)
+Running Triton-generated AMD kernels via ROCm/HIP
+Profiling/occupancy counters/rocprof/omniperf
+Runtime-only correctness issues (hangs, driver/runtime interaction)
+If you want, tell me when the WSL2 build finishes (or paste the output of ls $BUILD/bin | egrep 'llc|opt|FileCheck|mlir-opt|llvm-lit') and I’ll give you a first “guided drill” using one specific test from AMDGPU to practice: reproduce → inspect MIR/asm → tweak check lines → run llvm-lit.

@@ -1,0 +1,12 @@
+I’m going to expand the tutorial with a concrete “worked example” section for the two AMDGPU tests we just ran, including the exact llvm-lit/llc commands, what each flag does, and how lit + FileCheck interpret the RUN: lines and check prefixes.
+
+Edited
+README.md+139-0
+Updated the tutorial with the exact llvm-lit/llc commands we ran plus detailed explanations of what each command/flag is doing and how lit + FileCheck operate.
+
+Added a “Worked examples” section for:
+directive-amdgcn-target.ll: llvm-lit -v, direct llc repro for gfx1151, MIR checkpoint with -stop-after=finalize-isel + -verify-machineinstrs
+elf-header-flags-mach.ll: llc -filetype=obj ... | llvm-readobj --file-header - pipeline
+Added a short “mental model” section explaining RUN: lines, --check-prefixes, and the fastest way to debug a failing lit test.
+Changes are in tutorial/README.md.
+

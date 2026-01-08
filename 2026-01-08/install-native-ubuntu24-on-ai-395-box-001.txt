@@ -1,0 +1,60 @@
+PS C:\WINDOWS\system32> Get-Partition | Select DiskNumber,PartitionNumber,DriveLetter,Size | Sort DiskNumber,PartitionNumber
+
+DiskNumber PartitionNumber DriveLetter Size
+
+
+     0               1                104857600     0               2                 16777216     0               3               1048576000     0               4           C 1999227657728     1               1                 16759808     1               2           D 2000381018112
+PS C:\WINDOWS\system32> Get-Disk | Select Number, FriendlyName, SerialNumber, Size
+
+Number FriendlyName SerialNumber Size
+
+
+ 1 CT2000P310SSD8 0000_0000_0000_0001_00A0_7525_509B_A451. 2000398934016 0 CT2000P310SSD8 0000_0000_0000_0001_00A0_7525_509B_4998. 2000398934016
+PS C:\WINDOWS\system32> wmic diskdrive get index,model,serialnumber,size
+Index Model SerialNumber Size
+0 CT2000P310SSD8 0000_0000_0000_0001_00A0_7525_509B_4998. 2000396321280
+1 CT2000P310SSD8 0000_0000_0000_0001_00A0_7525_509B_A451. 2000396321280
+=======
+You’ve uncovered the key detail: your earlier “C vs D” mapping by serial was flipped. The new Get-Partition output is the authoritative mapping.
+
+From your Get-Partition table:
+
+Disk 0, partition 4 = DriveLetter C (≈ 1.999 TB)
+→ Windows system disk is Disk 0
+→ Serial ends with 4998 is C
+
+Disk 1, partition 2 = DriveLetter D (≈ 2.000 TB)
+→ Data disk is Disk 1
+→ Serial ends with A451 is D
+
+So:
+
+C-disk serial: …4998
+D-disk serial: …A451
+That’s what you must use in the Ubuntu installer.
+
+What to do now (safe dual-boot on D)
+When you boot the Ubuntu live USB, run:
+
+sudo nvme list
+Then:
+
+The NVMe whose serial ends with A451 is your D disk → OK to wipe/install Ubuntu there.
+The NVMe whose serial ends with 4998 is your C disk (Windows) → do NOT touch it.
+Why the confusion happened
+Windows drive letters (C/D) are about partitions/volumes. Disk numbers are just OS enumeration. The reliable “ground truth” is always partition → drive letter, which you printed with Get-Partition.
+
+One more safety guard (recommended)
+Before installing Ubuntu, in Windows Disk Management:
+
+Right‑click D: → Delete Volume (optional but makes it very obvious in the Ubuntu installer that the target disk is “empty/unallocated”).
+Not required, but it reduces risk.
+Installation choice
+Use the “Something else” method and select the disk by serial A451. Create:
+
+EFI 1GB FAT32 /boot/efi
+/ ext4 300–400GB
+home ext4 rest of disk
+If you want, after you boot the Ubuntu USB and run sudo nvme list, paste the output and I’ll confirm which /dev/nvmeXn1 is the A451 disk before you click “Install”.
+
+

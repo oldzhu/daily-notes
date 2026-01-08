@@ -1,0 +1,29 @@
+
+    0               1                104857600     0               2                 16777216     0               3               1048576000     0               4           C 1999227657728     1               1                 16759808     1               2           D 2000381018112
+actually I saw C has 3 partions and D has 1 partion in windows disk manager, but in above list I saw one addtional partion which size is 1677216 for disk 0 (for C) and disk 1( for D), what this particular partion is?
+====
+Those small partitions are normal Windows/GPT housekeeping partitions that Disk Management often hides or labels vaguely.
+
+From your list:
+
+On Disk 0 (C: system disk)
+Partition 1: 104,857,600 bytes (~100 MB)
+This is almost certainly the EFI System Partition (ESP) (FAT32). It contains the boot files for UEFI.
+Partition 2: 16,777,216 bytes (~16 MB)
+This is the Microsoft Reserved Partition (MSR). It’s required on GPT disks that Windows uses. It has no filesystem and is usually hidden.
+Partition 3: 1,048,576,000 bytes (~1 GB)
+This is typically a Windows Recovery (WinRE) partition (sometimes OEM recovery tools). Often hidden.
+Partition 4: C: ~1.999 TB
+Your main NTFS volume.
+On Disk 1 (D: data disk)
+Partition 1: 16,759,808 bytes (~16 MB)
+This is also a Microsoft Reserved Partition (MSR). Windows may have created it when the disk was initialized as GPT (or when the volume was created).
+Partition 2: D: ~2.000 TB
+Your NTFS data volume.
+So the “~16MB” partition you’re asking about is the MSR on both disks. It’s normal, hidden, and you generally don’t touch it.
+
+For your Ubuntu-on-D plan: when you wipe Disk 1 (the D disk) during Ubuntu install, it will remove that MSR too — that’s fine. Ubuntu will create its own partitions (EFI + ext4). The only thing you must not touch is Disk 0 (the Windows disk).
+
+If you want the extra safe approach before installing Ubuntu: delete the D: volume in Disk Management so Disk 1 shows as “Unallocated”; then in Ubuntu “Something else” you create the Linux partitions fresh.
+
+

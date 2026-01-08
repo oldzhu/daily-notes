@@ -1,0 +1,52 @@
+Thread Summary (issue #3: “INFO: task hung in vhost_worker_killed”)
+
+There are 5 messages in the lore thread (syzbot report + 4 human replies): https://lore.kernel.org/all/695b796e.050a0220.1c9965.002a.GAE@google.com/T/
+Core symptom: syzbot reports a hung vhost kernel thread stuck in vhost_worker_killed() while trying to lock vq->mutex (virtqueue mutex), after already holding worker->mutex and exit_mutex.
+What each reply is saying
+
+Michael S. Tsirkin (mst@redhat.com) initial reply:
+
+He immediately points out a design smell: “taking vq mutex in a kill handler is probably not wise”.
+Suggests splitting locking: have a separate lock specifically for worker assignment/teardown, instead of grabbing vq->mutex in the kill path.
+Hillf Danton:
+
+Pushes back: don’t add a new lock “blindly” without proving the root cause of the hang.
+Essentially: show why the task is hung first; adding locking complexity can mask the real bug.
+Michael S. Tsirkin follow-up:
+
+Clarifies the deeper issue: vq->mutex is held across user-space related operations (ioctl paths / userspace interactions).
+If a vhost thread gets into uninterruptible sleep (D state) while holding that mutex, then any other thread attempting mutex_lock(vq->mutex) can also become uninterruptible.
+This can “propagate” the hung state (kernel thread ↔ userspace thread), making hung-task reports more likely/visible with newer thread management APIs.
+He explicitly says he doesn’t want to add extra locking on the datapath.
+Mike Christie (michael.christie@oracle.com):
+
+Asks for clarification / challenges the current evidence:
+Lockdep output only shows the kill handler trying to take vq->mutex.
+If the theory is “a userspace ioctl holds vq->mutex and is stuck”, why doesn’t it show up in “locks held”?
+He explains his own recent locking changes: he used vhost_dev->mutex originally, then introduced vhost_worker->mutex because vhost_dev->mutex could be taken during ioctls that flush.
+He’s open to patching if vq->mutex is truly the problem, but wants clearer reproduction/evidence.
+Is there something we can contribute? Yes — good “starter” contributions
+This thread is still in the “diagnosis/locking-design discussion” stage. A very useful contribution (without needing special hardware) is to turn the discussion into concrete evidence:
+
+Reproduce locally and capture “who holds vq->mutex” when the hang triggers
+
+Use the syzbot ReproSyz + KernelConfig links for this extid.
+Add debug instrumentation (temporary patch) in vhost paths to log:
+when vq->mutex is acquired/released,
+which task holds it (PID/comm),
+and whether it sleeps in an uninterruptible section while holding it.
+This directly answers Mike Christie’s question and helps decide if lock splitting is justified.
+Produce an analysis-only email to the thread (no patch yet)
+
+Summarize what you found: whether any userspace ioctl path holds vq->mutex during the hang, or whether the hang is entirely within vhost-kernel threads.
+Include exact stack traces from /proc/<pid>/stack or hung-task logs for the holder/waiter.
+If evidence supports it: propose a minimal locking change
+
+For example, avoid taking vq->mutex in vhost_worker_killed() by restructuring teardown so it only needs a dedicated “worker assignment/kill” lock.
+But this should be driven by the evidence above (matching Hillf + Mike’s concerns).
+If you want, next I can:
+
+pull the syz repro + config for extid a9528028ab4ca83e8bac,
+set up a local repro run plan against your tree,
+and draft a “diagnosis reply” email template to the thread once we have data.
+
