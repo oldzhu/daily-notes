@@ -1,0 +1,14 @@
+Created a new end-to-end (compile-only) walkthrough plus runnable examples and real captured outputs.
+
+New doc: frontend-to-amdgpu.md
+New examples:
+llvm_add_kernel.ll (LLVM IR kernel → gfx1151 asm via llc)
+mlir_gpu_ids.mlir (MLIR GPU → ROCDL/LLVM dialect via mlir-opt)
+c_vecadd_host.c (C → LLVM IR via clang)
+Generated outputs (already produced once, rerunnable anytime):
+llvm_add_kernel.gfx1151.s
+mlir_gpu_ids.rocdl.mlir
+c_vecadd_host.ll
+Also added a pointer to the new doc in README.md.
+
+If you want, I can next add a small “single-command” snippet to frontend-to-amdgpu.md that regenerates all three outputs in one go.

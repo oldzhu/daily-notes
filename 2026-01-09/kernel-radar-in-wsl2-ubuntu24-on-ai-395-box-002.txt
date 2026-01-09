@@ -1,0 +1,18 @@
+Repro bundle prepared (downloads done)
+
+The syzbot artifacts and attachments are now present under:
+mylinux/kernel_radar/repro/a9528028ab4ca83e8bac/
+Verified key outputs exist:
+bzImage, disk.raw, kernel.config, repro.syz, run_qemu.sh, plus crash.log / repro.log / crash.report.
+Note about vmlinux
+
+vmlinux.xz downloaded but is truncated/corrupt (xz EOF on decompress).
+I updated the tool to treat vmlinux as optional so it won’t block bundle creation, and committed that fix:
+Commit: tools: allow repro bundle without vmlinux
+Next step (boot)
+
+QEMU is still missing in this environment (qemu-system-x86_64 NOT installed).
+When you’re ready to boot:
+Install: sudo apt-get update && sudo apt-get install -y qemu-system-x86
+Then: cd repro/a9528028ab4ca83e8bac && ./run_qemu.sh
+If you want, I can also add a small “retry vmlinux download” mode (delete + re-download just vmlinux) so we can get symbols later without re-downloading the whole bundle.

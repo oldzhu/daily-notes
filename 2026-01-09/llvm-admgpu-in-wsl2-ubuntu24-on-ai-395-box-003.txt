@@ -1,0 +1,13 @@
+Extended the helper to generate an AMDGPU ELF object and dump its headers (still compile-only).
+
+Updated script: regen_outputs.sh
+Now also writes:
+llvm_add_kernel.gfx1151.o
+llvm_add_kernel.gfx1151.readobj-file-header.txt
+Updated doc: frontend-to-amdgpu.md (lists the produced artifacts)
+Quick sanity check from the header dump shows what we want:
+
+Format: elf64-amdgpu
+Arch: amdgcn
+Flags: EF_AMDGPU_MACH_AMDGCN_GFX1151
+If you want, I can add one more artifact: a llvm-readobj --notes --sections dump too (useful for code object metadata inspection).

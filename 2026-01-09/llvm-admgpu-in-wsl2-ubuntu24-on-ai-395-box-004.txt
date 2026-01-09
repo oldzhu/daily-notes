@@ -1,0 +1,10 @@
+Correct for this workspace as it’s set up today, with two important nuances:
+
+Triton frontend → backend (in-tree LLVM): No. llvm-project does not include Triton’s frontend/compiler pipeline in-tree. Triton is an out-of-tree project that uses LLVM/MLIR.
+
+C/C++/Triton frontend → NVIDIA CUDA backend (what LLVM can/can’t do):
+
+C/C++ → NVIDIA GPU codegen: LLVM/Clang can target NVIDIA GPUs via the NVPTX backend (emit PTX / device code), but only if your LLVM build includes the NVPTX target. Your current build is AMDGPU;X86, so right now you don’t have that in this build.
+Triton → NVIDIA CUDA backend: Triton (out-of-tree) supports NVIDIA, but that pipeline is not present in-tree here. You’d build Triton separately against a compatible LLVM/MLIR.
+Also, “CUDA backend” often implies producing a runnable cubin and running kernels; that typically needs NVIDIA’s CUDA toolkit/driver tools (outside LLVM). LLVM can emit PTX; final packaging/execution is usually external.
+If you want, I can show the exact CMake knobs + a quick clang command to emit PTX once you enable NVPTX in a separate build dir (so we don’t disturb your AMDGPU-focused build).

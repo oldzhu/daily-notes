@@ -1,0 +1,26 @@
+Moved + generalized the tutorial repo to be multi-target (AMDGPU + NVIDIA) and added a working, compile-only NVIDIA NVPTX/PTX pipeline.
+
+Move + repo layout
+
+Moved repo to tutorial
+Left a symlink so your workspace path still works: /home/oldzhu/build/llvm-amdgpu-wsl2/tutorial -> /home/oldzhu/build/tutorial
+Restructured content:
+AMDGPU content now under amdgpu/frontend-to-amdgpu.md and amdgpu/examples
+NVIDIA content added under nvidia/frontend-to-nvidia.md and nvidia/examples
+Updated .gitignore to ignore generated outputs for both targets.
+NVIDIA build + tutorial
+
+Created a separate NVPTX-enabled LLVM build (keeps your AMDGPU build untouched):
+llvm-nvptx-wsl2 with LLVM_TARGETS_TO_BUILD=NVPTX;X86
+Added NVIDIA examples + regen script:
+nvidia/examples/llvm_add_kernel_nvptx.ll → PTX via llc
+nvidia/examples/cuda_minimal.cu → PTX via clang++ -x cuda ... -nocudainc -nocudalib
+nvidia/examples/regen_outputs.sh
+Verified generated outputs exist:
+nvidia/examples/outputs/llvm_add_kernel.sm80.ptx
+nvidia/examples/outputs/cuda_minimal.sm80.ptx
+GitHub
+
+Committed + pushed everything to origin/main (https://github.com/oldzhu/llvm-gpu-tutorial)
+Latest commit: 147fa79
+Next good step (if you want): add a short “Build matrix” doc at repo root describing which build dir corresponds to which target (llvm-amdgpu-wsl2, llvm-nvptx-wsl2) and what each produces.

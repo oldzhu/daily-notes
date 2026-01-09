@@ -1,0 +1,8 @@
+Documented the new repro-prep workflow and tool:
+Added docs/repro-syzbot-issue3-vhost-worker-killed.md with “how it works”, safety behaviors (--force), and slow-network tips.
+Enhanced the docstring in tools/syzbot_prepare_qemu_repro.py to explain streaming downloads + .part files + non-overwrite default.
+Updated .gitignore to ignore repro/ so big artifacts won’t be committed.
+Staged and committed everything: tools: add syzbot QEMU repro bundle helper (working tree clean now).
+Tomorrow when the network’s better, the starting command is:
+
+.[syzbot_prepare_qemu_repro.py](http://_vscodecontentref_/1) --extid a9528028ab4ca83e8bac

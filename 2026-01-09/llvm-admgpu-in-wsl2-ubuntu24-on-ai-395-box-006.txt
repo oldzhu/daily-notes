@@ -1,0 +1,9 @@
+Updated the root README to include the NVIDIA/NVPTX out-of-tree build setup (mirrors the AMDGPU section) and pushed it to GitHub.
+
+Added “What you get (NVIDIA build)” with ~/build/llvm-nvptx-wsl2/bin tools
+Added “2b) Configure a NVIDIA/NVPTX-focused out-of-tree build” with the full cmake command (LLVM_TARGETS_TO_BUILD="NVPTX;X86")
+Added NVPTX tool build snippet (ninja ... clang clang++ llc llvm-readobj, plus optional FileCheck/not/count)
+Added link to the NVIDIA walkthrough: nvidia/frontend-to-nvidia.md
+Pushed as commit 63c61b5 on origin/main.
+
+
