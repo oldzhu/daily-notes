@@ -1,0 +1,21 @@
+What happened in the latest repro runs
+
+The syzbot artifact itself already contains the target symptom: mylinux/kernel_radar/repro/a9528028ab4ca83e8bac/crash.report shows INFO: task vhost-... blocked for more than 143 seconds with the stack in vhost_worker_killed() (vhost.c:476).
+When I restarted the VM with 9p sharing enabled (via SHARE_DIR=... in mylinux/kernel_radar/repro/a9528028ab4ca83e8bac/run_qemu.sh), the guest hit an early KASAN panic before we could even stage/run the repro:
+Oops: int3 ... RIP: kmem_cache_alloc_noprof+0x9c/0x710
+call trace: vm_area_alloc -> mmap_region -> do_mmap -> __x64_sys_mmap
+PID: dhcpcd-run-hook (so it’s happening during boot networking hook), then Kernel panic - not syncing: Fatal exception in interrupt
+captured in the fresh mylinux/kernel_radar/repro/a9528028ab4ca83e8bac/qemu-serial.log
+I then restarted the VM without 9p. It booted cleanly, SSH worked, and syz-execprog ran (progressing into hundreds of executed programs). After more runtime, SSH started hanging during banner exchange even though QEMU was still alive and the serial log continued to print kernel messages. I did not yet see the vhost_worker_killed hung-task line appear in the serial log during that window.
+Key takeaways
+
+We can reproduce “bad things happen” reliably, but right now we’re seeing three different failure modes depending on how we boot/run:
+syzbot’s recorded failure (vhost hung task),
+early boot KASAN panic when 9p is enabled,
+later SSH unresponsiveness while serial still prints.
+What I suggest next (you pick one)
+
+If your goal is specifically the vhost hung-task: I can rerun in foreground console mode (no DAEMONIZE) so we can log in via -nographic and still run the repro even if SSH wedges, and then wait >140s for the hung-task report to print.
+If your goal is “capture the earliest deterministic crash”: we should focus on the 9p-enabled early KASAN panic (it looks strongly reproducible and happens quickly).
+Tell me which target you want next (hung-task vs early KASAN panic), and I’ll drive the next repro attempt accordingly.
+

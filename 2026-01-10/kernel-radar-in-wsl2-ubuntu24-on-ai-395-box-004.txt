@@ -1,0 +1,20 @@
+Done + committed
+
+Added a “what we did today” progress note: mylinux/kernel_radar/docs/2026-01-10-issue3-repro-progress.md
+Updated the repro guide to document the new options: mylinux/kernel_radar/docs/repro-syzbot-issue3-vhost-worker-killed.md
+Extended the QEMU runner generator to support an optional shared folder (9p) and daemonized runs: mylinux/kernel_radar/tools/syzbot_prepare_qemu_repro.py
+Ignored scratch .tmp_* files in the repo: mylinux/kernel_radar/.gitignore
+Commit: 0f289e8 docs/tools: record 2026-01-10 progress and add QEMU share option
+
+How to use the new shared-folder option
+
+Regenerate run_qemu.sh in your bundle: .[syzbot_prepare_qemu_repro.py](http://_vscodecontentref_/2) --extid a9528028ab4ca83e8bac --force
+Boot with share enabled:
+cd repro/a9528028ab4ca83e8bac
+SHARE_DIR=$PWD SHARE_MOUNT=/mnt/host ./run_qemu.sh
+In the guest:
+mkdir -p /mnt/host
+mount -t 9p -o trans=virtio,version=9p2000.L hostshare /mnt/host
+Want me to also add an optional scp-free default workflow in the doc (copy syz-execprog/syz-executor via the shared folder and run repro.syz end-to-end)?
+
+

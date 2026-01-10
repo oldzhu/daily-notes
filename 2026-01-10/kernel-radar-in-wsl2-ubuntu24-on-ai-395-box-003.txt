@@ -1,0 +1,27 @@
+Progress update:
+
+Syzkaller is now built locally with a matching Go toolchain (syzkaller’s go.mod requires Go 1.24.x). You should have:
+syz runner: mylinux/syzkaller/bin/linux_amd64/syz-execprog
+executor: mylinux/syzkaller/bin/linux_amd64/syz-executor
+I also updated the generator to support daemonized QEMU runs (so you can keep using the same terminal for ssh/scp): mylinux/kernel_radar/tools/syzbot_prepare_qemu_repro.py
+Next: run repro.syz inside the VM
+
+Regenerate the QEMU script to pick up DAEMONIZE support:
+cd /home/oldzhu/mylinux/kernel_radar && [syzbot_prepare_qemu_repro.py](http://_vscodecontentref_/1) --extid a9528028ab4ca83e8bac --force
+Start the VM detached (writes serial to qemu-serial.log in the bundle dir):
+cd /home/oldzhu/mylinux/kernel_radar/repro/a9528028ab4ca83e8bac && DAEMONIZE=1 HOSTFWD_PORT=10022 ./run_qemu.sh
+Try SSH in (if it works on this image):
+ssh -p 10022 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@127.0.0.1
+If SSH refuses auth, log in via the QEMU console first (often root with empty password), then enable some way to transfer files (e.g. set a root password temporarily: passwd).
+Copy binaries + reproducer into the guest (example target /root/repro/):
+scp -P 10022 mylinux/syzkaller/bin/linux_amd64/syz-execprog root@127.0.0.1:/root/repro/
+scp -P 10022 mylinux/syzkaller/bin/linux_amd64/syz-executor root@127.0.0.1:/root/repro/
+scp -P 10022 mylinux/kernel_radar/repro/a9528028ab4ca83e8bac/repro.syz root@127.0.0.1:/root/repro/
+In the guest, run:
+cd /root/repro && chmod +x syz-execprog syz-executor
+dmesg -wT &
+./syz-execprog -executor=./syz-executor -sandbox=none -procs=6 -threaded=1 -repeat=0 repro.syz
+“Reproduced” should look like the hung-task report in mylinux/kernel_radar/repro/a9528028ab4ca83e8bac/crash.report (task blocked in vhost_worker_killed).
+If you want, I can also add an optional shared-folder mechanism (9p) to the generated QEMU script so you don’t need SSH/scp at all.
+
+

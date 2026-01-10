@@ -1,0 +1,10 @@
+Added a “things tried + results” record to docs/2026-01-10-issue3-repro-progress.md.
+
+Captures the repeated host/guest sanity-check commands (ps/ss, SSH probes)
+Records the scp-based staging flow for syz-execprog/syz-executor/repro.syz + the executor revision verification
+Documents the exact syz-execprog invocation we used and how we tailed progress
+Notes both observed failure modes:
+Early KASAN panic when booting with 9p enabled (with grep/sed commands to extract the panic region from qemu-serial.log)
+SSH “banner exchange” timeouts while serial continues (and the log-grep checks for the vhost hung-task signature)
+Includes the QEMU restart sequence used between attempts and a note about BusyBox limitations
+Want me to proceed now with the foreground (non-daemon) console run to prioritize capturing the vhost hung-task live (no SSH dependency)?

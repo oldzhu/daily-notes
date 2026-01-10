@@ -1,0 +1,14 @@
+Done (documented + committed today)
+
+Updated the repro documentation to match today’s reality and explain the missing piece for “how to repro”:
+mylinux/kernel_radar/docs/repro-syzbot-issue3-vhost-worker-killed.md
+Adds:
+Root mount fix note (root=/dev/vda1 rootwait rw) and why root=/dev/vda panics
+Clear explanation that repro.syz needs syz-execprog + syz-executor (or a ReproC)
+What “reproduced” looks like (hung task / vhost traces)
+Fixed a small formatting issue in the generated run_qemu.sh template inside:
+mylinux/kernel_radar/tools/syzbot_prepare_qemu_repro.py
+Commit
+
+docs: clarify issue #3 repro and tool flags (repo clean after commit)
+When the network is stable tomorrow, the next concrete step is to obtain syz-execprog + syz-executor (apt package or build), copy them into the VM, then run repro.syz while watching dmesg -wT.

@@ -1,0 +1,12 @@
+What you can still do now (offline, inside the VM)
+
+Keep dmesg running: dmesg -wT
+If you can trigger any hangs manually, capture stacks:
+echo t > /proc/sysrq-trigger
+echo w > /proc/sysrq-trigger
+Save logs: dmesg -T | tail -n 400
+Tomorrow plan (when network is stable)
+
+Install/build syzkaller runner (syz-execprog + syz-executor) and make them available in the VM (either via shared folder or copying in).
+Then run repro.syz and we’ll confirm reproduction by looking for the hung-task/vhost signatures in dmesg.
+If you want, tell me whether you prefer “build on host + share into VM” (fast) or “build inside VM” (self-contained but slower).

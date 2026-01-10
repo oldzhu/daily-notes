@@ -1,0 +1,16 @@
+Where we are now
+
+The workflow evolved from “how to contribute upstream” → building kernel_radar tooling → focusing on syzbot issue #3 (a9528028ab4ca83e8bac) → hardening a QEMU repro pipeline → trying to reproduce the vhost_worker_killed() hung-task live.
+The current live run is still ongoing: QEMU is up in daemon mode and the serial log is actively growing, but SSH has degraded again (banner/timeout behavior).
+Most recent actions + tool results (since the last run started)
+
+Inspected the tail of the live serial log and confirmed it’s “busy” (NILFS loop activity, audits, etc.) but no hung-task/vhost signature yet in the live run (no INFO: task ... blocked, no vhost_worker_killed, and no vhost substring at all so far).
+Verified the VM is still producing output: qemu-serial.log grew from ~3k lines earlier to 5444 lines during monitoring, so the guest/kernel hasn’t frozen completely.
+Set up a background tail/grep watcher that streams matches into watch_patterns.log (currently still empty), so we’ll catch hung-task/panic/KASAN signatures immediately if they appear.
+Confirmed the “target signature” is present in the syzbot-provided artifacts even though the live run hasn’t hit it yet:
+Hung-task + vhost_worker_killed in mylinux/kernel_radar/repro/a9528028ab4ca83e8bac/crash.log
+The canonical stack + lock dump in mylinux/kernel_radar/repro/a9528028ab4ca83e8bac/crash.report
+What this implies / next step
+
+This run may simply be “not hitting the vhost hang” (or not yet), even though it’s clearly executing the reproducer workload.
+If you want, I can restart with a more aggressive detection setup by adding an optional kernel cmdline knob (e.g. hung_task_timeout_secs=30) to mylinux/kernel_radar/repro/a9528028ab4ca83e8bac/run_qemu.sh so we get earlier hung-task dumps when/if the lockup happens.

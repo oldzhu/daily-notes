@@ -1,0 +1,11 @@
+Done
+
+Added --regen-runner to regenerate only run_qemu.sh without downloading/decompressing anything in tools/syzbot_prepare_qemu_repro.py.
+Updated the issue #3 repro guide with the new flag + example in docs/repro-syzbot-issue3-vhost-worker-killed.md.
+Committed as e018a58.
+Usage
+
+From repo root: .[syzbot_prepare_qemu_repro.py](http://_vscodecontentref_/3) --extid a9528028ab4ca83e8bac --regen-runner
+If you want, I can also run it once to regenerate the runner in your existing bundle directory (no downloads) and show the resulting diff of run_qemu.sh.
+
+
