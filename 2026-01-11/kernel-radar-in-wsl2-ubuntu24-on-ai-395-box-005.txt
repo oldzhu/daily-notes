@@ -1,0 +1,11 @@
+Monitoring is now running continuously without spamming the terminal.
+
+Repro is still alive: QEMU pid 158612, watcher pid 162426, and watch_patterns.log is still empty (no Oops/panic/hung task/vhost_worker_killed yet).
+I started a detached monitor that will auto-capture context the moment the watcher sees a match:
+Output file: repro/a9528028ab4ca83e8bac/monitor_detached.20260111-171852.log
+Monitor pid recorded in: repro/a9528028ab4ca83e8bac/monitor.pid
+If you want to check progress at any time:
+
+tail -n 5 repro/a9528028ab4ca83e8bac/monitor_detached.20260111-171852.log
+wc -l repro/a9528028ab4ca83e8bac/watch_patterns.log
+

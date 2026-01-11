@@ -1,0 +1,5 @@
+Documented today’s repro work in docs/2026-01-11-issue3-repro-progress.md (boot-time kmem_cache_alloc_noprof Oops/panic, the --clean footgun, low-concurrency stable run, and monitoring approach).
+Committed the changes (commit 6f8f9bb):
+tools/run_issue3_manual.sh: --clean safety check, longer SSH wait default, configurable syz-execprog knobs.
+tools/monitor_issue3_watch.sh: simple wc+tail polling monitor that exits/prints on first capture.
+If you want to pause everything overnight, run t[run_issue3_manual.sh](http://_vscodecontentref_/0) --stop --clean. If you want, I can also git push the commit.

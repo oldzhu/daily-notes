@@ -1,0 +1,12 @@
+Updated the repo with a manual, copy/paste runbook and pushed it.
+
+Added a new “Manual runbook” section to docs/repro-syzbot-issue3-vhost-worker-killed.md:
+Clean stop/restart QEMU (daemon mode)
+Serial-log + pattern watcher (watch_patterns.log) for detecting vhost_worker_killed / hung-task / panic
+SSH probe commands that won’t hang (timeout … ssh …)
+Baseline “SSH + scp + background execprog” workflow (short SSH windows)
+Known failure modes: SSH banner timeouts mid-run; 9p sometimes triggers early KASAN/panic
+Committed and pushed: 63c22fc docs: add manual runbook for issue #3 repro (now on origin/main).
+If you want, next I can add a tiny helper script (host-side) that just runs the “manual” steps (start QEMU → wait SSH → scp → start execprog → start watcher) but still keeps everything transparent for debugging.
+
+

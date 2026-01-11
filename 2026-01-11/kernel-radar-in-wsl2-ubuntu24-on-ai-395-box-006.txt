@@ -1,0 +1,5 @@
+Created a simple polling script you can run in a terminal: tools/monitor_issue3_watch.sh.
+
+Run: cd /home/oldzhu/mylinux/kernel_radar && tools/monitor_issue3_watch.sh
+Optional: INTERVAL=1 TAIL_N=20 tools/monitor_issue3_watch.sh repro/a9528028ab4ca83e8bac
+Behavior: repeatedly prints wc -l + a small tail; as soon as watch_patterns.log becomes non-empty, it prints the captured patterns (and a serial tail) then exits.

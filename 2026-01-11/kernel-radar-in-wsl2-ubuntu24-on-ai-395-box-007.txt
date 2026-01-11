@@ -1,0 +1,21 @@
+Yes — lowering concurrency can absolutely reduce the hit rate for a timing-dependent “hung task” like this.
+
+Two key knobs affect probability a lot:
+
+SMP (vCPUs): with SMP=1 you remove a bunch of interleavings/lock contention that often make hangs easier to trigger.
+EXECPROG_PROCS + EXECPROG_THREADED: fewer parallel syscalls → fewer races → lower chance to hit the exact bad window.
+That said, we lowered concurrency because higher settings were repeatedly dying early (boot-time KASAN/panic). So it’s a tradeoff: stability vs. reproduction speed.
+
+Practical approach: ramp concurrency up gradually until it starts crashing again.
+
+Stop the current run:
+cd /home/oldzhu/mylinux/kernel_radar && [run_issue3_manual.sh](http://_vscodecontentref_/0) --stop --clean
+Try a “moderate” setting first (often a good compromise):
+SMP=2 EXECPROG_PROCS=2 EXECPROG_THREADED=1 EXECPROG_REPEAT=0 tools/run_issue3_manual.sh
+If stable for ~10–20 minutes, bump EXECPROG_PROCS:
+SMP=2 EXECPROG_PROCS=4 EXECPROG_THREADED=1 EXECPROG_REPEAT=0 tools/run_issue3_manual.sh
+If it starts boot-panicking again, back off one notch (e.g. SMP=1 but EXECPROG_PROCS=2).
+Monitoring stays the same:
+
+INTERVAL=1 TAIL_N=20 tools/monitor_issue3_watch.sh repro/a9528028ab4ca83e8bac
+If you tell me whether the original syzbot repro used something like -procs=6 and SMP=2, I can help pick the next “closest-but-stable” setting.

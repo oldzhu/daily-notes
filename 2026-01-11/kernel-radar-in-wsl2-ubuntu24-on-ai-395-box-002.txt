@@ -1,0 +1,29 @@
+Added a transparent helper script: tools/run_issue3_manual.sh
+Restarts QEMU (daemon by default) in the bundle dir
+Waits for SSH with hard timeouts (won’t hang)
+scp’s syz-execprog, syz-executor, and repro.syz into /root/repro
+Starts syz-execprog in the background and logs a staging transcript into the bundle (.tmp_stage_run.YYYYmmdd-HHMMSS.txt)
+Starts a serial-log watcher (optional) writing to watch_patterns.log (in the bundle, which is gitignored)
+Updated the manual runbook doc to reference it: docs/repro-syzbot-issue3-vhost-worker-killed.md
+Committed + pushed to origin/main: f73d240 tools/docs: add helper script for issue #3 manual repro
+How to run it (from repo root):
+
+tools/run_issue3_manual.sh
+Common overrides:
+
+SYZ_BIN=$HOME/mylinux/syzkaller/bin/linux_amd64 tools/run_issue3_manual.sh
+MEM=4096 SMP=4 tools/run_issue3_manual.sh
+HOSTFWD_PORT=10023 tools/run_issue3_manual.sh
+If you want, next I can add a --stop mode to the script to kill QEMU + watcher cleanly.
+
+Updated the helper script to support clean lifecycle control:
+Added --stop to kill QEMU (from qemu.pid) and the watcher (from watcher.pid)
+Added --status to print whether QEMU/watcher are running + log sizes
+Added --clean (with --stop) to also remove the pidfiles
+Updated the doc snippet in docs/repro-syzbot-issue3-vhost-worker-killed.md to mention --stop/--status.
+Committed + pushed to origin/main: df4141a tools/docs: add stop/status to issue #3 repro helper
+Commands you can use now (from repo root):
+
+tools/run_issue3_manual.sh
+tools/run_issue3_manual.sh --status
+tools/run_issue3_manual.sh --stop (or --stop --clean)

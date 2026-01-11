@@ -1,0 +1,20 @@
+Where We Left Off
+
+Goal evolved from “start contributing” → “work real upstreamable bugs” → building a repeatable syzbot→QEMU repro pipeline in kernel_radar, focusing on syzbot issue #3 extid a9528028ab4ca83e8bac (hung task around vhost_worker_killed() in vhost.c).
+Tooling/docs were added so you can run the repro reliably (QEMU runner, syzkaller build/revision fix, manual runbook + helper script, watcher that tails serial logs because SSH often dies mid-run).
+Most Recent Agent Command + Tool Result
+
+Ran: cd /home/oldzhu/mylinux/kernel_radar && tools/run_issue3_manual.sh --status && tail ...watch_patterns.log && tail ...qemu-serial.log
+Status reported:
+QEMU running: pid=50577
+Watcher running: pid=53077
+Serial log size: qemu-serial.log: 2319 lines, 173K
+Watcher hits: watch_patterns.log: 3 lines
+The watcher/serial tail shows the run hit an Oops and then panicked around ~372s, not the target hung-task:
+Oops: int3 ... SMP KASAN NOPTI (two CPUs)
+Kernel panic - not syncing: Fatal exception in interrupt
+Crash context included RIP: kmem_cache_alloc_noprof+0x9c/0x710
+Immediate State
+
+The currently “active” repro attempt is effectively dead (kernel panic); QEMU process still exists, but the guest kernel has panicked—so it won’t reach the hung-task signature in this run.
+If you want, I can grab a larger excerpt around the first Oops: from the serial log, then stop/clean and kick off a new run with tweaks aimed at avoiding the early KASAN/panic so we can chase the vhost_worker_killed() hang.

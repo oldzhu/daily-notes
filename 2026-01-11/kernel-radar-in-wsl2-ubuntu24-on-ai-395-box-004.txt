@@ -1,0 +1,13 @@
+Stopped the panicked VM, fixed the helper so --clean can’t accidentally start a new run, and restarted the repro with much lower concurrency to try to avoid the early boot KASAN/panic.
+
+Fixes in tools/run_issue3_manual.sh:
+--clean now requires --stop (prevents the “oops, it started QEMU again” footgun).
+Added env knobs: EXECPROG_PROCS, EXECPROG_THREADED, EXECPROG_REPEAT, EXECPROG_SANDBOX, EXECPROG_EXTRA_ARGS.
+Increased default SSH_WAIT_SECS to 240.
+Preserved the boot-panic log as repro/a9528028ab4ca83e8bac/qemu-serial.bootpanic.20260111-154335.log.
+New run is active:
+QEMU pid 158612, watcher pid 162426.
+Started with SMP=1 EXECPROG_PROCS=1 EXECPROG_THREADED=0 EXECPROG_REPEAT=0.
+Serial looks “alive” (lots of NILFS noise), and watch_patterns.log is still empty (no panic/hung-task yet).
+Next thing to do now (I can keep doing it): tail -f repro/a9528028ab4ca83e8bac/watch_patterns.log and wait for either INFO: task ... blocked / vhost_worker_killed or another crash, then extract the first hit with surrounding context.
+
