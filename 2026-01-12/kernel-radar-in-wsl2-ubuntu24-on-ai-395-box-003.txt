@@ -1,0 +1,25 @@
+I would prefer add targeted lockdep/trace_printk instrumentation around the vhost mutexes so the next hung-task capture identifies the exact owner path. let us build a new kernel image from ~/mylinux/linux with lockdep/trace_printk instrumentation and CONFIG_NILFS2_FS=n, we can create a new folder localimage under /home/oldzhu/mylinux/kernel_radar/repro/a9528028ab4ca83e8bac to host our local new images and other files required for repro and testing and left the original downloaded files under parent folder /home/oldzhu/mylinux/kernel_radar/repro/a9528028ab4ca83e8bac so we can compare
+======
+
+Created the A/B staging folder: mylinux/kernel_radar/repro/a9528028ab4ca83e8bac/localimage
+Added targeted trace_printk() instrumentation around worker->mutex / vq->mutex paths in upstream vhost code: mylinux/linux/drivers/vhost/vhost.c
+Built a new kernel from ~/mylinux/linux using the original syzbot kernel.config + a fragment that enables lockdep/tracing and disables NILFS2:
+Fragment: mylinux/kernel_radar/repro/a9528028ab4ca83e8bac/localimage/lockdep-trace-nonilfs.config
+Artifacts staged for testing: localimage/bzImage, localimage/vmlinux, localimage/System.map, localimage/config
+Confirmed CONFIG_NILFS2_FS is off and CONFIG_LOCKDEP/CONFIG_TRACING are on in localimage/config.
+Booting the new kernel (keep original bundle intact)
+
+Easiest path (manual): run QEMU with KERNEL_IMAGE override:
+cd /home/oldzhu/mylinux/kernel_radar/repro/a9528028ab4ca83e8bac
+KERNEL_IMAGE=$PWD/localimage/bzImage ./run_qemu.sh
+Or via the helper runner:
+USE_LOCALIMAGE=1 /home/oldzhu/mylinux/kernel_radar/tools/run_issue3_manual.sh
+Ensuring trace_printk shows up in serial on hangs/oops
+
+Updated QEMU launcher to support:
+FTRACE_DUMP_ON_OOPS=1 (default) and TRACE_BUF_SIZE_KB=1024 (default)
+This appends ftrace_dump_on_oops so the ftrace buffer (including trace_printk) is dumped on oops/panic into the serial log.
+Changes are in: mylinux/kernel_radar/repro/a9528028ab4ca83e8bac/run_qemu.sh
+If you want, I can run one repro cycle with USE_LOCALIMAGE=1 and then extract the new vhost_lock: trace lines from the serial log to confirm we’re getting the “try/got/release” sequence you need.
+
+

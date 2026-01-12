@@ -1,0 +1,7 @@
+Rebuilt the local A/B kernel successfully with CONFIG_KASAN=n (still has lockdep+tracing, CONFIG_NILFS2_FS=n). Artifacts are in mylinux/kernel_radar/repro/a9528028ab4ca83e8bac/localimage/.
+First non-KASAN run stayed up longer but eventually hit an Oops: int3 in __kmalloc_node_track_caller_noprof and panicked; I archived that run’s logs to mylinux/kernel_radar/repro/a9528028ab4ca83e8bac/localimage/ (timestamp 20260112-171717).
+To keep WARN/int3 events from immediately panicking the guest (likely due to panic_on_warn=1 being present elsewhere), I restarted the workflow with QEMU cmdline overrides: panic_on_warn=0 panic_on_oops=0 oops=continue.
+The clean rerun is in progress right now (QEMU is booting; ~76s into boot per mylinux/kernel_radar/repro/a9528028ab4ca83e8bac/qemu-serial.log); once SSH comes up, the script will start syz-execprog and the watcher.
+Next check once it’s running: watch mylinux/kernel_radar/repro/a9528028ab4ca83e8bac/watch_patterns.log for vhost_lock: / hung_task / vhost_worker_killed, and grep mylinux/kernel_radar/repro/a9528028ab4ca83e8bac/qemu-serial.log for vhost_lock: to confirm the instrumentation is actually being exercised.
+If you want, I can let this run until it reproduces (or hits another blocker), then archive logs and summarize the first vhost_lock: sequence leading into the hang.
+

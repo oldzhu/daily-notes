@@ -1,0 +1,14 @@
+You’ve got a real hit: the run reproduced the target vhost_worker_killed() hung-task and escalated to Kernel panic - not syncing: hung_task: blocked tasks.
+
+I archived that successful run’s logs into timestamped files under the bundle dir (for example qemu-serial.panic.20260112-101645.log, watch_patterns.panic.20260112-101645.log, plus small tails).
+I stopped QEMU/watcher so the state is preserved and not overwritten.
+Fix for the “execprog_stream.log blew up” problem
+
+Updated mylinux/kernel_radar/tools/run_issue3_manual.sh so CAPTURE_EXECPROG=1 is bounded by default:
+EXECPROG_STREAM_MAX_BYTES (default 5242880, set 0 to disable trimming)
+EXECPROG_STREAM_TRIM_SECS (default 5)
+--stop now also stops the stream tailer + trim loop if running; --status reports them.
+Updated mylinux/kernel_radar/docs/repro-syzbot-issue3-vhost-worker-killed.md with the successful repro status + the new capture knobs.
+I also compressed the previously huge execprog stream log in the bundle dir to save disk space.
+
+Want me to git commit these two tracked changes in kernel_radar (script + doc), with a message like issue3: bound execprog stream capture; record successful hung_task repro?

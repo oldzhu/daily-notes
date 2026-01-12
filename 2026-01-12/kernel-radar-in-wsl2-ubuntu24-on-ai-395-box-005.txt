@@ -1,0 +1,4 @@
+Documented today’s progress + the missing scripts/knobs in docs/repro-syzbot-issue3-vhost-worker-killed.md: local-kernel workflow (localimage/), how to build via build_issue3_local_kernel.sh, how to boot A/B + tracing knobs, and the new “int3/oops → panic” failure mode + mitigation.
+Hardened tools/run_issue3_manual.sh: passes A/B + tracing env through to QEMU, and sets kernel.panic_on_oops=0 / kernel.panic_on_warn=0 inside the guest before starting syz-execprog (since panic_on_oops=0 isn’t a valid cmdline param).
+Added tools/build_issue3_local_kernel.sh: out-of-tree build from ~/mylinux/linux using the syzbot kernel.config + local fragment, staging bzImage/vmlinux into repro/<extid>/localimage/.
+Committed these kernel_radar changes as bee11eb (issue3: document local kernel workflow and harden runner).

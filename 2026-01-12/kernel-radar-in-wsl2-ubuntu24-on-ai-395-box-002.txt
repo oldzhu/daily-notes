@@ -1,0 +1,16 @@
+regarding the panic at nilfs_btree_alloc_path, did u find the cause and could you explain why and how did you fix it? in addition, one thing I want youre member is if when u want to review the kernel source, pls review the code under ~/mylinux/linux which is synced with upstream mainline, do not review the code ~/WSL2-Linux-Kernel which is WSL2 forked kernel source unless I asked to review explicitly.
+Regarding the hung task, could u analysze why and who owned the lock and blocked the task? how to fix?
+=====
+
+NILFS2 panic
+
+In the serial log, NILFS2 is repeatedly mounting/probing obviously corrupted loop images (“broken superblock”, “broken bmap (inode=18)”, then remount-ro) right before the hang: mylinux/kernel_radar/repro/a9528028ab4ca83e8bac/qemu-serial.panic.20260112-101645.log.
+That strongly suggests the NILFS2/KASAN crash is a separate “syz is feeding garbage FS images” bug/noise, not the vhost issue. We didn’t land a kernel-side NILFS2 fix here; the practical mitigation is isolation (e.g., rebuild with CONFIG_NILFS2_FS=n, or restrict syzkaller to avoid mount/loop-related syscalls).
+Vhost hung task (who blocked whom)
+
+The hung task shows vhost-12334 stuck in __mutex_lock() from vhost_worker_killed(), while holding vtsk->exit_mutex, worker->mutex, and a vq->mutex: mylinux/kernel_radar/repro/a9528028ab4ca83e8bac/qemu-serial.panic.20260112-101645.log.
+This log does not include a backtrace of the lock owner for the contended mutex, so we can’t definitively name “the other task” from this capture alone. The pattern is consistent with a lock-order deadlock involving worker->mutex/vq->mutex (and possibly exit_mutex during task-stop).
+Proposed fix (implemented in your upstream tree)
+
+I patched vhost_worker_killed() to avoid holding worker->mutex while taking vq->mutex and while running queued work (reduces inversion/deadlock risk): mylinux/linux/drivers/vhost/vhost.c.
+If you want, I can also add targeted lockdep/trace_printk instrumentation around the vhost mutexes so the next hung-task capture identifies the exact owner path.
