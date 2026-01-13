@@ -1,0 +1,22 @@
+Yes — in your newer tree ~/mylinux/linux, vhost_worker_killed() is structured so it does not hold worker->mutex while it takes vq->mutex.
+
+You can see it directly here: mylinux/linux/drivers/vhost/vhost.c. The key shape is:
+
+
+mutex_lock(&worker->mutex);worker->killed = true;mutex_unlock(&worker->mutex);for (...) {  mutex_lock(&vq->mutex);  ...  mutex_unlock(&vq->mutex);}if (attach_cnt)  synchronize_rcu();mutex_lock(&worker->mutex);worker->attachment_cnt -= attach_cnt;mutex_unlock(&worker->mutex);vhost_run_work_list(worker);
+In contrast, the older code (like your WSL2 kernel tree) does hold worker->mutex across the whole loop taking vq->mutex: WSL2-Linux-Kernel/drivers/vhost/vhost.c.
+
+
+mutex_lock(&worker->mutex);worker->killed = true;for (...) {  mutex_lock(&vq->mutex);  ...  mutex_unlock(&vq->mutex);}...vhost_run_work_list(worker);mutex_unlock(&worker->mutex);
+About “dump and disassemble the repro image kernel”
+I tried to do exactly that from your downloaded bundle in a9528028ab4ca83e8bac, but:
+
+vmlinux.xz is truncated (xz: Unexpected end of input), and even after concatenating vmlinux.xz.part into vmlinux.full.xz, the decompressed vmlinux.full is a malformed ELF (“missing section headers”), so nm/objdump can’t resolve symbols.
+Extracting from bzImage using extract-vmlinux produces a usable ELF (vmlinux.from_bzImage), but it’s stripped, so we can’t objdump --disassemble=vhost_worker_killed unless we first obtain the function address (normally from kallsyms). Under your current high-load repro VM, the kallsyms query is timing out/hanging.
+Does this mean “the bug is already fixed so localimage won’t repro”?
+Very possibly, yes: if the deadlock depends on the old lock-holding behavior, then booting your newer localimage/bzImage can make the issue disappear.
+
+If you want, I can do a clean confirmation run like this (but it will interrupt the current repro run):
+
+Stop the current VM, boot with the bundle bzImage (not localimage), run a light workload, grab vhost_worker_killed address from kallsyms, then disassemble that address range from the extracted vmlinux.from_bzImage to prove which lock order the binary implements.
+

@@ -1,0 +1,19 @@
+Got the “SSH never comes up / early panic” blocker nailed down, and the local (instrumented) kernel is now stable enough to actually run the vhost repro.
+
+Root cause of the previous early failures: the local kernel repeatedly hit Oops: int3 and then Kernel panic - not syncing: Fatal exception in interrupt very early, with RIP in __kmalloc_cache_noprof. Resolving the RIP against local vmlinux pointed at arch_static_branch sites → strongly implicates jump-label patching.
+Fix applied: disabled jump labels in the local-kernel fragment config and rebuilt the local kernel.
+Change: repro/a9528028ab4ca83e8bac/localimage/lockdep-trace-nonilfs.config now includes CONFIG_JUMP_LABEL=n
+Verified: repro/a9528028ab4ca83e8bac/localimage/config shows # CONFIG_JUMP_LABEL is not set
+Rebuilt via tools/build_issue3_local_kernel.sh
+Current state
+
+A fresh run is active using the rebuilt local kernel (USE_LOCALIMAGE=1) + the wifi/ieee802154-disabled repro (repro.local.syz).
+SSH is up, syz-execprog is running, and execprog_stream.log shows steady progress (executed programs: ... increasing), so we’re no longer dying in early boot.
+What to watch next (to catch the vhost hang)
+
+Watcher hits: repro/a9528028ab4ca83e8bac/watch_patterns.log
+Execprog progress/stall: repro/a9528028ab4ca83e8bac/execprog_stream.log
+Full serial (for hung-task stacks): repro/a9528028ab4ca83e8bac/qemu-serial.log
+If you want, I can add an “auto-archive-on-hit” helper (copy serial/watch/execprog stream into a timestamped runs/ folder the moment the watcher sees hung task|vhost_worker_killed|blocked for more than).
+
+

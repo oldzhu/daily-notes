@@ -1,0 +1,8 @@
+Implemented and committed the “auto-archive-on-hit” feature: watcher now snapshots logs the first time it matches WATCH_PATTERNS, using tools/archive_repro_run.sh (commit 81c14b2).
+Wired into tools/run_issue3_manual.sh: controlled by AUTO_ARCHIVE_ON_HIT=1, ARCHIVE_TAG=..., and STOP_ON_HIT=1. It triggers only once per run via a .auto_archived_once flag file.
+Verified the archive helper works and avoids big artifacts (it does not copy disk.raw); it writes into repro/<extid>/runs/<timestamp>-<tag>/ and updates runs/last.
+If you want, I can kick off a fresh run with ARCHIVE_TAG=issue3 STOP_ON_HIT=1 so the first hung task/vhost_worker_killed/Oops/panic match gets captured and the VM stops immediately.
+
+Updated docs with the missing late-session work in docs/2026-01-13-issue3-repro-progress.md: auto-archive feature, watcher fixes, the exact EXECPROG_PROCS=12 command, and the one-off pkill cleanup for stale watcher pipelines.
+Committed the doc update: b941ec0.
+Repo is clean (all code changes were already committed earlier today: 81c14b2, 84db349, a34595a).

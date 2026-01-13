@@ -1,0 +1,36 @@
+The strongest clue in your code review is that a “hung task in vhost_worker_killed()” implies the vhost worker is a vhost_task that got a real SIGKILL (not a normal shutdown). That path is fundamentally more racy than the normal vhost_task_stop() path.
+
+Why the hang can happen (most likely)
+
+vhost_task threads run in a user thread group and can be SIGKILLed; on SIGKILL they run the “killed handler” path in mylinux/linux/kernel/vhost_task.c (VHOST_TASK_FLAGS_STOP is not set, so handle_sigkill() runs).
+In our case handle_sigkill() is vhost_worker_killed() in mylinux/linux/drivers/vhost/vhost.c.
+vhost_worker_killed() currently:
+sets worker->killed = true under worker->mutex
+then tries to take every vq->mutex to clear vq->worker
+then does synchronize_rcu()
+and only at the end drains work via vhost_run_work_list(worker) (which is what would complete any pending flush completions).
+Meanwhile, other threads can be stuck in __vhost_worker_flush() in mylinux/linux/drivers/vhost/vhost.c: it enqueues a flush work and then waits indefinitely for its completion. If the worker is dying and vhost_worker_killed() blocks on a vq->mutex, that flush completion never happens → classic circular wait / hung task signature.
+So the likely root cause is:
+
+SIGKILL kills the vhost_task worker at a bad time, and vhost_worker_killed() blocks on a vq->mutex (or later synchronize_rcu()), preventing it from draining the worklist; concurrently another thread is waiting for a flush completion (or other worker-side progress) while holding (or soon needing) the same locks.
+What to fix (kernel-side patch directions)
+
+Make the SIGKILL cleanup non-blocking with respect to per-vq locks, or at least ensure it cannot starve flush completions:
+
+Reorder vhost_worker_killed() to drain the worklist earlier (right after setting worker->killed = true), before attempting to take all vq->mutex locks. That way any in-flight __vhost_worker_flush() waiters get released and may drop locks that are currently blocking vhost_worker_killed().
+Today it drains only at the very end; that ordering is exactly what can create deadlocks.
+Reduce/avoid taking vq->mutex in the dying thread context:
+
+Use mutex_trylock() with backoff/deferral instead of unbounded mutex_lock() inside vhost_worker_killed(), or
+Defer the “detach vqs + synchronize_rcu” part to a context that won’t be SIGKILLed (e.g., a real kthread or workqueue item owned by the kernel), after marking the worker killed.
+Optional mitigation / design-level fix: avoid vhost_task workers for this device/path:
+
+The whole SIGKILL path only exists for vhost_task workers. Using kthreads (not in the userspace thread group) avoids the “worker died from SIGKILL” scenario entirely. That may be an acceptable fix/workaround if accounting semantics aren’t worth the reliability risk for vhost-vsock.
+How to confirm quickly when it reproduces
+When you eventually hit it, grab the hung stack and look for exactly where vhost_worker_killed() is blocked:
+
+If it’s blocked on mutex_lock(&vq->mutex) inside mylinux/linux/drivers/vhost/vhost.c, that supports the deadlock theory.
+If it’s stuck in synchronize_rcu() right after detaching workers, then you’re looking at an RCU grace period stall (often secondary to some CPU stuck with preemption/IRQs off), and the fix needs to focus on why RCU can’t make progress.
+If you want, I can draft a minimal patch that reorders vhost_run_work_list(worker) earlier in vhost_worker_killed() (low-risk, directly targets the “flush wait never completes” deadlock), and add a couple of lockdep_assert/tracepoints to prove the lock cycle when it triggers.
+
+

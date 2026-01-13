@@ -1,0 +1,17 @@
+Yes — your latest tree in ~/mylinux/linux already has the mitigation: vhost_worker_killed() does not hold worker->mutex while it takes each vq->mutex. You can see it here: mylinux/linux/drivers/vhost/vhost.c (it locks worker->mutex, sets killed, unlocks; then loops locking vq->mutex; then synchronize_rcu(); then re-locks worker->mutex).
+
+For the syzbot repro bundle kernel, I confirmed it’s still the “old / risky” locking style by disassembling the bundle’s extracted ELF and using kallsyms to name the mutex helpers:
+
+Runtime kallsyms address: ffffffff88bd3770 t vhost_worker_killed
+ffffffff8b5affa0 is mutex_lock_nested and ffffffff8b5af4e0 is mutex_unlock
+In the bundle disassembly, it locks worker->mutex and then (without unlocking it) locks a vq->mutex inside the loop:
+
+
+... 37bd: lea 0x18(%rbx),%r15        ; &worker->mutex... 37c2: call ffffffff8b5affa0      ; mutex_lock_nested(worker->mutex)...... 388c: mov (%rbx,%r15,1),%r12     ; vq = dev->vqs[i]... 3891: lea 0x10(%r12),%rbp        ; &vq->mutex... 3896: call ffffffff8b5affa0      ; mutex_lock_nested(vq->mutex)
+That disassembly is saved in mylinux/kernel_radar/repro/a9528028ab4ca83e8bac/tmp_disas_vhost_worker_killed_full.txt.
+
+Net: if you boot your newer localimage/bzImage, you may indeed be “not repro-ing” because the deadlock mitigation is already present; to reproduce the original syzbot hang, keep booting the bundle bzImage (or build/checkout a kernel before that change).
+
+Want me to also extract the exact commit in your ~/mylinux/linux history that introduced this vhost_worker_killed() restructure (so you can bisect/build the pre-fix version)?
+
+

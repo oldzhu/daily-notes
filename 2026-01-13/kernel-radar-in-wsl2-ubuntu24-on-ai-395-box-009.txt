@@ -1,0 +1,10 @@
+Found the introducing commit in your ~/mylinux/linux history: db5247d9bf5c6ade9fd70b4e4897441e0269b233 (“vhost_task: Handle SIGKILL by flushing work and exiting”, Mike Christie). That commit’s original vhost_worker_killed() holds worker->mutex while it iterates dev->vqs[] and locks each vq->mutex (the deadlock-prone ordering).
+Clarified an important nuance: the “restructured” version (drop worker->mutex before taking vq->mutex, then re-acquire post-RCU) is not present as a committed change in ~/mylinux/linux right now — it’s currently an uncommitted local patch in your working tree (you can see it via git diff -- drivers/vhost/vhost.c).
+What I added + committed
+
+Updated the final report with the commit details, the lock-order analysis, and the exact commands used to extract + disassemble the downloaded bundle kernel by address: docs/2026-01-13-issue3-repro-progress.md
+Added a helper script to reproduce the “bundle disassembly by kallsyms address” workflow in one command: tools/disassemble_issue3_bundle_vhost_worker_killed.sh
+Committed to kernel_radar: 57066b2 docs/tools: record vhost_worker_killed commit + bundle disassembly
+If you want, I can also add a short “tomorrow checklist” section (pick 3 new issues + quick triage template) so it’s easy to switch focus cleanly.
+
+

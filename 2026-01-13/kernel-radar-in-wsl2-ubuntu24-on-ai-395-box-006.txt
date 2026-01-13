@@ -1,0 +1,14 @@
+What’s going on (lock/kill path)
+
+With the vhost “task worker” model, SIGKILL is handled inside the worker thread, under vtsk->exit_mutex in mylinux/linux/kernel/vhost_task.c, calling handle_sigkill() → vhost_worker_killed().
+In the WSL2 tree, vhost_worker_killed() holds worker->mutex while it iterates VQs and takes each vq->mutex (WSL2-Linux-Kernel/drivers/vhost/vhost.c). If any other thread holds a vq->mutex and then needs worker->mutex (directly or indirectly via worker management/flush paths), you can get a classic AB/BA deadlock: kill path holds worker->mutex → waits for vq->mutex, while the other path holds vq->mutex → waits for worker->mutex. The hung task you saw is the kill side stuck at the mutex_lock() inside vhost_worker_killed().
+Why you don’t see __vhost_worker_flush() in that stack
+
+The stack trace you pasted is for the killed vhost worker thread blocked on a mutex; the corresponding “flush waiter” (if any) is a different task. Hung-task reports often show only the task that tripped the timeout; they don’t guarantee you’ll see the other side’s wait stack unless you dump all tasks (e.g., SysRq w/t).
+Also, __vhost_worker_flush() explicitly drops worker->mutex while waiting on the completion (mylinux/linux/drivers/vhost/vhost.c), so lock-held lists can look “unrelated” even when flush waiting is part of the cycle.
+Fix direction
+
+The newer pattern in your local tree restructures vhost_worker_killed() to not hold worker->mutex across taking vq->mutex / synchronize_rcu() (see mylinux/linux/drivers/vhost/vhost.c). Backporting that restructuring into the WSL2 tree is the minimal, targeted way to break the deadlock class.
+If you want, I can prep an actual patch that ports the “drop worker->mutex before locking VQs + post-RCU re-lock” version from mylinux into WSL2-Linux-Kernel and keep it minimal for review.
+
+

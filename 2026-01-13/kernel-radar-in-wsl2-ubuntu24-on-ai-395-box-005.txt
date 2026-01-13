@@ -1,0 +1,22 @@
+__vhost_worker_flush() doesn’t “own” vq->worker. It temporarily relies on the worker still being able to run the queued flush work.
+
+Mechanically, in mylinux/linux/drivers/vhost/vhost.c __vhost_worker_flush() does:
+
+(under worker->mutex) enqueue a vhost_flush_work into worker->work_list
+drop worker->mutex
+wait_for_completion(&flush.wait_event)
+then re-take worker->mutex
+So it blocks only if the worker never runs the queued flush work (or can’t signal the completion).
+
+Why you might not see any stack blocked in __vhost_worker_flush() even if the hang’s “about flush/worker teardown”:
+
+The hung task report only shows tasks that have been blocked longer than the timeout. If vhost_worker_killed() deadlocks quickly on a vq->mutex in mylinux/linux/drivers/vhost/vhost.c, the first thing that crosses the timeout may be that mutex waiter, not a flush waiter.
+Many “flush-related” stalls show up as mutex waits, not completion waits. For example, a thread can be stuck in mutex_lock(&worker->mutex) (in vhost_worker_flush() / vhost_dev_flush()), and never even reach wait_for_completion().
+Timing: __vhost_worker_flush() early-returns if worker->killed is already set (or attachment_cnt==0) at entry. In that case, flush doesn’t wait at all, and you won’t see it in stacks. Whether it waits is a race between “flush begins” and “killed gets set”.
+The specific hung-task output you’re looking at might have been truncated/filtered (syzbot logs often show one or a few stacks). If only one task is printed, you’ll miss the other blocked participants unless you also capture SysRq stacks / all-cpu backtraces.
+Another common blocker is synchronize_rcu() in the kill path (also in mylinux/linux/drivers/vhost/vhost.c), which will show as an RCU wait rather than a flush wait.
+If we reproduce it again and want to confirm whether a completion wait is involved, the most decisive evidence is:
+
+a blocked task stack showing wait_for_completion() called from __vhost_worker_flush(); and/or
+a SysRq echo w > /proc/sysrq-trigger / echo t > /proc/sysrq-trigger dump (captures more threads than the hung-task warning alone).
+If you want, I can add one more targeted watcher pattern to auto-archive on SysRq dumps or on rcu: stall lines so we don’t miss the “other side” of the deadlock when it happens.

@@ -1,0 +1,12 @@
+Added today’s progress log with the key commands/scripts we used: docs/2026-01-13-issue3-repro-progress.md
+Made the local-kernel fragment config trackable (it used to live under repro/… and wasn’t in git):
+New tracked fragment: tools/issue3_localimage.fragment.config (includes CONFIG_JUMP_LABEL=n workaround)
+Updated builder to prefer the tracked fragment, but keep backward-compat if lockdep-trace-nonilfs.config exists: tools/build_issue3_local_kernel.sh
+Kept the bundle intact while allowing alternate repro selection:
+Runner now supports REPRO_SYZ=... and always uploads it to the guest as /root/repro/repro.syz: tools/run_issue3_manual.sh
+Script to generate repro.local.syz (wifi/ieee802154 disabled): tools/make_issue3_repro_local.sh
+Committed everything on main:
+
+Commit: 90e2d5b (“issue3: allow alternate repro, track local kernel fragment, add 2026-01-13 log”)
+Working tree is clean.
+Want me to also add the “auto-archive-on-hit” helper next (so we automatically snapshot logs into repro/<extid>/runs/<timestamp>/ when the watcher sees hung task / vhost_worker_killed)?
