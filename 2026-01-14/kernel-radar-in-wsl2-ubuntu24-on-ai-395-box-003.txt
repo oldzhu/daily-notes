@@ -1,0 +1,18 @@
+What I documented
+
+Added a new short “today” note: docs/2026-01-14-syzbot-picker-area-filters.md
+Captures the new area-focused picking knobs (--include-subsystem*, --include-title-re, --no-exclude-title) and concrete examples for cgroup/namespaces/scheduler/GPU.
+Also appended targeting examples to:
+docs/how-we-picked-top-3-syzbot-issues.md
+docs/how-we-picked-unclaimed-syzbot-issues.md
+What I committed
+
+Commit: 57ba57f — “tools: add subsystem/title filters to syzbot pickers”
+Includes updates to:
+tools/syzbot_pick_top3.py
+tools/syzbot_pick_unclaimed.py
+plus the docs above
+Working tree is clean now.
+Tomorrow we can start by running .[syzbot_pick_unclaimed.py](http://_vscodecontentref_/3) --count 3 --include-subsystem cgroup (or the other areas) and pick one extid to prep with ./tools/syzbot_prepare_qemu_repro.py --extid <extid>.
+
+

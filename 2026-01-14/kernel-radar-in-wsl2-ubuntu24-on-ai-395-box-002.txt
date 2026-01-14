@@ -1,0 +1,22 @@
+You can do this by filtering on either (a) syzbot “Subsystems” labels (best), or (b) keywords in the bug title (fallback).
+
+The pickers that support this are tools/syzbot_pick_unclaimed.py and tools/syzbot_pick_top3.py.
+
+Subsystem-based filtering (recommended):
+
+Cgroup: .[syzbot_pick_unclaimed.py](http://_vscodecontentref_/0) --count 3 --include-subsystem cgroup
+Namespaces: .[syzbot_pick_unclaimed.py](http://_vscodecontentref_/1) --count 3 --include-subsystem namespaces
+Scheduler: .[syzbot_pick_unclaimed.py](http://_vscodecontentref_/2) --count 3 --include-subsystem scheduler
+Regex version (more forgiving): .[syzbot_pick_unclaimed.py](http://_vscodecontentref_/3) --count 3 --include-subsystem-re '(cgroup|memcg|sched|scheduler|ns|namespaces)'
+You can repeat: --include-subsystem net --include-subsystem bridge
+Title-keyword filtering (when subsystem names don’t match what you expect):
+
+Cgroup/memcg: .[syzbot_pick_unclaimed.py](http://_vscodecontentref_/4) --count 3 --include-title-re 'cgroup|memcg'
+Namespaces: .[syzbot_pick_unclaimed.py](http://_vscodecontentref_/5) --count 3 --include-title-re 'namespace|setns|unshare|nsfs'
+Scheduler: .[syzbot_pick_unclaimed.py](http://_vscodecontentref_/6) --count 3 --include-title-re 'sched|scheduler|cfs|rtmutex'
+GPU (AMD/NVIDIA) note:
+
+The default picker excludes hardware-ish titles including drm|amdgpu|nouveau, so for GPU you must disable the default exclusion:
+AMD/NVIDIA(open-source nouveau): .[syzbot_pick_unclaimed.py](http://_vscodecontentref_/7) --count 3 --no-exclude-title --include-title-re 'drm|amdgpu|nouveau'
+(Upstream “NVIDIA” issues are typically nouveau; proprietary nvidia driver bugs usually won’t show up as upstream syzbot subsystems.)
+Tip: run once without filters, look at the printed subsystems: ... strings, then reuse the exact spelling with --include-subsystem.

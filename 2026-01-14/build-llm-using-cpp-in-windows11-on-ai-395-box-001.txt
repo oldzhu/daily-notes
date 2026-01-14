@@ -1,0 +1,8 @@
+
+Added the learn-by-hand doc and committed it.
+
+New doc: docs/learn_by_hand_walkthrough.md (tiny numeric examples for embeddings/LN/attention/CE + exercises)
+Updated index: docs/README.md (links the new doc; removed duplicate entry)
+Verified: ctest still passes
+Commit: 518a338 “Add learn-by-hand walkthrough doc”
+If you want to publish it: run git push in build-llm-using-cpp.

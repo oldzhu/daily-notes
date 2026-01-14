@@ -1,0 +1,11 @@
+Your updated workflow is now in good shape: both pickers support dynamic title filters at runtime, and they print the extid so you can immediately pick one candidate and feed it into the repro tooling.
+
+Dynamic filters live in tools/syzbot_pick_top3.py and tools/syzbot_pick_unclaimed.py via --include-title-re / --exclude-title-re (exclude defaults to the existing “hardware-ish” regex).
+“Choose one to work” is enabled because output now includes extid: ... (I smoke-tested this; it prints as expected).
+Practical next steps (end-to-end):
+
+Pick 3 “unclaimed” with a custom rule: .[syzbot_pick_unclaimed.py](http://_vscodecontentref_/5) --count 3 --include-title-re 'rcu|net|bridge' --exclude-title-re 'usb|wifi'
+Check whether one has patches in flight: .[syzbot_check_in_progress.py](http://_vscodecontentref_/6) --extid <EXTID>
+Scaffold a runnable QEMU repro bundle: .[syzbot_prepare_qemu_repro.py](http://_vscodecontentref_/7) --extid <EXTID>
+Reference docs if needed: docs/how-we-picked-top-3-syzbot-issues.md and docs/how-we-picked-unclaimed-syzbot-issues.md
+If you want, I can add a one-shot helper script that does “pick 3 → prompt/select 1 → auto-run repro prep” using the existing tools.
