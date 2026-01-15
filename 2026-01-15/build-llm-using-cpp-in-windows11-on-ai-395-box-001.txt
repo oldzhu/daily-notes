@@ -1,0 +1,6 @@
+Committed today’s changes.
+
+Commit: 446a032 “Add attention indexing trace doc”
+Added: docs/attention_indexing_trace.md
+Updated: docs/README.md
+Repo status: clean; branch is ahead of origin/main by 1 commit (run git push when you’re ready).

@@ -1,0 +1,9 @@
+Documented today’s “recently reported + not fixed/dup” work in docs/2026-01-15-syzbot-picker-recency-and-fix-signals.md.
+Improved tools/syzbot_pick_unclaimed.py:
+Adds --reported-after YYYY/MM/DD and --max-age-days N to focus on freshly reported bugs.
+Excludes bugs with fix-ish signals on the bug page (including dup), not just via status text.
+Staged + committed everything as b8a534e (“tools: refine unclaimed picker for recent unfixed bugs”); working tree is clean.
+Tomorrow (when network is better), we can run something like:
+
+.[syzbot_pick_unclaimed.py](http://_vscodecontentref_/0) --count 3 --reported-after 2026/01/01 --include-subsystem kernel --include-title-re 'rcu|stall|hung|lockup|preempt|workqueue'
+…and then pick one extid to start repro prep.
