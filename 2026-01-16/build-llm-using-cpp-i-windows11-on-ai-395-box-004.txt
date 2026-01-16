@@ -1,0 +1,66 @@
+The training of reasoning models like **OpenAI o1** and **DeepSeek R1** marks a massive shift in how we build AI.
+
+Traditional GPT training is about **imitation** (predicting the next word), while the new "Reasoning" training is about **exploration** (trial and error to find the right logic).
+
+---
+
+### 1. The Core Innovation: Reinforcement Learning (RL)
+
+Unlike standard LLMs that are mostly "Supervised" (learning from human-written answers), reasoning models are trained using **large-scale Reinforcement Learning**.
+
+* **The Reward System:** In traditional training, a model is "correct" if it matches a human's words. In reasoning models, the model is rewarded based on **The Final Answer**.
+* If the model is asked a math problem, it can "think" however it wants. If the final answer is `42`, it gets a reward. If it's `41`, it gets penalized.
+
+
+* **The "Aha Moment":** Because the reward is on the answer, not the process, the model starts to "invent" ways to get there. It learns that if it stops, re-reads the question, or checks its own work, it is more likely to get the reward.
+
+---
+
+### 2. New Technique: GRPO (Group Relative Policy Optimization)
+
+DeepSeek introduced a specific new RL algorithm called **GRPO** to replace the old standard, PPO (Proximal Policy Optimization).
+
+* **The Old Way (PPO):** Required a second "Critic" model to watch the first model and judge its work. This uses a lot of computer memory.
+* **The New Way (GRPO):** The model generates a **group** of different "thoughts" and "answers" for the same question at once.
+* It compares the answers within that group.
+* It rewards the ones that were better than the group average.
+* **Result:** It’s much more efficient and allows the model to learn complex reasoning on a "budget."
+
+
+
+---
+
+### 3. The "Cold Start" vs. "Pure RL"
+
+There are two distinct ways researchers are now starting the training:
+
+| Method | **Pure RL (R1-Zero)** | **Cold Start (R1 / o1)** |
+| --- | --- | --- |
+| **Beginning** | Model starts with zero reasoning examples. | Model is given a few thousand "Golden Examples" of humans thinking step-by-step. |
+| **Process** | Total trial and error. | Learn the *format* of thinking first, then explore via RL. |
+| **Outcome** | Amazing reasoning, but messy output (mixes languages, hard to read). | High reasoning AND human-friendly, readable logic. |
+
+---
+
+### 4. New Paper Concepts: "Inference-Time Scaling"
+
+A key concept popularized by the **OpenAI o1** report and the **DeepSeek R1** paper is the **"Scaling Law of Inference."**
+
+* **Traditional Scaling:** To make a model smarter, you give it more data during **training**.
+* **New Scaling:** To make a model smarter, you give it more **time/tokens to think** during **inference** (the moment you ask the question).
+* Researchers found that performance keeps going up the longer you let the model "search" for the right reasoning path.
+
+
+
+---
+
+### 5. Summary of New Training Pipeline
+
+Modern reasoning models usually follow this 4-step "virtuous cycle":
+
+1. **Cold Start:** Fine-tune on a tiny bit of high-quality "thinking" data.
+2. **Reasoning RL:** Massive trial-and-error on math and code where the answer is easily verifiable.
+3. **Rejection Sampling:** The model looks at its own "best" reasoning paths and uses those as new training data for the next version.
+4. **Final Alignment:** Making sure the "thinking" remains safe and helpful for humans.
+
+**Would you like me to explain how "Rejection Sampling" allows the model to basically become its own teacher?**

@@ -1,0 +1,15 @@
+Modes (what they optimize for)
+
+Ask: best for explanations, debugging help, design discussion, “teach me” walkthroughs. It won’t try to change lots of files unless you explicitly ask.
+Edit: best for a targeted, scoped change to the current file/selection (refactors, rename, small feature tweak). Think “surgical patch”.
+Agent: best for doing real work across the repo end-to-end (search codebase, edit multiple files, run builds/tests, update docs). Think “pair programmer who can execute”.
+Plan: best for agreeing on an approach before implementation (steps, acceptance criteria, risks, what files will change). Think “design/roadmap alignment”.
+Which mode when
+
+Learning/understanding core GPT code: Ask (deep explanations) + sometimes Plan (to structure what you’ll study/implement next).
+“Add multi-head attention + tests + docs” in this repo: Plan first (shapes, caching semantics, API changes), then Agent to implement + run ctest, then Ask to explain the final code.
+Your scenario (hand-writing + you want me to implement MHA)
+
+Yes: using Agent for the backend implementation is the right approach after we’ve agreed on the spec (that’s where Plan helps).
+And yes: you can switch to Plan mode anytime—common workflow is Plan → Agent → Ask (plan it, build it, then explain it).
+

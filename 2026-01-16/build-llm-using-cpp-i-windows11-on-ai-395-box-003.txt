@@ -1,0 +1,35 @@
+In the rapidly evolving world of LLMs, **GPT**, **DeepSeek**, and **Qwen** represent three distinct philosophies in AI development. While they all share the "Transformer" foundation you've been learning about, they differ significantly in their internal "plumbing."
+
+---
+
+### 1. The Comparison: GPT vs. DeepSeek vs. Qwen
+
+| Feature | **OpenAI GPT (GPT-4/o)** | **DeepSeek (V3/R1)** | **Alibaba Qwen (2.5/3)** |
+| --- | --- | --- | --- |
+| **Philosophy** | **Proprietary & Generalist.** Focuses on safety, multimodal fluidness, and massive scale. | **Open-Weights & Efficient.** Known for extreme math/coding and cost-saving breakthroughs. | **Enterprise & Logic.** Strongest in structured data, multilingual (29+), and deep reasoning. |
+| **Architecture** | Large **Dense** or MoE (Mixture of Experts). | Massive **Sparse MoE** (671B parameters, but only ~37B active at once). | Deep **Sparse MoE** (typically more layers, fewer experts than DeepSeek). |
+| **Special Sauce** | Advanced RLHF and "o1-style" hidden reasoning. | **Multi-Head Latent Attention (MLA)**: Reduces memory usage by 90% during inference. | **Qwen-VL Integration**: Superior native vision and document parsing. |
+| **Cost** | High (Proprietary API). | Extremely Low (10x cheaper than GPT-4). | Moderate (via Alibaba Cloud). |
+
+---
+
+### 2. Modern "Standard" Techniques
+
+Since the original GPT design, several technical upgrades have become "industry standard." Almost every modern model (Llama 3, DeepSeek, Qwen) uses these now:
+
+* **RoPE (Rotary Positional Embeddings):** Unlike the old GPT way of "adding" position numbers, RoPE **rotates** the vectors. This allows the model to handle much longer context windows (up to 1M tokens) without getting confused.
+* **SwiGLU Activation:** You asked about the **MLP** earlier—modern MLPs use SwiGLU instead of GELU. It’s slightly more complex math that acts as a "gate," allowing the model to learn much faster and remember facts better.
+* **RMSNorm:** A faster version of the **LayerNorm** you asked about. It skips the "mean" calculation and only focuses on the "root mean square," making training 10–40% faster.
+* **GQA (Grouped Query Attention):** A trick to speed up the **Attention** layer. Instead of every "Query" having its own "Key" and "Value," they share them in groups. This makes the AI answer you much faster while using less VRAM.
+
+---
+
+### 3. New & Popular Trends (The "2025-2026" Era)
+
+If you look at the absolute cutting edge right now, these are the three biggest shifts:
+
+1. **Thinking/Reasoning Models (LRMs):** Pioneered by **OpenAI o1** and **DeepSeek R1**. These models are trained to produce a "Chain of Thought" (CoT) *before* they give you the answer. They basically "talk to themselves" in a hidden scratchpad to solve hard math or logic.
+2. **MoE (Mixture of Experts):** Instead of one giant brain, the model is split into 64+ "mini-brains." When you ask a coding question, only the "Coding Experts" wake up. This allows a 600B parameter model to run as fast as a 30B parameter model.
+3. **MLA (Multi-head Latent Attention):** DeepSeek’s massive contribution to the field. It compresses the "memory" the AI needs to store while chatting, meaning you can have much longer conversations on cheaper hardware.
+
+**Would you like me to explain how the "Thinking" (Reasoning) process works inside models like DeepSeek R1 or OpenAI o1?**

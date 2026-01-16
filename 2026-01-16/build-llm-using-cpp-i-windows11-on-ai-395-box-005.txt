@@ -1,0 +1,51 @@
+To understand how models like **DeepSeek R1** or **OpenAI o1** "learn to think," we have to look at a new training paradigm called **Rejection Sampling Fine-Tuning** (sometimes called **RAFT** or **RFT**).
+
+This is a "self-teaching" cycle that replaces the traditional GPT-style imitation with **autonomous discovery**.
+
+---
+
+### 1. The Core Concept: Rejection Sampling
+
+In traditional GPT training, if the AI says "2 + 2 = 5," we simply tell it the correct answer is "4." In reasoning models, we let the AI **guess 16 different ways** to solve the problem and then act as a strict judge.
+
+#### The Process:
+
+1. **Generate:** The model is given a hard math or code prompt. It generates 16+ different "Chain of Thought" (CoT) responses.
+2. **Verify:** A "Reward System" (either a rule-based checker for math/code or a separate Judge Model) looks at all 16 versions.
+3. **Reject:** It throws away (rejects) the 15 versions that got the wrong answer or had messy logic.
+4. **Fine-Tune:** It keeps the **one perfect version** and uses it as new training data to update itself.
+
+---
+
+### 2. New Technique: Self-Distillation
+
+This is the most powerful part of the new "Reasoning" era. Models are now becoming their own teachers.
+
+* **Step 1:** You take a "Base" model and put it through a **Pure RL** phase (like DeepSeek-R1-Zero). It learns to think, but it might be messy (mixing languages, bad formatting).
+* **Step 2:** You use that messy-but-smart model to generate 800,000 "Perfect Reasoning Paths" for various problems.
+* **Step 3:** You filter these paths using Rejection Sampling to ensure they are 100% correct and readable.
+* **Step 4:** You **Fine-Tune** a brand new model on this "Gold Data."
+
+This is how DeepSeek created the "R1" model that is much cleaner and more stable than the "Zero" version. They even **distilled** these reasoning paths into much smaller models (like Llama-8B), giving small models "large-model reasoning" for the first time.
+
+---
+
+### 3. Comparison of Training Methods
+
+| Feature | Traditional GPT Training (SFT) | Modern Reasoning Training (RL + RS) |
+| --- | --- | --- |
+| **Data Source** | Humans writing answers. | Model discovering answers through trial/error. |
+| **Learning Goal** | "Talk like a human." | "Find the truth/correct answer." |
+| **Key Algorithm** | Next-Token Prediction. | **GRPO** or **PPO** (Reinforcement Learning). |
+| **Main Metric** | Cross-Entropy Loss (Text Match). | **Reward-based Loss** (Correctness). |
+| **Paper to Read** | *Attention is All You Need* (2017) | *DeepSeek-R1: Incentivizing Reasoning* (2025) |
+
+---
+
+### 4. Why is this better?
+
+Traditional SFT is capped by the intelligence of the humans writing the data. If a human can't solve a complex math proof, they can't write a training sample for it.
+
+**Reinforcement Learning and Rejection Sampling** allow the model to explore millions of logical paths that no human has ever written down. The model isn't just imitating us anymore; it's discovering **logical shortcuts** and **self-correction habits** on its own.
+
+**Would you like to see a breakdown of the "GRPO" algorithm, which is the specific math DeepSeek used to make this process much cheaper?**

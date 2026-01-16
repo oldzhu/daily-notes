@@ -1,0 +1,68 @@
+To understand these terms, it’s helpful to distinguish between the **Platform/API** (the foundation) and the **Libraries** (the specialized tools built on top).
+
+Think of the **API** as the "engine" or "language" that allows a program to talk to the GPU, and the **Libraries** as "pre-written books" that solve specific math problems (like matrix multiplication) using that engine.
+
+---
+
+### 1. The "Big Four" GPU Frameworks
+
+These are the primary ways developers interact with different brands of hardware.
+
+| Framework | Manufacturer | Type | Description |
+| --- | --- | --- | --- |
+| **CUDA** | **NVIDIA** | Proprietary API/Platform | The industry standard for AI. It only works on NVIDIA cards and includes a massive suite of optimized math libraries. |
+| **ROCm** | **AMD** | Open-Source Platform | AMD’s answer to CUDA. It uses **HIP**, a tool that allows developers to "port" CUDA code to run on AMD Radeon and Instinct GPUs. |
+| **MUSA** | **Moore Threads** | Proprietary Platform | A newer "CUDA-compatible" stack from China. It is designed to allow existing AI code to run on Moore Threads GPUs with minimal changes. |
+| **Vulkan** | **Khronos Group** | Open Standard API | Originally for high-end gaming graphics (cross-vendor), it is increasingly used for "Compute" because it works on almost *any* GPU (NVIDIA, AMD, Intel, Mobile). |
+
+---
+
+### 2. Other Important Frameworks
+
+Beyond the four you mentioned, these are widely used in the industry:
+
+* **Metal:** Apple’s proprietary API for Mac and iPhone GPUs. If you run a local LLM on a Mac (like via llama.cpp), it is likely using Metal.
+* **OneAPI / SYCL:** Intel’s open-standard approach to "write once, run anywhere" (CPU, GPU, FPGA). It is the primary way to get high performance out of Intel Arc or Data Center GPUs.
+* **OpenCL:** An older open standard for cross-platform computing. While still used, many modern AI projects are moving toward Vulkan or SYCL because OpenCL is considered slower to update.
+* **WebGPU:** A new web standard that brings high-performance GPU compute directly to browsers (Chrome, Firefox), allowing AI models to run in a web tab.
+
+---
+
+### 3. Libraries for ML & Matrix Algebra
+
+The frameworks above are the "languages," but for Machine Learning, we usually use specialized **libraries** that provide pre-optimized functions for linear algebra (like multiplying two 40,000x40,000 matrices).
+
+#### NVIDIA (CUDA-based) Libraries:
+
+* **cuBLAS:** The "Gold Standard" for Basic Linear Algebra Subprograms (matrix-vector multiplication).
+* **cuDNN:** Specifically for Deep Neural Networks (convolutions, pooling, activation functions).
+* **cuSolver / cuSparse:** For complex matrix factorizations and sparse data (where most of the matrix is zeros).
+
+#### AMD (ROCm-based) Libraries:
+
+* **rocBLAS:** The AMD equivalent of cuBLAS.
+* **MIOpen:** The AMD equivalent of cuDNN.
+
+#### Cross-Platform / High-Level Libraries:
+
+* **BLAS / LAPACK:** The historic standard for linear algebra on CPUs.
+* **Eigen:** A very popular C++ template library for linear algebra.
+* **CuPy:** A Python library that acts like **NumPy** but runs everything on the GPU (supports CUDA and ROCm).
+* **ArrayFire:** A high-level library that lets you write one piece of code and run it on CUDA, OpenCL, or the CPU.
+
+---
+
+### Summary: How they fit together
+
+If you are building an AI application:
+
+1. **Framework/API:** You choose **CUDA** (NVIDIA) or **ROCm** (AMD).
+2. **Linear Algebra Library:** You use **cuBLAS** or **rocBLAS** to handle the heavy math.
+3. **ML Framework:** You use **PyTorch** or **TensorFlow**, which sit on top of everything and handle the complexity for you.
+
+**Would you like me to show you a simple Python example of how to perform a matrix multiplication on a GPU using CuPy?**
+
+---
+
+[Moore Threads Huagang Architecture and MUSA Software Stack](https://www.youtube.com/watch?v=ehE8FEP5sB0)
+This video explains how the MUSA software stack acts as a Chinese alternative to CUDA, enabling new GPU architectures to compete in the global AI market.

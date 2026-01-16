@@ -1,0 +1,6 @@
+thanks, before we go to extend and. pls document them as the plan, design and implemetation and principles and guide lines so that we need to obey and follow in the whole project lifecycle. pls also put notes modern techs in LLMs we could extend,try and learn (such MoE, MLA,RoPE,SwiGLU Activation,RMSNorm,GQA,PPO,GRPO,RAFT) as the project will evolve with the latest progress and trends in LLMs training and inference.
+=======
+Added the lifecycle “rules of the road” doc: docs/project_lifecycle_guidelines.md
+Covers: learning-first principles, baseline vs variants strategy, backend/plugin strategy for CPU→GPU, docs/tests contract, review checklist, libraries policy, and a curated backlog of modern LLM techniques (MoE, RoPE, SwiGLU, RMSNorm, GQA, PPO, GRPO, RAFT, etc.).
+Linked it from the docs index: docs/README.md
+Want me to commit these changes now (and if yes, one commit or split into “docs index” + “guidelines” commits)?

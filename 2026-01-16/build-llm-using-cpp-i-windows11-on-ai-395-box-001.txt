@@ -1,0 +1,11 @@
+I’ll capture that “project goal + what’s next” summary into a dated note under docs/notes/, including the current git commit hash for later reference.
+
+git rev-parse --short HEAD
+ Enable shell integration to improve command detection
+
+Created notes and project goal file
+Created a dated reference note: docs/notes/2026-01-16_project_goal_and_next_steps.md.
+
+Captures: project goal, current baseline, recommended roadmap order (MHA → KV-cache → fidelity → performance → GPU), and the “docs/tests contract”.
+Includes snapshot git hash: 446a032.
+Want me to also link this note from docs/README.md and commit it?

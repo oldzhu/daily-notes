@@ -1,0 +1,49 @@
+et us discuss how to extend the project gradually
+
+From simple core to deeper wide which finally cover more popular and modern techs used in the LLMs and also evolved with new research and progress in this area.
+from cpu to different gpu
+from simple to support more frameworks(cuda,rocm,vulkan,musa) and more libraries for ML and algebra operations(cuBLAS,cuDNN,cuSolver / cuSparse,rocBLAS,MIOpen) when need to learn and practice on these frameworks and libraries.
+as I mentioned, I would like to extend it grandually and one by one, the goal is to learn and pratice, hand writing and brain simulation the code and math formula and concept gradually and one by one, one time to extend a lot is not good idea to master and learn. I also hope when extend or add a new feature or new plugin into the core simple gpt code - such as add multiple head
+seprate folder for the code which has the new added staff so that we can easily comare its code implementation with the core simple code base.
+for each new added staff, we also have detailed document to explain the implementation and mapping bewteen the code and the math formula. and one document to guide a hand writing and brain similaution of the algorithm and the code flow running.
+what do you think?
+========
+Your approach is exactly right for a self-learning “from bottom to top” project: keep a small, correct, well-documented core, then add one concept at a time with side-by-side code + matching docs/tests. If you do this, you’ll actually retain the math and systems knowledge instead of just “getting it to work”.
+
+How I’d structure it (so you can compare core vs extension easily)
+
+Keep a frozen “core baseline” (single-head, CPU FP32) as the reference implementation.
+For each new feature, add a variant in a separate folder, not a huge rewrite of core. Two good patterns:
+Variant folders + separate CMake targets
+Example shape: variants/mha/, variants/kv_cache/, variants/simd/, variants/cuda/
+Each builds its own executable, so you can diff/compare behavior and performance.
+Backend/plugin folders (for CPU/GPU switching)
+A stable “front-end” model definition, plus swappable “kernel backends” (CPU reference → CPU SIMD → CUDA → ROCm → Vulkan).
+This is best once you reach GPU, but you can start simple.
+Documentation “contract” per feature (what you asked for)
+For every new feature/plugin, require these artifacts (and fail the PR if missing):
+
+“Paper/math → code mapping” doc: equations, shapes, what changed, where in code.
+“Learn-by-hand walkthrough” doc: a tiny numeric example + step-by-step flow.
+Targeted comments in the new/changed functions (shape + formula blocks).
+At least one new test/regression guardrail.
+Gradual roadmap (learning-first order)
+
+Core-model depth first (still CPU):
+Multi-head attention → affine LayerNorm (γ/β) → dropout (optional) → better init/scaling conventions
+KV-cache (generation performance) after MHA
+Tokenizer upgrade (BPE/SentencePiece) later (it’s a whole topic by itself)
+Performance on CPU:
+profiling → blocked matmul → SIMD kernels → memory-layout tuning
+Then GPU + frameworks/libraries (one at a time):
+Start with a minimal CUDA backend (one or two kernels) → optionally use cuBLAS for matmul → then expand to cuDNN/cuSPARSE only when you need them
+Repeat similarly for ROCm (rocBLAS/MIOpen), then Vulkan, then MUSA, etc.
+Key design principle for GPU/libraries
+Define a small “kernel API surface” (matmul, softmax, layernorm, attention pieces) and make every backend implement it. That way you learn:
+
+the math once,
+the memory layouts once,
+then each backend becomes “just” a new implementation of the same primitives.
+If you want, next session I can propose a concrete folder layout + CMake target scheme (core + variants/ + backend interface), and we’ll implement the first extension as a template (e.g., a “multi-head attention variant” folder with two docs and one test).
+
+

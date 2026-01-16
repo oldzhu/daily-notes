@@ -1,0 +1,29 @@
+What I changed (concrete template in repo)
+
+Added a clear layout + target scheme doc: folder_layout_and_targets.md
+Refactored CMake into composable targets: CMakeLists.txt
+llm_core (baseline library: tensor/ops/model/optim/checkpoint/data/util)
+llm_backend (INTERFACE placeholder for future backend boundary)
+llm_variant_mha (first variant library)
+train_gpt links llm_core
+test_build_llm links llm_core + llm_variant_mha
+First extension template: MHA variant (code + 2 docs + 1 test)
+
+Code (naive multi-head causal attention):
+mha_attention.h
+mha_attention.cpp
+Function: nn::variants::mha::self_attention_mha(..., int n_heads)
+Uses the same parameter layout as baseline (w_qkv: [C,3C], w_proj: [C,C]) and splits channels into heads by reshape.
+Docs (2 files):
+README.md
+learn_by_hand.md
+Linked from the docs index: README.md
+Test (1 focused test):
+Updated test_main.cpp with test_mha_matches_1h_when_single_head()
+Verifies forward + backward match the baseline when n_heads=1.
+Validation + commit
+
+Reconfigured + built + ran ctest (Debug): pass.
+Committed as c3e4573.
+If you want the next step, I can add a second variant skeleton (e.g., KV-cache “API-only” stub + docs) without changing runtime behavior yet, so you have a repeatable pattern for future extensions.
+

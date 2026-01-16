@@ -1,0 +1,9 @@
+Yes—at this point you have a working “tiny GPT” baseline:
+
+Decoder-only GPT-style Transformer with single-head causal self-attention
+CPU FP32 forward + backward (training) via the project’s own autograd
+Training loop with next-token prediction on byte-level tokens (vocab=256)
+Inference/generation via --prompt + sampling (temp/top-k, optional ASCII-only)
+Checkpoint save/load (weights + optional AdamW state)
+Basic correctness tests + teaching docs in docs
+So it’s a complete end-to-end training + inference engine, intentionally simplified for learning and iteration.
