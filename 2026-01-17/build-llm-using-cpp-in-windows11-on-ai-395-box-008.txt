@@ -1,0 +1,60 @@
+Yes, absolutely. The input stage has more going on than just the word-to-vector mapping. Besides the **Token Embeddings** (the "what" of the word), there are two other major sets of weights involved in "preparing" the data for the Transformer blocks.
+
+---
+
+### 1. Learned Positional Embeddings (The "Where")
+
+Since Transformers process all words at the same time (parallel), they have no idea if "cat" comes before "sat" unless we tell them.
+
+In models like **GPT-2** and **BERT**, there is a second massive lookup table called the **Positional Embedding Matrix**.
+
+* **Shape:** `[Max Sequence Length × Embedding Dimension]`
+* **Sample:** In your case, it would be `[6 × 4]`.
+* **How it works:** * Position 0 has its own unique 4-dimensional vector.
+* Position 1 has a different 4-dimensional vector.
+
+
+* **Is it trainable?** **Yes.** During training, the model learns the best "vector signature" for "this is the first word" versus "this is the middle word."
+* **The Final Step:** Before entering the Attention layer, the model literally **adds** the Token vector and the Position vector together.
+
+> **Note on Modern Models:** Newer models like **Llama 3** or **DeepSeek** often use **RoPE (Rotary Positional Embeddings)**. RoPE is a mathematical formula (sin/cos) and doesn't usually use a "lookup table" of trainable weights for positions.
+
+---
+
+### 2. Layer Normalization Weights ( and )
+
+Immediately after the embeddings are added together—and before they enter the first Attention layer—they usually pass through **Layer Normalization**.
+
+As we discussed earlier, LayerNorm has two tiny but critical trainable "scaling" weights for every dimension:
+
+* ** (Gamma):** A "stretch" factor.
+* ** (Beta):** A "shift" factor.
+* **Size:** If your embedding dimension is 4, you have 4 Gammas and 4 Betas (8 total weights).
+* **Role:** These weights allow the model to decide the "volume" and "center" of the data after the embeddings have been added.
+
+---
+
+### 3. Total Weight Summary for the Input Stage
+
+If we look at your specific sample (8-word vocab, 6-length seq, 4-dim):
+
+| Weight Set | Purpose | Trainable? | Count in your Sample |
+| --- | --- | --- | --- |
+| **Token Embeddings** | Meaning of the word | **Yes** |  |
+| **Positional Embeddings** | Order of the word | **Yes** (in GPT-style) |  |
+| **LayerNorm** | Stability | **Yes** |  |
+
+**Total Input-Stage Weights:** **64 weights.**
+
+---
+
+### 4. How they change during training
+
+When the model gets the prediction wrong (e.g., it predicted "dog" instead of "mat"):
+
+1. **Gradients** flow all the way back to the very first layer.
+2. **Token Update:** The vector for "mat" is tweaked to be more "attractive" to the context of "sat on a."
+3. **Position Update:** The vector for "Position 6" is tweaked to better signal that "this is the spot where nouns usually appear."
+4. **Norm Update:** The  and  are tweaked to ensure the "signal" doesn't get too noisy for the Attention layer to handle.
+
+**Would you like to see how "Weight Tying" allows the model to use the same weights for both the Input Embedding and the Output Logits to save memory?**

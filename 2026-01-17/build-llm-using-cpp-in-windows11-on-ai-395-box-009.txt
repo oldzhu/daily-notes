@@ -1,0 +1,71 @@
+In a modern Large Language Model (LLM) or Vision-Language Model (VLM), the trainable weights are organized into functional "blocks." While a "mini" model might have hundreds of weights, a production model like Llama 3 or DeepSeek has **billions**.
+
+Here is the complete list of trainable weights, categorized by where they live in the architecture.
+
+---
+
+### 1. Language Model Weights (The "Brain")
+
+In a decoder-only LLM (like GPT-4, Llama, or DeepSeek), these weights repeat across every layer (e.g., 32, 80, or 100+ layers).
+
+#### **A. The Embedding Layer**
+
+* **Token Embeddings:** A massive lookup table of size `[Vocabulary Size × Model Dimension]`.
+* **Positional Embeddings:** (If learned) A table of `[Max Sequence Length × Model Dimension]`.
+
+#### **B. The Self-Attention Block (Per Layer)**
+
+* **Query (), Key (), Value ():** Three matrices that project the input into attention space.
+* **Output Projection ():** A matrix that "mixes" the results from all attention heads back into a single vector.
+
+#### **C. The MLP / Feed-Forward Block (Per Layer)**
+
+* **Up-Projection ():** Expands the vector (usually by ) to create "room" for factual knowledge.
+* **Gating Matrix ():** (In modern SwiGLU models) Controls which information passes through.
+* **Down-Projection ():** Shrinks the vector back to its original size.
+
+#### **D. Layer Normalization (Per Layer)**
+
+* ** (Gain) &  (Bias):** Two small vectors per layer that stabilize the numbers.
+
+---
+
+### 2. Vision-Language Model (VLM) Weights
+
+A VLM adds several new components to handle images. In many cases (like LLaVA), the "Brain" above is kept **frozen** (not trained), and only the following are trained:
+
+#### **A. The Vision Encoder (e.g., ViT or CLIP)**
+
+* **Patch Embeddings:** A linear layer that turns image pixels into "visual tokens."
+* **Internal Transformer Weights:** Exactly like the LLM weights above (, MLP), but optimized for pixels instead of words.
+
+#### **B. The Modality Connector (The "Bridge")**
+
+This is the most critical part of a VLM. It translates "Vision Language" into "Text Language."
+
+* **Linear Projector or MLP:** Usually 2 or 3 dense layers that resize the vision vectors to match the text vectors.
+* **Cross-Attention Layers:** (In models like Flamingo) Specialized weights that allow text tokens to "look at" image patches.
+
+---
+
+### 3. Summary Table: Where the Parameters Live
+
+| Component | Matrix / Weight Type | Typical Count (7B Model) |
+| --- | --- | --- |
+| **Embeddings** | Token + Position | ~130 Million |
+| **Attention** |  | ~1.5 Billion |
+| **MLP (FFN)** | $W_{up}, W_{gate},  | ~5 Billion |
+| **Norms** | LayerNorm / RMSNorm | ~1 Million |
+| **VLM Bridge** | Linear / MLP Projector | ~20–50 Million |
+
+---
+
+### How they are updated
+
+During the **Backward Pass**, the model uses the **Chain Rule** of calculus to figure out exactly how much each weight contributed to a wrong guess.
+
+1. **Gradients** are calculated for every weight listed above.
+2. **Optimizers** (like AdamW) adjust the values.
+3. **Weight Tying:** Some models save memory by making the **Input Embedding** and the **Final Logit Layer** share the exact same weights, so they learn together.
+
+**Would you like to see how "LoRA" (Low-Rank Adaptation) allows us to train these billions of weights by only touching 1% of them?**

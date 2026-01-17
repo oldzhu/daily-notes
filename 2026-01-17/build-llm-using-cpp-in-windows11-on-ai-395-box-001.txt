@@ -1,0 +1,45 @@
+Build (core program = the CLI app)
+From the repo root (the folder that contains CMakeLists.txt):
+
+Configure + build Debug (easy to debug):
+cmake -S . -B build
+cmake --build build --config Debug -j
+(Use --config Release for speed.)
+
+1) Training smoke test (no checkpoint)
+This trains a tiny byte-level GPT on the included text file:
+
+.[train_gpt.exe](http://_vscodecontentref_/2) --data [the-verdict.txt](http://_vscodecontentref_/3) --steps 30 --batch 4 --seq 64 --dmodel 64 --layers 1 --lr 0.0003 --seed 1
+What to look for:
+
+It prints loss= at step 1 and every 10 steps.
+Loss should generally trend down (not perfectly monotonic).
+2) Training + save checkpoint
+This writes PREFIX.json + PREFIX.bin:
+
+.[train_gpt.exe](http://_vscodecontentref_/5) --data [the-verdict.txt](http://_vscodecontentref_/6) --steps 200 --batch 4 --seq 64 --dmodel 64 --layers 1 --lr 0.0003 --seed 1 --save .\data\ckpt_tiny
+You should see: saved checkpoint '...\ckpt_tiny' at step ...
+
+3) Resume training from checkpoint
+Loads model + (optionally) optimizer state, then continues:
+
+.[train_gpt.exe](http://_vscodecontentref_/8) --load .\data\ckpt_tiny --data [the-verdict.txt](http://_vscodecontentref_/9) --steps 100 --save .\data\ckpt_tiny
+If you want to not save optimizer state in the next save: add --save-opt 0.
+
+4) Inference (generate) from a checkpoint
+No training, just sampling:
+
+.[train_gpt.exe](http://_vscodecontentref_/11) --load .\data\ckpt_tiny --steps 0 --prompt "Hello, I'm a tiny GPT. " --gen 200 --temp 0.8 --topk 40 --ascii-only 1 --escape-bytes 1
+Notes:
+
+--ascii-only 1 and --escape-bytes 1 are great early on because the model is byte-level (0–255) and can emit non-printables.
+5) Train then generate in the same run
+If you pass --prompt, it will train first (if --steps > 0) and then generate:
+
+.[train_gpt.exe](http://_vscodecontentref_/13) --data [the-verdict.txt](http://_vscodecontentref_/14) --steps 300 --batch 4 --seq 64 --dmodel 64 --layers 1 --lr 0.0003 --seed 1 --prompt "Hello: " --gen 200 --temp 1.0 --topk 40
+Extra: show CLI help
+
+.[train_gpt.exe](http://_vscodecontentref_/15) --help
+If you tell me whether you want a super tiny “fast sanity run” (like 5–10 steps) or a “visible learning” run (like 1–5k steps), I can suggest good --seq/--dmodel/--layers values for your machine.
+
+

@@ -1,0 +1,1 @@
+If you want, we can do this as an interactive “guided reading”: pick ONE entry point (I recommend TinyGPT::forward_logits), and I’ll walk line-by-line explaining what each local variable corresponds to in the decoder equations and what the shapes are at every step. Which part do you want to start with: embeddings, attention, or the training loop?

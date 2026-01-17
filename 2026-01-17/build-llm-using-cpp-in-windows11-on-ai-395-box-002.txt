@@ -1,0 +1,15 @@
+I’ll quickly point to the exact build wiring so you can see whether the CLI executable links the MHA variant.
+
+Read CMakeLists.txt
+
+No — right now train_gpt.exe does not use MHA.
+
+The CLI target links only the core library: CMakeLists.txt:28-33
+The MHA variant library is linked into the tests executable only: CMakeLists.txt:41-48
+So at runtime, the model used by train_gpt.exe is still the baseline 1-head attention path (nn::self_attention_1h) from model.cpp.
+
+If you want train_gpt.exe to “involve MHA”, there are two clean options:
+
+Add a CLI flag like --heads H, extend the model config with n_heads, and in model.cpp call the variant when H>1 (while keeping baseline as default).
+Or create a separate executable (e.g., train_gpt_mha) that links llm_variant_mha and uses an MHA-enabled model variant (keeps the baseline executable totally unchanged).
+Tell me which you prefer and I’ll implement it.

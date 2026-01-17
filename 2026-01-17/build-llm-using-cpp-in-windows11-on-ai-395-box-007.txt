@@ -1,0 +1,77 @@
+To visualize how an LLM actually works under the hood, we can walk through a "miniature" version of a Transformer layer.
+
+### The Setup
+
+* **Vocabulary ():** 8 tokens (e.g., "The", "cat", "sat", "on", "mat", "a", "red", ".")
+* **Sequence Length ():** 6 tokens.
+* **Embedding Dimension ():** 4 numbers per word.
+
+---
+
+### 1. The Learnable Weights: The "Brain" of the Model
+
+In a single standard Transformer layer, the **learnable weights** are the fixed matrices that the model adjusts during training. For our  model, they are:
+
+| Component | Matrix Name | Shape | Parameters (Weights + Biases) |
+| --- | --- | --- | --- |
+| **Attention: Query** |  |  |  |
+| **Attention: Key** |  |  |  |
+| **Attention: Value** |  |  |  |
+| **Attention: Output** |  |  |  |
+| **MLP: Up-Projection** |  |  |  |
+| **MLP: Down-Projection** |  |  |  |
+| **Language Head** |  |  |  |
+
+**Total Learnable Parameters in this Block:** .
+
+*Note: In a real model like GPT-3, these matrices are huge (e.g., ), leading to billions of parameters.*
+
+---
+
+### 2. Step-by-Step Training Process
+
+Imagine we give the model the sequence: **"The cat sat on a [mat]"**. We want it to predict the word "mat".
+
+#### A. Forward Pass (The Guess)
+
+1. **Input:** The 6 words are converted into a  matrix.
+2. **Attention calculation:**
+* The matrix is multiplied by  to create **Queries, Keys, and Values**.
+* **Dot Product:** Each word's Query is dot-producted with every word's Key to see how much they "match."
+* **Softmax:** These scores become percentages (Attention Weights).
+* **Weighted Sum:** We use those percentages to mix the "Value" vectors together.
+
+
+3. **MLP:** Each word's new vector is sent through the  and  layers to refine its meaning.
+4. **Logits:** The final vector for the 6th token is multiplied by  ( matrix). This produces **8 raw scores** (Logits)—one for every word in our dictionary.
+5. **Probability:** We apply Softmax to the 8 Logits.
+* *Result:* `{"The": 0.01, "mat": 0.15, "cat": 0.02, ...}`
+
+
+
+#### B. The Error (Loss)
+
+The model predicted "mat" with only **15% confidence**. We compare this to the "Ground Truth" (which says "mat" should be **100%**). The difference is our **Loss**.
+
+#### C. Backward Pass (The Learning)
+
+1. **Gradients:** We calculate a "Gradient" for every single weight in our 268-parameter list. The gradient tells us: *"If I increase this specific weight by a tiny bit, will the error go down?"*
+2. **Optimizer (Weight Update):** An algorithm (like AdamW) nudges the weights in the direction that reduces the error.
+* 
+
+
+3. **Repeat:** After thousands of sentences,  learns that "sat on a..." usually leads to "mat."
+
+---
+
+### 3. Inference: Predicting the Next Token
+
+During inference (when you use the AI), the weights are **frozen**. They do not change.
+
+1. **Input Prompt:** You type "The cat sat on a".
+2. **One-way Trip:** The tokens pass through the weights ().
+3. **Scoring:** The frozen  matrix produces 8 scores.
+4. **Sampling:** You pick the highest probability word (or use "Temperature" to pick a slightly random one).
+5. **Autoregression:** You take that new word ("mat"), add it to your prompt, and **feed the whole thing back in** to predict the next word (likely a ".").
+
+**Would you like to see the specific math showing how "Positional Encodings" are added to the input before the Attention layer starts?**

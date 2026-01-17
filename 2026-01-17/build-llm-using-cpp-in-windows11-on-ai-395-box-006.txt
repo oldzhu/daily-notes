@@ -1,0 +1,45 @@
+Yes, **GRPO still uses gradients** to adjust the learnable weights of the model.
+
+In fact, the "Optimization" part of **G**roup **R**elative **P**olicy **P**timization refers specifically to **Gradient Descent** (or more accurately, Gradient Ascent on the reward). While GRPO changes *how* we calculate the signal (the Advantage), it does not change the fundamental way the neural network updates its weights.
+
+---
+
+### 1. How the Gradient works in GRPO
+
+Think of the gradient as a **steering wheel**. In a standard LLM, the gradient steers the model to "speak like the training text." In GRPO, the gradient steers the model based on the **Advantage** of the group.
+
+1. **The Signal:** For a group of 16 responses, GRPO calculates which ones were "better than average" (Positive Advantage) and which were "worse" (Negative Advantage).
+2. **The Gradient Calculation:** The model looks at the tokens it generated.
+* If a token was part of a **high-reward** response, the gradient is "Positive." This tells the weights: *"Adjust yourself so the probability of choosing this token in this context goes **UP**."*
+* If it was part of a **low-reward** response, the gradient is "Negative." This tells the weights: *"Adjust yourself so this probability goes **DOWN**."*
+
+
+3. **The Weight Update:** Just like in standard training, these gradients are passed to an optimizer (like **AdamW**), which mathematically tweaks the billions of weights in the attention and MLP layers.
+
+---
+
+### 2. The Math: GRPO Objective Function
+
+The loss function () that the model tries to minimize actually looks very similar to the one used in GPT training, but it is multiplied by the **Advantage ()**:
+
+* **:** The model's probability of generating that specific output.
+* **:** The group-relative advantage (how much better/worse this version was).
+* **The Gradient:** When we take the derivative (gradient) of this loss, it tells us exactly how to move the weights  to make the "winning" paths more likely.
+
+---
+
+### 3. What’s different from "Traditional" GPT Gradients?
+
+| Feature | Traditional GPT (SFT) | GRPO Reinforcement Learning |
+| --- | --- | --- |
+| **Target** | A fixed "Correct" text provided by a human. | A self-generated text that happened to get a high reward. |
+| **Gradient Direction** | Always pushes toward the target text. | Pushes **toward** good self-generated text and **away** from bad ones. |
+| **Loss Function** | Cross-Entropy Loss. | Clipped Surrogate Objective (similar to PPO). |
+| **Backpropagation** | Standard backprop through the whole model. | Standard backprop through the **Policy model** only (no Critic model). |
+
+### 4. Why GRPO is "Gradient Efficient"
+
+The reason everyone is talking about GRPO (and why DeepSeek used it) is that it allows for these gradient updates **without a "Critic" network**.
+In standard RL (PPO), you have to calculate gradients for *two* massive models: the Actor and the Critic. GRPO uses math to get the same "steering" signal using only the Actor. This means you can use that saved memory to train a much larger model or use a much larger batch size.
+
+**Would you like to see the specific "Clipping" math that prevents the gradients from changing the weights too much in a single step?**
