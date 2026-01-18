@@ -1,0 +1,52 @@
+Quantization is the "magic trick" that allows us to run massive models on consumer hardware. It works by reducing the precision of the model's weights from a high-resolution format (like 16-bit) to a lower-resolution one (like 4-bit).
+
+While you might expect a huge drop in intelligence, modern techniques like **NF4 (NormalFloat 4)** and **GPTQ** ensure the model stays surprisingly smart.
+
+---
+
+### 1. The "Sweet Spot": 4-bit vs. 16-bit
+
+Researchers have discovered that **4-bit** is the optimal balance between memory and intelligence.
+
+* **Intelligence Retention:** A 4-bit quantized model usually recovers **over 99%** of the accuracy of its 16-bit original version.
+* **The "Cliff":** When you drop below 4 bits (to 3-bit or 2-bit), the model's "perplexity" (a measure of confusion) spikes, and its reasoning starts to break down.
+* **The Trade-off Rule:** A **larger model at 4-bit** (e.g., a 13B model) almost always outperforms a **smaller model at 16-bit** (e.g., a 7B model), even if they use the same amount of VRAM.
+
+---
+
+### 2. How Quantization Affects Reasoning
+
+While general knowledge stays high, quantization can subtly affect certain specific tasks:
+
+* **Math and Logic:** Very low-bit models (3-bit and below) may start to make simple arithmetic errors or lose the thread of a complex logical proof.
+* **Creative Writing:** The "richness" of the vocabulary might decrease slightly as the model's nuance is compressed.
+* **Hallucinations:** In extreme compression, the model may become "more confident in being wrong" because its internal probability distributions have been flattened.
+
+---
+
+### 3. Comparison of Quantization Levels
+
+| Bits | Format | Memory (per 1B params) | Accuracy Loss | Verdict |
+| --- | --- | --- | --- | --- |
+| **16-bit** | FP16 / BF16 | **2.0 GB** | 0% | Gold standard for training and high-end servers. |
+| **8-bit** | INT8 | **1.0 GB** | < 0.5% | Very safe; almost indistinguishable from 16-bit. |
+| **4-bit** | **NF4 / GGUF** | **~0.7 GB** | **~1-2%** | **The Best Value.** Allows 70B models to run on home PCs. |
+| **2-bit** | EXL2 / Q2_K | ~0.4 GB | 10-20%+ | Very noticeable "brain fog." Use only as a last resort. |
+
+---
+
+### 4. Why doesn't it just "break"?
+
+LLM weights follow a **Normal (Gaussian) Distribution**—most of the "intelligence" is concentrated in a specific range of numbers, with a few important outliers.
+Modern 4-bit formats like **NF4** are designed to be "smarter" than regular numbers. They allocate more "points" to the range where most weights live, ensuring that the most important information is preserved while the "boring" parts are compressed more heavily.
+
+[Image showing a weight distribution curve with quantization levels concentrated around the peak to minimize error]
+
+### Final Summary: The VRAM Math
+
+If you have a **24GB GPU** (like an RTX 3090/4090):
+
+* **16-bit:** You can only run a **7B or 8B** model comfortably.
+* **4-bit:** You can run a **30B or 32B** model with room to spare for a long conversation.
+
+**Would you like me to help you calculate exactly which model size (8B, 14B, 32B) would fit on your specific hardware at 4-bit precision?**

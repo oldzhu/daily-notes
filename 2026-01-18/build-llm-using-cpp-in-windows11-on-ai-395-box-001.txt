@@ -1,0 +1,97 @@
+Here is a summary of the trainable weights in modern models, broken down into the "building blocks" that allow them to understand text and images.
+
+---
+
+### 1. The Foundation: Input Weights
+
+Before the model "thinks," it must turn raw data into numbers.
+
+| Weight Type | Sample Model Size () | Usage |
+| --- | --- | --- |
+| **Token Embedding** |  | Maps a word ID to a concept vector. Each row is a "concept" for one word. |
+| **Positional Embedding** |  | Tells the model *where* a word is. Without this, "dog bites man" = "man bites dog." |
+
+---
+
+### 2. The Processor: Transformer Layer Weights
+
+These weights repeat in every layer of the model (e.g., if there are 12 layers, multiply these by 12).
+
+#### **Attention Block (Communication)**
+
+These weights decide which words in the sentence should "talk" to each other.
+
+* ** (Query, Key, Value):** Three matrices of .
+* **:** "What am I looking for?"
+* **:** "What information do I have?"
+* **:** "The actual content to share."
+
+
+* ** (Output Projection):** One  matrix.
+* Combines the "messages" from different attention heads back into one vector.
+
+
+
+#### **MLP / Feed-Forward Block (Knowledge)**
+
+These weights act as the "long-term memory" or factual storage.
+
+* ** (Expansion):** Usually  (projects  to ).
+* Stretches the vector to find complex patterns.
+
+
+* ** (Contraction):** .
+* Shrinks the result back to the standard size for the next layer.
+
+
+
+#### **LayerNorm (Stability)**
+
+* ** and :** Two vectors of size .
+* Keeps the math stable so numbers don't explode or vanish during training.
+
+
+
+---
+
+### 3. The Output: Language Head
+
+* **:** A matrix of .
+* Turns the final "thought" vector back into a list of 256 scores (logits), one for every possible word in your vocabulary.
+
+
+
+---
+
+### 4. Vision-Language Model (VLM) Additions
+
+In VLM mode (like LLaVA or DeepSeek-VL), the model adds "eyes" to the text brain:
+
+* **Vision Encoder Weights:** Usually a pre-trained "Vision Transformer" (ViT). It has its own sets of  optimized for pixels.
+* **Projection Layer (The Connector):** A small MLP (e.g., two  layers).
+* **Usage:** This is the most important "bridge." It translates "Visual Language" (from the camera) into the "Text Language" that the LLM understands.
+
+
+
+---
+
+### Summary Table: Training Differences
+
+| Feature | LLM Mode | VLM Mode |
+| --- | --- | --- |
+| **Input Data** | Tokens (IDs) | Tokens + Image Patches (Pixels) |
+| **Active Weights** | Full Transformer Block | Connector + (sometimes) Vision Encoder |
+| **Training Focus** | Next-word prediction accuracy. | Aligning image features with text meanings. |
+| **Weight Update** | All parameters typically updated. | Often "Frozen" LLM; only train the "Bridge." |
+
+### Calculating your sample:
+
+For your specific mini-model () with **1 layer**:
+
+* **Embeddings:** 
+* **Attention:** 
+* **MLP:** 
+* **Head:** 
+* **Total:** **~11,776 trainable weights.**
+
+**Would you like to see how "Weight Tying" could reduce this total by sharing the Embedding and Head weights?**
