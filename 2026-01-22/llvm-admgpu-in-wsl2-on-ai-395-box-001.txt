@@ -1,0 +1,5 @@
+No — I hadn’t added a dedicated build-matrix doc before. I’ve now added it and pushed it.
+
+New: BUILD_MATRIX.md (maps llvm-amdgpu-wsl2 vs llvm-nvptx-wsl2, what each produces, and the exact CMake/Ninja commands)
+Updated: README.md (links to BUILD_MATRIX.md)
+Pushed as commit e507dd7

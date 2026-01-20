@@ -1,0 +1,8 @@
+Pushed successfully.
+
+origin/next now exists at 19ceb75 (your working branch going forward).
+origin/master was force-updated to 96e289c (the container build-env commit 709542e is no longer on master).
+Backup still exists locally as master-backup-20260119 if you ever need to recover that old master tip.
+Next: keep day-to-day work on next (and we can do the container smoke test tomorrow from that branch).
+
+
